@@ -1,8 +1,3 @@
-/* ============================================================
-   파일: src/pages/admin/AdminReview.tsx
-   경로: /admin/review
-   ============================================================ */
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,7 +14,6 @@ const ADMIN_NAV = [
 const STATUSES = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
 const SYSTEM_TYPES = ["웹 애플리케이션", "모바일 앱", "API/서비스", "데이터 파이프라인", "ML/AI 모델", "배치/스케줄러", "인프라/DevOps 도구", "라이브러리/SDK", "내부 플랫폼", "내부 도구", "기타"];
 const DOMAINS = ["마케팅", "영업/CRM", "HR/인사", "재무/회계", "고객 서비스", "제조/생산", "IT 인프라", "데이터/분석", "보안", "내부 도구", "기타"];
-const DEPARTMENTS = ["메이크업연구소", "스킨케어연구소", "재무팀", "인사팀", "마케팅팀", "영업팀", "IT인프라팀", "IT개발팀", "품질관리팀", "제조기술팀", "고객서비스팀", "디자인팀", "구매팀", "법무팀"];
 const AUDIENCES = ["내부 직원 전체", "특정 부서", "외부 고객", "파트너사", "시스템 간 (내부 API)"];
 const STACK_GROUPS: Record<string, string[]> = {
   "언어": ["Python", "JavaScript", "TypeScript", "Java", "Go", "Kotlin", "Swift", "C#", "Rust"],
@@ -28,16 +22,53 @@ const STACK_GROUPS: Record<string, string[]> = {
   "데이터": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch", "Kafka", "Airflow", "Spark"],
 };
 
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
+const COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
+  { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMW", name: "무석콜마" },
+  { code: "KUS", name: "미국콜마" },
+];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code 응답으로 교체
+const PARENTS_BY_COMPANY: Record<string, string[]> = {
+  KKM: ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"],
+  KBH: ["연구개발본부", "경영지원본부"],
+  KMG: ["영업마케팅본부", "경영지원본부"],
+  KMW: ["생산본부"],
+};
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code&parent=:parent 응답으로 교체
+const DEPTS_BY_PARENT: Record<string, string[]> = {
+  "연구개발본부": ["메이크업연구소", "스킨케어연구소", "헬스케어연구소"],
+  "IT본부": ["IT개발팀", "IT인프라팀"],
+  "경영지원본부": ["재무팀", "인사팀", "사업기획팀", "구매팀", "법무팀"],
+  "영업마케팅본부": ["마케팅팀", "영업팀", "글로벌사업팀"],
+  "생산본부": ["품질관리팀", "제조기술팀", "생산관리팀"],
+};
+
+const NO_PARENT = "본부 없음 (관계사 직속)";
+
 type Contact = { name: string; dept: string; role: string; email: string };
 type LinkItem = { label: string; url: string };
+type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
 type ReviewItem = {
   id: string; title: string; summary: string; description: string;
   dept: string; submittedBy: string; submittedAt: string;
   status: string; domain: string[]; domainOther: string; type: string; typeOther: string;
-  stack: string[]; audience: string[]; departments: string[];
+  stack: string[]; audience: string[]; orgEntries: OrgEntry[];
   integrations: string; freeTags: string;
   contacts: Contact[]; links: LinkItem[];
   approval: "대기" | "승인" | "반려"; rejectionReason?: string;
+};
+
+let orgEntryIdSeq = 1000;
+
+const orgEntryDisplay = (e: OrgEntry) => {
+  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
+  if (!e.parent) return companyName;
+  if (!e.dept) return `${companyName} > ${e.parent}`;
+  return `${companyName} > ${e.parent} > ${e.dept}`;
 };
 
 // TODO: 실제 연동 시 GET /api/v1/admin/review-queue 응답으로 교체
@@ -49,7 +80,11 @@ const INITIAL_ITEMS: ReviewItem[] = [
     dept: "메이크업연구소", submittedBy: "이수연", submittedAt: "2025.06.01",
     status: "개발 중", domain: ["데이터/분석"], domainOther: "", type: "내부 플랫폼", typeOther: "",
     stack: ["React", "FastAPI", "PostgreSQL", "AWS"],
-    audience: ["특정 부서"], departments: ["메이크업연구소", "IT개발팀"],
+    audience: ["특정 부서"],
+    orgEntries: [
+      { id: 1, company: "KKM", parent: "연구개발본부", dept: "메이크업연구소" },
+      { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
     integrations: "LIMS", freeTags: "실험데이터, 버전관리, 연구자동화",
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "노션 문서", url: "https://notion.so/kolmar/exp-platform" }],
@@ -62,7 +97,12 @@ const INITIAL_ITEMS: ReviewItem[] = [
     dept: "구매팀", submittedBy: "박성훈", submittedAt: "2025.06.02",
     status: "개발 중", domain: ["재무/회계"], domainOther: "", type: "웹 애플리케이션", typeOther: "",
     stack: ["TypeScript", "NestJS", "PostgreSQL"],
-    audience: ["내부 직원 전체"], departments: ["구매팀", "재무팀", "IT개발팀"],
+    audience: ["내부 직원 전체"],
+    orgEntries: [
+      { id: 3, company: "KKM", parent: "경영지원본부", dept: "구매팀" },
+      { id: 4, company: "KKM", parent: "경영지원본부", dept: "재무팀" },
+      { id: 5, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
     integrations: "ERP (SAP)", freeTags: "발주, 구매자동화",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     links: [], approval: "대기",
@@ -74,7 +114,10 @@ const INITIAL_ITEMS: ReviewItem[] = [
     dept: "제조기술팀", submittedBy: "윤성민", submittedAt: "2025.06.05",
     status: "개발 중", domain: ["제조/생산", "기타"], domainOther: "현장 안전관리", type: "기타", typeOther: "PWA(프로그레시브 웹 앱)",
     stack: ["React", "Node.js"],
-    audience: ["특정 부서"], departments: ["제조기술팀"],
+    audience: ["특정 부서"],
+    orgEntries: [
+      { id: 6, company: "KKM", parent: "생산본부", dept: "제조기술팀" },
+    ],
     integrations: "", freeTags: "안전점검, 모바일체크리스트",
     contacts: [{ name: "윤성민", dept: "제조기술팀", role: "주담당자", email: "seongmin.yoon@kolmar.co.kr" }],
     links: [], approval: "대기",
@@ -138,6 +181,11 @@ export default function AdminReview() {
   const [filter, setFilter] = useState<"전체" | "대기" | "처리완료">("전체");
   const [done, setDone] = useState<string[]>([]);
 
+  // 조직 항목 추가용 임시 선택 상태
+  const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code);
+  const [draftParent, setDraftParent] = useState(NO_PARENT);
+  const [draftDept, setDraftDept] = useState("");
+
   const activeItem = items.find(i => i.id === selected);
   const edit = edits[selected] || {};
   const merged = activeItem ? { ...activeItem, ...edit } as ReviewItem : null;
@@ -146,10 +194,32 @@ export default function AdminReview() {
   const setEdit = <K extends keyof ReviewItem>(k: K, v: ReviewItem[K]) =>
     setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
 
-  const toggleMulti = (k: "domain" | "departments" | "audience" | "stack", v: string) => {
+  const toggleMulti = (k: "domain" | "audience" | "stack", v: string) => {
     const cur = (edit[k] ?? merged?.[k] ?? []) as string[];
     setEdit(k, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
   };
+
+  // 조직 항목 추가/삭제 (관리자 인라인 수정)
+  const currentOrgEntries = (edit.orgEntries ?? merged?.orgEntries ?? []) as OrgEntry[];
+
+  const addOrgEntry = () => {
+    const newEntry: OrgEntry = {
+      id: orgEntryIdSeq++,
+      company: draftCompany,
+      parent: draftParent === NO_PARENT ? null : draftParent,
+      dept: draftDept || null,
+    };
+    const isDuplicate = currentOrgEntries.some(e => e.company === newEntry.company && e.parent === newEntry.parent && e.dept === newEntry.dept);
+    if (isDuplicate) return;
+    setEdit("orgEntries", [...currentOrgEntries, newEntry]);
+    setDraftParent(NO_PARENT);
+    setDraftDept("");
+  };
+
+  const removeOrgEntry = (id: number) => setEdit("orgEntries", currentOrgEntries.filter(e => e.id !== id));
+
+  const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
+  const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const handleApprove = () => {
     // TODO: 실제 연동 시 PATCH /api/v1/admin/projects/:id/approve (body: edit)
@@ -365,9 +435,48 @@ export default function AdminReview() {
                     />
                   )}
                 </FieldRow>
-                <FieldRow label="참여 부서">
-                  <TagSelect options={DEPARTMENTS} selected={(edit.departments ?? merged.departments) as string[]} onChange={v => toggleMulti("departments", v)} disabled={isDisabled} />
+
+                {/* ===== 참여 부서 → 관계사/본부/부서 계층 선택 (변경된 부분) ===== */}
+                <FieldRow label="참여 관계사 / 본부 / 부서">
+                  {currentOrgEntries.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                      {currentOrgEntries.map(e => (
+                        <div key={e.id} style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6,
+                          padding: "7px 11px",
+                        }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
+                          {!isDisabled && (
+                            <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isDisabled && (
+                    <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                        <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                          {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                        </select>
+                        <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                          <option value={NO_PARENT}>본부 없음</option>
+                          {(PARENTS_BY_COMPANY[draftCompany] ?? []).map(p => <option key={p}>{p}</option>)}
+                        </select>
+                        <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                          <option value="">부서 선택 안 함</option>
+                          {(DEPTS_BY_PARENT[draftParent] ?? []).map(d => <option key={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={addOrgEntry} style={{ width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "6px 0", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                        + 추가
+                      </button>
+                    </div>
+                  )}
                 </FieldRow>
+
                 <FieldRow label="사용 대상">
                   <TagSelect options={AUDIENCES} selected={(edit.audience ?? merged.audience) as string[]} onChange={v => toggleMulti("audience", v)} disabled={isDisabled} />
                 </FieldRow>

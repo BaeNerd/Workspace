@@ -1,8 +1,3 @@
-/* ============================================================
-   파일: src/pages/admin/AdminProjectManage.tsx
-   경로: /admin/projects
-   ============================================================ */
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,7 +14,6 @@ const ADMIN_NAV = [
 const STATUSES = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
 const SYSTEM_TYPES = ["웹 애플리케이션", "모바일 앱", "API/서비스", "데이터 파이프라인", "ML/AI 모델", "배치/스케줄러", "인프라/DevOps 도구", "라이브러리/SDK", "내부 플랫폼", "내부 도구", "기타"];
 const DOMAINS = ["마케팅", "영업/CRM", "HR/인사", "재무/회계", "고객 서비스", "제조/생산", "IT 인프라", "데이터/분석", "보안", "내부 도구", "기타"];
-const DEPARTMENTS = ["메이크업연구소", "스킨케어연구소", "재무팀", "인사팀", "마케팅팀", "영업팀", "IT인프라팀", "IT개발팀", "품질관리팀", "제조기술팀", "고객서비스팀", "디자인팀", "구매팀", "법무팀"];
 const AUDIENCES = ["내부 직원 전체", "특정 부서", "외부 고객", "파트너사", "시스템 간 (내부 API)"];
 const STACK_GROUPS: Record<string, string[]> = {
   "언어": ["Python", "JavaScript", "TypeScript", "Java", "Go", "Kotlin", "Swift", "C#", "Rust"],
@@ -28,22 +22,125 @@ const STACK_GROUPS: Record<string, string[]> = {
   "데이터": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch", "Kafka", "Airflow", "Spark"],
 };
 
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
+const COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
+  { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMW", name: "무석콜마" },
+  { code: "KUS", name: "미국콜마" },
+];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code 응답으로 교체
+const PARENTS_BY_COMPANY: Record<string, string[]> = {
+  KKM: ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"],
+  KBH: ["연구개발본부", "경영지원본부"],
+  KMG: ["영업마케팅본부", "경영지원본부"],
+  KMW: ["생산본부"],
+};
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code&parent=:parent 응답으로 교체
+const DEPTS_BY_PARENT: Record<string, string[]> = {
+  "연구개발본부": ["메이크업연구소", "스킨케어연구소", "헬스케어연구소"],
+  "IT본부": ["IT개발팀", "IT인프라팀"],
+  "경영지원본부": ["재무팀", "인사팀", "사업기획팀", "구매팀", "법무팀"],
+  "영업마케팅본부": ["마케팅팀", "영업팀", "글로벌사업팀"],
+  "생산본부": ["품질관리팀", "제조기술팀", "생산관리팀"],
+};
+
+const NO_PARENT = "본부 없음 (관계사 직속)";
+
 type Contact = { name: string; dept: string; role: string; email: string };
+type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
 type ProjectItem = {
   id: string; title: string; dept: string; status: string;
   domain: string[]; domainOther: string; type: string; typeOther: string;
   stack: string[]; audience: string[];
-  departments: string[]; integrations: string; freeTags: string;
+  orgEntries: OrgEntry[]; integrations: string; freeTags: string;
   summary: string; description: string; contacts: Contact[];
   links: { label: string; url: string }[]; updatedAt: string;
 };
 
+let orgEntryIdSeq = 2000;
+
+const orgEntryDisplay = (e: OrgEntry) => {
+  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
+  if (!e.parent) return companyName;
+  if (!e.dept) return `${companyName} > ${e.parent}`;
+  return `${companyName} > ${e.parent} > ${e.dept}`;
+};
+
 // TODO: 실제 연동 시 GET /api/v1/admin/projects 응답으로 교체
 const INITIAL_PROJECTS: ProjectItem[] = [
-  { id: "PRJ-2025-041", title: "조색 예측 ML 모델", dept: "메이크업연구소", status: "개발 중", domain: ["제조/생산"], domainOther: "", type: "ML/AI 모델", typeOther: "", stack: ["Python", "TensorFlow", "AWS"], audience: ["특정 부서"], departments: ["메이크업연구소", "IT개발팀"], integrations: "ERP, LIMS", freeTags: "Lab색공간, 조색", summary: "원료 배합 데이터 기반 색상 사전 예측 ML 모델", description: "원료 구성과 배합 비율을 입력하면 예상 색상값(Lab 좌표)을 자동으로 예측합니다.", contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }], links: [], updatedAt: "2025.06.01" },
-  { id: "PRJ-2025-038", title: "통합 정산 자동화 시스템", dept: "재무팀", status: "운영 중", domain: ["재무/회계"], domainOther: "", type: "데이터 파이프라인", typeOther: "", stack: ["Python", "Airflow", "PostgreSQL"], audience: ["내부 직원 전체"], departments: ["재무팀", "IT개발팀"], integrations: "ERP (SAP)", freeTags: "정산, 자동화", summary: "ERP 연동 기반 월말 정산 자동화", description: "SAP ERP 데이터를 기반으로 월말 정산 프로세스를 자동화합니다.", contacts: [{ name: "김재원", dept: "재무팀", role: "주담당자", email: "jaewon.kim@kolmar.co.kr" }], links: [], updatedAt: "2025.05.12" },
-  { id: "PRJ-2025-045", title: "HR 온보딩 자동화 포털", dept: "인사팀", status: "파일럿", domain: ["HR/인사"], domainOther: "", type: "웹 애플리케이션", typeOther: "", stack: ["React", "Spring Boot"], audience: ["내부 직원 전체"], departments: ["인사팀", "IT개발팀"], integrations: "", freeTags: "온보딩, HR", summary: "신규 입사자 온보딩 자동화 포털", description: "신규 입사자의 온보딩 절차를 디지털화합니다.", contacts: [{ name: "박지현", dept: "인사팀", role: "주담당자", email: "jihyun.park@kolmar.co.kr" }], links: [], updatedAt: "2025.04.30" },
-  { id: "PRJ-2025-075", title: "현장 안전 점검 체크리스트 앱", dept: "제조기술팀", status: "개발 중", domain: ["제조/생산", "기타"], domainOther: "현장 안전관리", type: "기타", typeOther: "PWA(프로그레시브 웹 앱)", stack: ["React", "Node.js"], audience: ["특정 부서"], departments: ["제조기술팀"], integrations: "", freeTags: "안전점검, 모바일체크리스트", summary: "생산 현장 안전 점검을 위한 모바일 체크리스트 도구", description: "기존 종이 점검표를 대체하여 사진 첨부, 즉시 보고가 가능한 점검 도구입니다.", contacts: [{ name: "윤성민", dept: "제조기술팀", role: "주담당자", email: "seongmin.yoon@kolmar.co.kr" }], links: [], updatedAt: "2025.06.05" },
+  {
+    id: "PRJ-2025-041", title: "조색 예측 ML 모델", dept: "메이크업연구소", status: "개발 중",
+    domain: ["제조/생산"], domainOther: "", type: "ML/AI 모델", typeOther: "",
+    stack: ["Python", "TensorFlow", "AWS"], audience: ["특정 부서"],
+    orgEntries: [
+      { id: 1, company: "KKM", parent: "연구개발본부", dept: "메이크업연구소" },
+      { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+    integrations: "ERP, LIMS", freeTags: "Lab색공간, 조색",
+    summary: "원료 배합 데이터 기반 색상 사전 예측 ML 모델",
+    description: "원료 구성과 배합 비율을 입력하면 예상 색상값(Lab 좌표)을 자동으로 예측합니다.",
+    contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
+    links: [], updatedAt: "2025.06.01",
+  },
+  {
+    id: "PRJ-2025-038", title: "통합 정산 자동화 시스템", dept: "재무팀", status: "운영 중",
+    domain: ["재무/회계"], domainOther: "", type: "데이터 파이프라인", typeOther: "",
+    stack: ["Python", "Airflow", "PostgreSQL"], audience: ["내부 직원 전체"],
+    orgEntries: [
+      { id: 3, company: "KKM", parent: "경영지원본부", dept: "재무팀" },
+      { id: 4, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+    integrations: "ERP (SAP)", freeTags: "정산, 자동화",
+    summary: "ERP 연동 기반 월말 정산 자동화",
+    description: "SAP ERP 데이터를 기반으로 월말 정산 프로세스를 자동화합니다.",
+    contacts: [{ name: "김재원", dept: "재무팀", role: "주담당자", email: "jaewon.kim@kolmar.co.kr" }],
+    links: [], updatedAt: "2025.05.12",
+  },
+  {
+    id: "PRJ-2025-045", title: "HR 온보딩 자동화 포털", dept: "인사팀", status: "파일럿",
+    domain: ["HR/인사"], domainOther: "", type: "웹 애플리케이션", typeOther: "",
+    stack: ["React", "Spring Boot"], audience: ["내부 직원 전체"],
+    orgEntries: [
+      { id: 5, company: "KKM", parent: "경영지원본부", dept: "인사팀" },
+      { id: 6, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+    integrations: "", freeTags: "온보딩, HR",
+    summary: "신규 입사자 온보딩 자동화 포털",
+    description: "신규 입사자의 온보딩 절차를 디지털화합니다.",
+    contacts: [{ name: "박지현", dept: "인사팀", role: "주담당자", email: "jihyun.park@kolmar.co.kr" }],
+    links: [], updatedAt: "2025.04.30",
+  },
+  {
+    id: "PRJ-2025-075", title: "현장 안전 점검 체크리스트 앱", dept: "제조기술팀", status: "개발 중",
+    domain: ["제조/생산", "기타"], domainOther: "현장 안전관리", type: "기타", typeOther: "PWA(프로그레시브 웹 앱)",
+    stack: ["React", "Node.js"], audience: ["특정 부서"],
+    orgEntries: [
+      { id: 7, company: "KKM", parent: "생산본부", dept: "제조기술팀" },
+    ],
+    integrations: "", freeTags: "안전점검, 모바일체크리스트",
+    summary: "생산 현장 안전 점검을 위한 모바일 체크리스트 도구",
+    description: "기존 종이 점검표를 대체하여 사진 첨부, 즉시 보고가 가능한 점검 도구입니다.",
+    contacts: [{ name: "윤성민", dept: "제조기술팀", role: "주담당자", email: "seongmin.yoon@kolmar.co.kr" }],
+    links: [], updatedAt: "2025.06.05",
+  },
+  {
+    // 그룹/본부 단위 프로젝트 예시 — 부서까지 선택하지 않은 케이스
+    id: "PRJ-2025-080", title: "그룹 통합 ERP 고도화", dept: "그룹IT전략팀", status: "운영 중",
+    domain: ["IT 인프라"], domainOther: "", type: "API/서비스", typeOther: "",
+    stack: ["Java", "Spring Boot", "Oracle"], audience: ["내부 직원 전체"],
+    orgEntries: [
+      { id: 8, company: "KMH", parent: null, dept: null }, // 관계사만 — 그룹 차원
+      { id: 9, company: "KMG", parent: "경영지원본부", dept: null }, // 본부까지만
+    ],
+    integrations: "ERP (Oracle EBS)", freeTags: "그룹ERP, 통합",
+    summary: "그룹 공통 ERP 모듈 고도화 프로젝트",
+    description: "콜마홀딩스 및 콜마글로벌 경영지원본부 공동으로 ERP 시스템을 고도화합니다.",
+    contacts: [{ name: "최지훈", dept: "그룹IT전략팀", role: "주담당자", email: "jihoon.choi@kolmar.co.kr" }],
+    links: [], updatedAt: "2025.06.03",
+  },
 ];
 
 const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
@@ -98,7 +195,12 @@ const SectionBlock = ({ title, children }: { title: string; children: React.Reac
   </div>
 );
 
-const EMPTY: ProjectItem = { id: "", title: "", summary: "", description: "", status: "개발 중", type: "웹 애플리케이션", typeOther: "", domain: [], domainOther: "", stack: [], audience: [], departments: [], integrations: "", freeTags: "", contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], links: [], dept: "", updatedAt: "" };
+const EMPTY: ProjectItem = {
+  id: "", title: "", summary: "", description: "", status: "개발 중",
+  type: "웹 애플리케이션", typeOther: "", domain: [], domainOther: "",
+  stack: [], audience: [], orgEntries: [], integrations: "", freeTags: "",
+  contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], links: [], dept: "", updatedAt: "",
+};
 
 export default function AdminProjectManage() {
   const navigate = useNavigate();
@@ -112,6 +214,11 @@ export default function AdminProjectManage() {
   const [filterStatus, setFilterStatus] = useState("전체");
   const [saved, setSaved] = useState(false);
 
+  // 조직 항목 추가용 임시 선택 상태
+  const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code);
+  const [draftParent, setDraftParent] = useState(NO_PARENT);
+  const [draftDept, setDraftDept] = useState("");
+
   const filtered = projects.filter(p =>
     (filterStatus === "전체" || p.status === filterStatus) &&
     (search === "" || p.title.includes(search) || p.dept.includes(search))
@@ -119,14 +226,39 @@ export default function AdminProjectManage() {
 
   const activeProject = isNew ? editData : projects.find(p => p.id === selected) ?? null;
   const displayData = editMode || isNew ? editData : activeProject;
+  const isEditing = editMode || isNew;
 
   const startEdit = () => { if (activeProject) { setEditData({ ...activeProject }); setEditMode(true); setSaved(false); } };
   const startNew = () => { setEditData({ ...EMPTY, id: `PRJ-2025-0${Math.floor(Math.random() * 90 + 10)}` }); setIsNew(true); setEditMode(false); setSaved(false); };
   const cancelEdit = () => { setEditMode(false); setIsNew(false); setEditData(null); setSaved(false); };
 
   const setF = <K extends keyof ProjectItem>(k: K, v: ProjectItem[K]) => setEditData(p => p ? { ...p, [k]: v } : p);
-  const toggleMulti = (k: "domain" | "stack" | "audience" | "departments", v: string) =>
+  const toggleMulti = (k: "domain" | "stack" | "audience", v: string) =>
     setEditData(p => p ? { ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] } : p);
+
+  // 조직 항목 추가/삭제
+  const addOrgEntry = () => {
+    if (!editData) return;
+    const newEntry: OrgEntry = {
+      id: orgEntryIdSeq++,
+      company: draftCompany,
+      parent: draftParent === NO_PARENT ? null : draftParent,
+      dept: draftDept || null,
+    };
+    const isDuplicate = editData.orgEntries.some(e => e.company === newEntry.company && e.parent === newEntry.parent && e.dept === newEntry.dept);
+    if (isDuplicate) return;
+    setF("orgEntries", [...editData.orgEntries, newEntry]);
+    setDraftParent(NO_PARENT);
+    setDraftDept("");
+  };
+
+  const removeOrgEntry = (id: number) => {
+    if (!editData) return;
+    setF("orgEntries", editData.orgEntries.filter(e => e.id !== id));
+  };
+
+  const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
+  const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const handleSave = () => {
     if (!editData) return;
@@ -232,14 +364,14 @@ export default function AdminProjectManage() {
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", fontFamily: "monospace", marginBottom: 4 }}>{displayData.id}</div>
                     <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>
-                      {editMode || isNew ? (
+                      {isEditing ? (
                         <input value={displayData.title} onChange={e => setF("title", e.target.value)} placeholder="프로젝트명 입력"
                           style={{ ...inputStyle, fontSize: 17, fontWeight: 800, padding: "6px 10px" }} />
                       ) : displayData.title}
                     </h2>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    {!editMode && !isNew ? (
+                    {!isEditing ? (
                       <>
                         <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
                         <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
@@ -266,12 +398,12 @@ export default function AdminProjectManage() {
 
                 <SectionBlock title="기본 정보">
                   <FieldRow label="한 줄 요약">
-                    {editMode || isNew
+                    {isEditing
                       ? <input value={displayData.summary} onChange={e => setF("summary", e.target.value)} style={inputStyle} />
                       : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{displayData.summary}</div>}
                   </FieldRow>
                   <FieldRow label="상세 설명">
-                    {editMode || isNew
+                    {isEditing
                       ? <textarea value={displayData.description} onChange={e => setF("description", e.target.value)} style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.7 }} />
                       : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.8 }}>{displayData.description}</div>}
                   </FieldRow>
@@ -280,12 +412,12 @@ export default function AdminProjectManage() {
                 <SectionBlock title="분류 정보">
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                     <FieldRow label="프로젝트 상태">
-                      {editMode || isNew
+                      {isEditing
                         ? <select value={displayData.status} onChange={e => setF("status", e.target.value)} style={selectStyle}>{STATUSES.map(s => <option key={s}>{s}</option>)}</select>
                         : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: STATUS_COLOR[displayData.status]?.bg, color: STATUS_COLOR[displayData.status]?.color }}>{displayData.status}</span>}
                     </FieldRow>
                     <FieldRow label="시스템 유형">
-                      {editMode || isNew
+                      {isEditing
                         ? (
                           <>
                             <select value={displayData.type} onChange={e => setF("type", e.target.value)} style={selectStyle}>{SYSTEM_TYPES.map(s => <option key={s}>{s}</option>)}</select>
@@ -299,7 +431,7 @@ export default function AdminProjectManage() {
                     </FieldRow>
                   </div>
                   <FieldRow label="비즈니스 도메인">
-                    {editMode || isNew
+                    {isEditing
                       ? (
                         <>
                           <TagSelect options={DOMAINS} selected={displayData.domain} onChange={v => toggleMulti("domain", v)} />
@@ -311,24 +443,69 @@ export default function AdminProjectManage() {
                       )
                       : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.domain.map((d, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{d === "기타" && displayData.domainOther ? `기타 (${displayData.domainOther})` : d}</span>)}</div>}
                   </FieldRow>
-                  <FieldRow label="참여 부서">
-                    {editMode || isNew
-                      ? <TagSelect options={DEPARTMENTS} selected={displayData.departments} onChange={v => toggleMulti("departments", v)} />
-                      : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.departments.map((d, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{d}</span>)}</div>}
+
+                  {/* ===== 참여 부서 → 관계사/본부/부서 계층 선택 (변경된 부분) ===== */}
+                  <FieldRow label="참여 관계사 / 본부 / 부서">
+                    {displayData.orgEntries.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: isEditing ? 10 : 0 }}>
+                        {displayData.orgEntries.map(e => (
+                          isEditing ? (
+                            <div key={e.id} style={{
+                              display: "flex", alignItems: "center", justifyContent: "space-between",
+                              background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6,
+                              padding: "7px 11px",
+                            }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
+                              <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                            </div>
+                          ) : (
+                            <span key={e.id} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6, display: "inline-block", marginRight: 6, marginBottom: 6 }}>
+                              {orgEntryDisplay(e)}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    )}
+
+                    {isEditing && (
+                      <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                          <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                            {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                          </select>
+                          <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                            <option value={NO_PARENT}>본부 없음</option>
+                            {availableParents.map(p => <option key={p}>{p}</option>)}
+                          </select>
+                          <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                            <option value="">부서 선택 안 함</option>
+                            {availableDepts.map(d => <option key={d}>{d}</option>)}
+                          </select>
+                        </div>
+                        <button onClick={addOrgEntry} style={{ width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "6px 0", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                          + 추가
+                        </button>
+                      </div>
+                    )}
+
+                    {!isEditing && displayData.orgEntries.length === 0 && (
+                      <span style={{ fontSize: 13, color: "#94A3B8" }}>—</span>
+                    )}
                   </FieldRow>
+
                   <FieldRow label="사용 대상">
-                    {editMode || isNew
+                    {isEditing
                       ? <TagSelect options={AUDIENCES} selected={displayData.audience} onChange={v => toggleMulti("audience", v)} />
                       : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.audience.map((a, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{a}</span>)}</div>}
                   </FieldRow>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <FieldRow label="연동 시스템">
-                      {editMode || isNew
+                      {isEditing
                         ? <input value={displayData.integrations} onChange={e => setF("integrations", e.target.value)} style={inputStyle} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.integrations || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="자유 태그">
-                      {editMode || isNew
+                      {isEditing
                         ? <input value={displayData.freeTags} onChange={e => setF("freeTags", e.target.value)} style={inputStyle} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.freeTags || "—"}</span>}
                     </FieldRow>
@@ -336,7 +513,7 @@ export default function AdminProjectManage() {
                 </SectionBlock>
 
                 <SectionBlock title="기술 스택">
-                  {editMode || isNew
+                  {isEditing
                     ? Object.entries(STACK_GROUPS).map(([group, stackItems]) => (
                         <FieldRow key={group} label={group}>
                           <TagSelect options={stackItems} selected={displayData.stack} onChange={v => toggleMulti("stack", v)} />

@@ -1,3 +1,19 @@
+/* ============================================================
+   파일: src/pages/ProjectRegisterPage.tsx
+   경로: /projects/new
+
+   변경 사항 (이번 작업):
+   1. "참여 부서" 단일 태그 선택 → 관계사(필수)/본부(선택)/부서(선택)
+      3단계 계층 선택 + 복수 항목 추가/삭제 구조로 전환.
+      한 프로젝트가 여러 관계사·본부·부서에 걸칠 수 있으므로
+      orgEntries: OrgEntry[] 배열로 관리.
+   2. 각 OrgEntry는 company(필수) + parent(선택) + dept(선택)를 가지며,
+      본부 미선택 시 "본부 없음(관계사 직속)"으로 표시.
+   3. canNext() 검증에 "관계사 최소 1개 이상 등록" 조건 추가.
+   4. 최종 확인 화면에 계층 표시 로직 추가 — 입력된 단계까지만 표시
+      (예: "한국콜마" 또는 "한국콜마 > IT본부" 또는 "한국콜마 > IT본부 > IT개발팀")
+   ============================================================ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -7,8 +23,35 @@ const DOMAINS = ["마케팅", "영업/CRM", "HR/인사", "재무/회계", "고�
 const STATUSES = ["개발 중", "운영 중", "파일럿", "보류"];
 const SYSTEM_TYPES = ["웹 애플리케이션", "모바일 앱", "API/서비스", "데이터 파이프라인", "ML/AI 모델", "배치/스케줄러", "인프라/DevOps 도구", "라이브러리/SDK", "내부 플랫폼", "기타"];
 const AUDIENCES = ["내부 직원 전체", "특정 부서", "외부 고객", "파트너사", "시스템 간 (내부 API)"];
-// TODO: 실제 연동 시 GET /api/v1/departments 응답으로 교체
-const DEPARTMENTS = ["메이크업연구소", "스킨케어연구소", "재무팀", "인사팀", "마케팅팀", "영업팀", "IT인프라팀", "IT개발팀", "품질관리팀", "제조기술팀", "고객서비스팀", "디자인팀"];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
+// (AD-05에서 visible=false로 설정된 관계사는 일반 등록 화면 선택지에서 제외)
+const COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
+  { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" },
+  { code: "KMW", name: "무석콜마" }, { code: "KMB", name: "북경콜마" },
+  { code: "KUS", name: "미국콜마" }, { code: "KBT", name: "콜마바이오텍" },
+];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code 응답으로 교체 (관계사별 본부 목록)
+const PARENTS_BY_COMPANY: Record<string, string[]> = {
+  KKM: ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"],
+  KBH: ["연구개발본부", "경영지원본부"],
+  KMG: ["영업마케팅본부", "경영지원본부"],
+  KMW: ["생산본부"],
+};
+
+// TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code&parent=:parent 응답으로 교체
+const DEPTS_BY_PARENT: Record<string, string[]> = {
+  "연구개발본부": ["메이크업연구소", "스킨케어연구소", "헬스케어연구소"],
+  "IT본부": ["IT개발팀", "IT인프라팀"],
+  "경영지원본부": ["재무팀", "인사팀", "사업기획팀"],
+  "영업마케팅본부": ["마케팅팀", "영업팀", "글로벌사업팀"],
+  "생산본부": ["품질관리팀", "제조기술팀", "생산관리팀"],
+};
+
+const NO_PARENT = "본부 없음 (관계사 직속)";
 
 // TODO: 실제 연동 시 GET /api/v1/taxonomy/stack 응답으로 교체
 const STACK_GROUPS: Record<string, string[]> = {
@@ -29,11 +72,12 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 
 type Contact = { name: string; dept: string; role: string; email: string };
 type LinkItem = { label: string; url: string };
+type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
 type FormState = {
   title: string; summary: string; description: string;
   status: string; systemType: string; systemTypeOther: string;
   domains: string[]; domainOther: string; audiences: string[];
-  departments: string[]; stack: string[]; freeTags: string; integrations: string;
+  orgEntries: OrgEntry[]; stack: string[]; freeTags: string; integrations: string;
   contacts: Contact[]; links: LinkItem[];
 };
 
@@ -67,6 +111,18 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 8, outline: "none", fontFamily: "inherit",
 };
 
+const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`;
+const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "none", backgroundImage: selectArrow, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32, cursor: "pointer" };
+
+const orgEntryDisplay = (e: OrgEntry) => {
+  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
+  if (!e.parent) return companyName;
+  if (!e.dept) return `${companyName} > ${e.parent}`;
+  return `${companyName} > ${e.parent} > ${e.dept}`;
+};
+
+let orgEntryIdSeq = 1;
+
 export default function ProjectRegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -77,15 +133,41 @@ export default function ProjectRegisterPage() {
   const [form, setForm] = useState<FormState>({
     title: "", summary: "", description: "",
     status: "", systemType: "", systemTypeOther: "", domains: [], domainOther: "", audiences: [],
-    departments: [], stack: [], freeTags: "",
+    orgEntries: [], stack: [], freeTags: "",
     integrations: "",
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
 
+  // 새 조직 항목 추가용 임시 선택 상태
+  const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code); // 기본값: 한국콜마
+  const [draftParent, setDraftParent] = useState(NO_PARENT);
+  const [draftDept, setDraftDept] = useState("");
+
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(p => ({ ...p, [k]: v }));
-  const toggle = (k: "domains" | "audiences" | "departments" | "stack", v: string) =>
+  const toggle = (k: "domains" | "audiences" | "stack", v: string) =>
     setForm(p => ({ ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] }));
+
+  // 조직 항목(관계사/본부/부서) 추가
+  const addOrgEntry = () => {
+    const newEntry: OrgEntry = {
+      id: orgEntryIdSeq++,
+      company: draftCompany,
+      parent: draftParent === NO_PARENT ? null : draftParent,
+      dept: draftDept || null,
+    };
+    // 중복 방지: 동일한 company+parent+dept 조합은 추가하지 않음
+    const isDuplicate = form.orgEntries.some(e => e.company === newEntry.company && e.parent === newEntry.parent && e.dept === newEntry.dept);
+    if (isDuplicate) return;
+    setForm(p => ({ ...p, orgEntries: [...p.orgEntries, newEntry] }));
+    setDraftParent(NO_PARENT);
+    setDraftDept("");
+  };
+
+  const removeOrgEntry = (id: number) => setForm(p => ({ ...p, orgEntries: p.orgEntries.filter(e => e.id !== id) }));
+
+  const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
+  const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const addContact = () => setForm(p => ({ ...p, contacts: [...p.contacts, { name: "", dept: "", role: "공동담당자", email: "" }] }));
   const removeContact = (i: number) => setForm(p => ({ ...p, contacts: p.contacts.filter((_, ci) => ci !== i) }));
@@ -97,7 +179,7 @@ export default function ProjectRegisterPage() {
 
   const canNext = () => {
     if (step === 0) return form.title.trim() && form.summary.trim() && form.description.trim();
-    if (step === 1) return form.status && form.systemType && form.domains.length > 0 && form.departments.length > 0 && form.audiences.length > 0;
+    if (step === 1) return form.status && form.systemType && form.domains.length > 0 && form.orgEntries.length > 0 && form.audiences.length > 0;
     if (step === 2) return Boolean(form.contacts[0]?.name && form.contacts[0]?.email);
     return true;
   };
@@ -222,11 +304,58 @@ export default function ProjectRegisterPage() {
                 )}
               </Field>
 
-              <Field label="참여 부서" required hint="주관 부서 및 협업 부서를 모두 선택하세요.">
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {DEPARTMENTS.map(d => <Tag key={d} label={d} selected={form.departments.includes(d)} onClick={() => toggle("departments", d)} />)}
+              {/* ===== 참여 부서 → 관계사/본부/부서 계층 선택 (변경된 부분) ===== */}
+              <Field label="참여 관계사 / 본부 / 부서" required hint="관계사는 필수이며, 본부와 부서는 선택사항입니다. 본부까지만 선택하면 본부 단위 프로젝트로, 부서까지 선택하면 부서 단위 프로젝트로 등록됩니다.">
+
+                {/* 추가된 항목 목록 */}
+                {form.orgEntries.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                    {form.orgEntries.map(e => (
+                      <div key={e.id} style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 7,
+                        padding: "8px 12px",
+                      }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
+                        <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 신규 항목 추가 폼 */}
+                <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>관계사 <span style={{ color: "#EF4444" }}>*</span></div>
+                      <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px" }}>
+                        {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>본부 (선택)</div>
+                      <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px" }}>
+                        <option value={NO_PARENT}>{NO_PARENT}</option>
+                        {availableParents.map(p => <option key={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>부서 (선택)</div>
+                      <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                        <option value="">선택 안 함</option>
+                        {availableDepts.map(d => <option key={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <button onClick={addOrgEntry} style={{
+                    width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
+                    padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  }}>
+                    + 추가
+                  </button>
                 </div>
               </Field>
+
               <Field label="사용 대상" required hint="복수 선택 가능합니다.">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {AUDIENCES.map(a => <Tag key={a} label={a} selected={form.audiences.includes(a)} onClick={() => toggle("audiences", a)} />)}
@@ -351,7 +480,7 @@ export default function ProjectRegisterPage() {
               { label: "상태", value: form.status || "—" },
               { label: "시스템 유형", value: (form.systemType === "기타" ? form.systemTypeOther : form.systemType) || "—" },
               { label: "비즈니스 도메인", value: form.domains.map(d => d === "기타" && form.domainOther ? form.domainOther : d).join(", ") || "—" },
-              { label: "참여 부서", value: form.departments.join(", ") || "—" },
+              { label: "참여 관계사/본부/부서", value: form.orgEntries.length > 0 ? form.orgEntries.map(orgEntryDisplay).join(" / ") : "—" },
               { label: "사용 대상", value: form.audiences.join(", ") || "—" },
               { label: "기술 스택", value: form.stack.join(", ") || "—" },
               { label: "연동 시스템", value: form.integrations || "—" },
@@ -359,7 +488,7 @@ export default function ProjectRegisterPage() {
               { label: "주담당자", value: form.contacts[0] ? `${form.contacts[0].name} (${form.contacts[0].dept})` : "—" },
             ].map((row, i) => (
               <div key={i} style={{
-                display: "grid", gridTemplateColumns: "140px 1fr",
+                display: "grid", gridTemplateColumns: "160px 1fr",
                 padding: "10px 0", borderBottom: "1px solid #F8FAFC", gap: 16,
               }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>{row.label}</span>

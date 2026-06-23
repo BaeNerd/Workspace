@@ -4,9 +4,9 @@ import Footer from "../components/Footer";
 
 const PROBLEMS = [
   { title: "중복 개발", desc: "유사한 기술과 기능을 여러 팀이 따로 만듭니다" },
-  { title: "담당자 추적 비용", desc: "누가 무엇을 담당하는지 찾는 데 시간이 듭니다" },
+  { title: "담당자 확인 부담", desc: "누가 무엇을 담당하는지 찾는 데 시간과 노력이 듭니다" },
   { title: "온보딩 지연", desc: "신규 구성원이 기존 자산을 파악하기 어렵습니다" },
-  { title: "기술 현황 미파악", desc: "조직 차원에서 보유 기술을 알 수 없습니다" },
+  { title: "기술 현황 파악 불가", desc: "조직 차원에서 보유 기술을 파악할 수 없습니다" },
 ];
 
 const FEATURES = [
@@ -14,6 +14,14 @@ const FEATURES = [
   { step: "02", title: "검토", desc: "관리자가 내용을 검토하고 분류를 정리한 뒤 승인합니다." },
   { step: "03", title: "탐색", desc: "전 임직원이 검색과 필터로 필요한 프로젝트를 찾습니다." },
   { step: "04", title: "연결", desc: "담당자에게 바로 연락하거나 업데이트를 받아봅니다." },
+];
+
+const CORE_VALUES = [
+  { title: "역할 단순화", desc: "User / Admin 2단계로 누구나 쉽게 참여합니다" },
+  { title: "신뢰 구조", desc: "관리자 검토를 거쳐 게시되는 검증된 정보만 노출됩니다" },
+  { title: "유연한 분류", desc: "고정 분류와 자유 태그를 함께 운영해 빠짐없이 담아냅니다" },
+  { title: "기술 확산", desc: "그룹 및 사내 전체로 검증된 기술과 노하우를 퍼뜨립니다" },
+  { title: "알림 연동", desc: "Microsoft Teams와 이메일로 진행 상황을 바로 전달합니다" },
 ];
 
 function SectionLabel({ children, small, dark }: { children: React.ReactNode; small?: boolean; dark?: boolean }) {
@@ -54,7 +62,7 @@ export default function AboutPage() {
           흩어진 기술을 한곳으로,<br />중복을 줄이고 협업을 늘립니다
         </h1>
         <p style={{ fontSize: 14, color: "#94A3B8", lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
-          Kolmar Tech Hub는 사내 IT 프로젝트를 등록·탐색·연결하는 내부 플랫폼입니다.
+          Kolmar Tech Hub는 그룹 IT 프로젝트를 등록·탐색·연결하는 사내 플랫폼입니다.
         </p>
       </section>
 
@@ -101,27 +109,29 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* 핵심 가치 + 로드맵 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 48 }}>
-          <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "22px 24px" }}>
-            <SectionLabel small>핵심 가치</SectionLabel>
-            {[
-              "역할 단순화 — User / Admin 2단계",
-              "관리자 검토 후 게시되는 신뢰 구조",
-              "고정 분류 + 자유 태그 병행 운영",
-              "Microsoft Teams / 이메일 알림 연동",
-            ].map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, color: "#475569", padding: "6px 0", borderTop: i > 0 ? "1px solid #F8FAFC" : "none" }}>
-                <span style={{ color: "#2563EB", fontWeight: 700 }}>•</span>{t}
+        {/* 핵심 가치 — 5개 그리드 카드형 */}
+        <div style={{ marginBottom: 24 }}>
+          <SectionLabel>핵심 가치</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+            {CORE_VALUES.map((v, i) => (
+              <div key={i} style={{
+                background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10,
+                padding: "18px 14px", borderTop: "3px solid #2563EB",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{v.title}</div>
+                <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>{v.desc}</div>
               </div>
             ))}
           </div>
-          <div style={{ background: "#0F172A", borderRadius: 10, padding: "22px 24px" }}>
-            <SectionLabel small dark>다음 단계 (Phase 2)</SectionLabel>
-            <div style={{ fontSize: 12, color: "#CBD5E1", lineHeight: 1.8 }}>
-              자연어로 "이런 기능을 만들고 싶은데 참고할 게 있나?"라고 질문하면 유사 프로젝트를 추천하는
-              <strong style={{ color: "#93C5FD" }}> RAG 기반 검색</strong>을 준비하고 있습니다.
-            </div>
+        </div>
+
+        {/* Phase 2 — 풀와이드 배너 */}
+        <div style={{ background: "#0F172A", borderRadius: 10, padding: "24px 28px", marginBottom: 48 }}>
+          <SectionLabel small dark>다음 단계 (Phase 2)</SectionLabel>
+          <div style={{ fontSize: 12, color: "#CBD5E1", lineHeight: 1.8 }}>
+            "이런 기능을 만들고 싶은데 참고할 게 있나?"처럼 자연어로 질문하면,
+            그룹과 사내에 이미 존재하는 유사 프로젝트를 추천해주는
+            <strong style={{ color: "#93C5FD" }}> RAG 기반 검색</strong>을 준비하고 있습니다.
           </div>
         </div>
 

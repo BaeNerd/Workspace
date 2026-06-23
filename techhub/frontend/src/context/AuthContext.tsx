@@ -8,6 +8,8 @@ export type CurrentUser = {
   dept: string;
   title: string;
   role: Role;
+  company: string;         // 소속 관계사 코드 (예: "KKM" = 한국콜마) — TODO: SSO 연동 시 Graph API 조직 속성에서 매핑
+  isGroupViewer: boolean;  // 그룹 전체보기 권한 — TODO: 백엔드 GET /api/v1/auth/me 응답에 포함되어야 함
 } | null;
 
 type AuthContextType = {
@@ -16,6 +18,7 @@ type AuthContextType = {
   login: (user: NonNullable<CurrentUser>) => void;
   logout: () => void;
   isAdmin: boolean;
+  isGroupViewer: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // useEffect(() => {
   //   fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/me`, { credentials: "include" })
   //     .then(res => res.ok ? res.json() : null)
-  //     .then(data => setUser(data))
+  //     .then(data => setUser(data)) // data에는 company, isGroupViewer가 포함되어 응답되어야 함
   //     .finally(() => setLoading(false));
   // }, []);
 
@@ -51,7 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin: user?.role === "admin" }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      logout,
+      isAdmin: user?.role === "admin",
+      isGroupViewer: user?.isGroupViewer ?? false,
+    }}>
       {children}
     </AuthContext.Provider>
   );

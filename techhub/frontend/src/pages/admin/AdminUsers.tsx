@@ -1,10 +1,18 @@
-
 import { useState } from "react";
-import AdminNavbar from "../../components/AdminNavbar";
+import { useNavigate } from "react-router-dom";
 
-import AdminSidebar from "../../components/AdminSidebar";
+const ADMIN_NAV = [
+  { label: "대시보드", path: "/admin" },
+  { label: "등록 신청 검토", path: "/admin/review" },
+  { label: "프로젝트 관리", path: "/admin/projects" },
+  { label: "분류체계 관리", path: "/admin/taxonomy" },
+  { label: "부서/조직 관리", path: "/admin/org" },
+  { label: "사용자 관리", path: "/admin/users" },
+  { label: "통계", path: "/admin/statistics" },
+];
 
 type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
+type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
 type SsoUser = { name: string; email: string; dept: string; title: string };
 type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "프로젝트" | "권한" | "분류체계" | "조직" };
 type Registrant = { name: string; email: string; dept: string; title: string; projectCount: number; lastSubmit: string; approved: number; pending: number; rejected: number };
@@ -13,6 +21,12 @@ type Registrant = { name: string; email: string; dept: string; title: string; pr
 const INITIAL_ADMINS: Admin[] = [
   { id: 1, name: "김관리", email: "admin.kim@kolmar.co.kr", dept: "IT개발팀", title: "팀장", grantedAt: "2025.01.10", grantedBy: "시스템 초기화" },
   { id: 2, name: "이서현", email: "seohyun.lee@kolmar.co.kr", dept: "IT인프라팀", title: "선임", grantedAt: "2025.03.05", grantedBy: "김관리" },
+];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/users?permission=group_viewer 응답으로 교체
+const INITIAL_GROUP_VIEWERS: GroupViewer[] = [
+  { id: 1, name: "최지훈", email: "jihoon.choi@kolmar.co.kr", dept: "그룹IT전략팀", title: "팀장", grantedAt: "2025.02.14", grantedBy: "김관리", reason: "그룹 IT 거버넌스 총괄" },
+  { id: 2, name: "한서윤", email: "seoyoon.han@kolmar.co.kr", dept: "콜마홀딩스 경영기획팀", title: "차장", grantedAt: "2025.04.02", grantedBy: "김관리", reason: "지주사 관계사 현황 보고용" },
 ];
 
 // TODO: 실제 연동 시 GET /api/v1/admin/registrants 응답으로 교체
@@ -28,6 +42,7 @@ const LOGS: LogEntry[] = [
   { id: 2, datetime: "2025.06.03 16:44", actor: "김관리", action: "권한 부여", target: "박준서 → 관리자", category: "권한" },
   { id: 3, datetime: "2025.05.28 13:45", actor: "김관리", action: "분류 수정", target: "기술 스택 — Three.js 추가", category: "분류체계" },
   { id: 4, datetime: "2025.05.20 09:30", actor: "김관리", action: "부서 추가", target: "데이터분석팀 (IT본부)", category: "조직" },
+  { id: 5, datetime: "2025.04.02 11:15", actor: "김관리", action: "그룹 전체보기 부여", target: "한서윤 → 그룹 전체보기", category: "권한" },
 ];
 
 const LOG_CATEGORY_STYLE: Record<string, { bg: string; color: string }> = {
@@ -37,7 +52,7 @@ const LOG_CATEGORY_STYLE: Record<string, { bg: string; color: string }> = {
   "조직": { bg: "#D1FAE5", color: "#065F46" },
 };
 
-const TABS = ["관리자 권한", "등록자 관리", "활동 로그"] as const;
+const TABS = ["관리자 권한", "그룹 전체보기", "등록자 관리", "활동 로그"] as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box", padding: "8px 12px", fontSize: 13, color: "#0F172A",
@@ -45,38 +60,61 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function AdminUsers() {
-
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("관리자 권한");
   const [admins, setAdmins] = useState<Admin[]>(INITIAL_ADMINS);
+  const [groupViewers, setGroupViewers] = useState<GroupViewer[]>(INITIAL_GROUP_VIEWERS);
   const [savedMsg, setSavedMsg] = useState("");
   const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null);
   const [grantConfirm, setGrantConfirm] = useState<SsoUser | null>(null);
+  const [groupRevokeConfirm, setGroupRevokeConfirm] = useState<number | null>(null);
+  const [groupGrantConfirm, setGroupGrantConfirm] = useState<SsoUser | null>(null);
+  const [groupGrantReason, setGroupGrantReason] = useState("");
 
   const [ssoSearch, setSsoSearch] = useState("");
   const [ssoResult, setSsoResult] = useState<SsoUser | "notfound" | null>(null);
   const [searching, setSearching] = useState(false);
   const [adminSearch, setAdminSearch] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
+  const [groupSsoSearch, setGroupSsoSearch] = useState("");
+  const [groupSsoResult, setGroupSsoResult] = useState<SsoUser | "notfound" | null>(null);
+  const [groupSearching, setGroupSearching] = useState(false);
   const [regSearch, setRegSearch] = useState("");
   const [logSearch, setLogSearch] = useState("");
   const [logCategory, setLogCategory] = useState("전체");
 
   const showSaved = (msg: string) => { setSavedMsg(msg); setTimeout(() => setSavedMsg(""), 2200); };
   const adminEmails = admins.map(a => a.email);
+  const groupViewerEmails = groupViewers.map(g => g.email);
+
+  const MOCK_SSO_USERS: SsoUser[] = [
+    { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원" },
+    { name: "정태영", email: "taeyoung.jung@kolmar.co.kr", dept: "IT개발팀", title: "선임" },
+    { name: "오세훈", email: "sehoon.oh@kolmar.co.kr", dept: "마케팅팀", title: "사원" },
+    { name: "장미경", email: "mikyung.jang@kolmar.co.kr", dept: "콜마글로벌 경영지원팀", title: "부장" },
+  ];
 
   const handleSsoSearch = () => {
     if (!ssoSearch.trim()) return;
     setSearching(true);
     // TODO: 실제 연동 시 GET /api/v1/admin/sso-search?q=:ssoSearch (Microsoft Graph API 사용자 검색)
     setTimeout(() => {
-      const all: SsoUser[] = [
-        { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원" },
-        { name: "정태영", email: "taeyoung.jung@kolmar.co.kr", dept: "IT개발팀", title: "선임" },
-        { name: "오세훈", email: "sehoon.oh@kolmar.co.kr", dept: "마케팅팀", title: "사원" },
-      ];
       const q = ssoSearch.toLowerCase();
-      const found = all.find(u => u.name.includes(ssoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(ssoSearch));
+      const found = MOCK_SSO_USERS.find(u => u.name.includes(ssoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(ssoSearch));
       setSsoResult(found || "notfound");
       setSearching(false);
+    }, 800);
+  };
+
+  const handleGroupSsoSearch = () => {
+    if (!groupSsoSearch.trim()) return;
+    setGroupSearching(true);
+    // TODO: 실제 연동 시 GET /api/v1/admin/sso-search?q=:groupSsoSearch
+    setTimeout(() => {
+      const q = groupSsoSearch.toLowerCase();
+      const found = MOCK_SSO_USERS.find(u => u.name.includes(groupSsoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(groupSsoSearch));
+      setGroupSsoResult(found || "notfound");
+      setGroupSearching(false);
     }, 800);
   };
 
@@ -94,22 +132,60 @@ export default function AdminUsers() {
     showSaved("관리자 권한이 회수되었습니다.");
   };
 
+  const handleGroupGrant = (user: SsoUser) => {
+    if (!groupGrantReason.trim()) return;
+    // TODO: 실제 연동 시 POST /api/v1/admin/users/grant-group-viewer (body: { email, reason })
+    setGroupViewers(p => [...p, {
+      id: Date.now(), name: user.name, email: user.email, dept: user.dept, title: user.title,
+      grantedAt: "2025.06.05", grantedBy: "김관리", reason: groupGrantReason.trim(),
+    }]);
+    setGroupGrantConfirm(null); setGroupSsoSearch(""); setGroupSsoResult(null); setGroupGrantReason("");
+    showSaved(`${user.name}에게 그룹 전체보기 권한이 부여되었습니다.`);
+  };
+
+  const handleGroupRevoke = (id: number) => {
+    // TODO: 실제 연동 시 POST /api/v1/admin/users/:id/revoke-group-viewer
+    setGroupViewers(p => p.filter(g => g.id !== id));
+    setGroupRevokeConfirm(null);
+    showSaved("그룹 전체보기 권한이 회수되었습니다.");
+  };
+
   const filteredAdmins = admins.filter(a => adminSearch === "" || a.name.includes(adminSearch) || a.dept.includes(adminSearch));
+  const filteredGroupViewers = groupViewers.filter(g => groupSearch === "" || g.name.includes(groupSearch) || g.dept.includes(groupSearch));
   const filteredReg = REGISTRANTS.filter(r => regSearch === "" || r.name.includes(regSearch) || r.dept.includes(regSearch));
   const filteredLogs = LOGS.filter(l => (logCategory === "전체" || l.category === logCategory) && (logSearch === "" || l.actor.includes(logSearch) || l.target.includes(logSearch) || l.action.includes(logSearch)));
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
-      <AdminNavbar />
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid #E2E8F0", padding: "0 32px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
+          <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: "-0.03em" }}>KOLMAR</span>
+          <span style={{ fontWeight: 500, fontSize: 12, color: "#94A3B8" }}>Tech Hub</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "3px 10px", borderRadius: 20 }}>관리자</span>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>김</div>
+        </div>
+      </nav>
 
       <div style={{ display: "flex" }}>
-        <AdminSidebar />
+        <aside style={{ width: 200, flexShrink: 0, background: "#fff", borderRight: "1px solid #E2E8F0", padding: "20px 12px", position: "sticky", top: 56, height: "calc(100vh - 56px)", overflowY: "auto" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, padding: "0 8px" }}>관리자 메뉴</div>
+          {ADMIN_NAV.map(n => (
+            <div key={n.path} onClick={() => navigate(n.path)} style={{
+              padding: "8px 10px", borderRadius: 7, cursor: "pointer", marginBottom: 2,
+              fontSize: 13, fontWeight: n.path === "/admin/users" ? 700 : 500,
+              color: n.path === "/admin/users" ? "#2563EB" : "#475569",
+              background: n.path === "/admin/users" ? "#EFF6FF" : "transparent",
+            }}>{n.label}</div>
+          ))}
+        </aside>
 
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>사용자 / 권한 / 로그 관리</h1>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>사용자 계정은 SSO를 통해 자동 관리됩니다.</p>
+            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>사용자 계정은 SSO를 통해 자동 관리됩니다. 관리자 권한과 그룹 전체보기 권한은 서로 독립적으로 부여됩니다.</p>
           </div>
 
           {savedMsg && <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 13, fontWeight: 600, color: "#065F46" }}>{savedMsg}</div>}
@@ -124,7 +200,7 @@ export default function AdminUsers() {
           <div style={{ display: "flex", gap: 0, marginBottom: 24, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "hidden", width: "fit-content" }}>
             {TABS.map((t, i) => (
               <button key={t} onClick={() => setActiveTab(t)} style={{
-                padding: "10px 28px", border: "none", borderRight: i < TABS.length - 1 ? "1px solid #E2E8F0" : "none",
+                padding: "10px 24px", border: "none", borderRight: i < TABS.length - 1 ? "1px solid #E2E8F0" : "none",
                 background: activeTab === t ? "#0F172A" : "transparent",
                 color: activeTab === t ? "#fff" : "#64748B",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
@@ -132,6 +208,7 @@ export default function AdminUsers() {
             ))}
           </div>
 
+          {/* ===== 탭 1: 관리자 권한 (기존 그대로) ===== */}
           {activeTab === "관리자 권한" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
               <div>
@@ -152,6 +229,9 @@ export default function AdminUsers() {
                               <span style={{ fontSize: 14, fontWeight: 700 }}>{admin.name}</span>
                               {isSelf && <span style={{ fontSize: 10, fontWeight: 700, background: "#E2E8F0", color: "#475569", padding: "1px 7px", borderRadius: 20 }}>본인</span>}
                               <span style={{ fontSize: 10, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "1px 7px", borderRadius: 20 }}>관리자</span>
+                              {groupViewerEmails.includes(admin.email) && (
+                                <span style={{ fontSize: 10, fontWeight: 700, background: "#EDE9FE", color: "#6D28D9", padding: "1px 7px", borderRadius: 20 }}>그룹 전체보기</span>
+                              )}
                             </div>
                             <div style={{ fontSize: 12, color: "#64748B" }}>{admin.title} · {admin.dept}</div>
                           </div>
@@ -218,6 +298,129 @@ export default function AdminUsers() {
             </div>
           )}
 
+          {/* ===== 탭 2: 그룹 전체보기 (신규) ===== */}
+          {activeTab === "그룹 전체보기" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
+              <div>
+                <div style={{ background: "#F3E8FF", border: "1px solid #E9D5FF", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#6D28D9", lineHeight: 1.7 }}>
+                  이 권한을 가진 사용자는 AD-05에서 비노출(visible: false)로 설정된 관계사의 프로젝트도 Tech Hub 전 영역(목록·상세·통계)에서 조회할 수 있습니다.
+                  관리자 권한과는 별개이며, 일반 사용자에게도 부여할 수 있습니다.
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>
+                    그룹 전체보기 권한자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{groupViewers.length}명</span>
+                  </div>
+                  <input value={groupSearch} onChange={e => setGroupSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 200, fontSize: 12 }} />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {filteredGroupViewers.map(g => {
+                    const isRevoke = groupRevokeConfirm === g.id;
+                    return (
+                      <div key={g.id} style={{ background: "#fff", border: `1.5px solid ${isRevoke ? "#FECACA" : "#E2E8F0"}`, borderRadius: 10, padding: "16px 20px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6D28D9", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, flexShrink: 0 }}>{g.name[0]}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700 }}>{g.name}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, background: "#EDE9FE", color: "#6D28D9", padding: "1px 7px", borderRadius: 20 }}>그룹 전체보기</span>
+                              {adminEmails.includes(g.email) && (
+                                <span style={{ fontSize: 10, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "1px 7px", borderRadius: 20 }}>관리자</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#64748B" }}>{g.title} · {g.dept}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>부여 사유: {g.reason}</div>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 8, lineHeight: 1.7 }}>{g.grantedAt} 부여<br />{g.grantedBy}</div>
+                            {!isRevoke && (
+                              <button onClick={() => setGroupRevokeConfirm(g.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: "#EF4444", cursor: "pointer" }}>
+                                권한 회수
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {isRevoke && (
+                          <div style={{ marginTop: 12, background: "#FEF2F2", borderRadius: 7, padding: "12px 14px" }}>
+                            <div style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>{g.name}의 그룹 전체보기 권한을 회수하시겠습니까?</div>
+                            <div style={{ fontSize: 11, color: "#64748B", marginBottom: 10 }}>회수 후에는 본인 소속 관계사 프로젝트만 조회할 수 있습니다.</div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={() => setGroupRevokeConfirm(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                              <button onClick={() => handleGroupRevoke(g.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>회수 확인</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {filteredGroupViewers.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8", fontSize: 13 }}>등록된 그룹 전체보기 권한자가 없습니다.</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>그룹 전체보기 권한 부여</div>
+                  <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14, lineHeight: 1.6 }}>사내 SSO 계정을 검색하여 권한을 부여할 수 있습니다. 부여 사유 입력이 필수입니다.</div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    <input value={groupSsoSearch} onChange={e => { setGroupSsoSearch(e.target.value); setGroupSsoResult(null); setGroupGrantConfirm(null); setGroupGrantReason(""); }} onKeyDown={e => e.key === "Enter" && handleGroupSsoSearch()} placeholder="이름, 이메일, 부서 검색" style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={handleGroupSsoSearch} style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: 7, padding: "0 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>{groupSearching ? "..." : "검색"}</button>
+                  </div>
+
+                  {groupSsoResult === "notfound" && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#991B1B" }}>SSO에서 해당 사용자를 찾을 수 없습니다.</div>}
+                  {groupSsoResult && groupSsoResult !== "notfound" && (
+                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#6D28D9", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{groupSsoResult.name[0]}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{groupSsoResult.name}</div>
+                          <div style={{ fontSize: 11, color: "#64748B" }}>{groupSsoResult.title} · {groupSsoResult.dept}</div>
+                        </div>
+                      </div>
+
+                      {groupViewerEmails.includes(groupSsoResult.email) ? (
+                        <div style={{ fontSize: 12, color: "#D97706", fontWeight: 600, background: "#FEF3C7", padding: "6px 10px", borderRadius: 6 }}>이미 그룹 전체보기 권한이 부여된 사용자입니다.</div>
+                      ) : (
+                        <>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 5 }}>부여 사유 <span style={{ color: "#EF4444" }}>*필수</span></label>
+                          <textarea value={groupGrantReason} onChange={e => setGroupGrantReason(e.target.value)}
+                            placeholder="예: 그룹 IT 거버넌스 총괄 업무 수행을 위해 필요"
+                            style={{ ...inputStyle, minHeight: 60, resize: "vertical", lineHeight: 1.5, marginBottom: 10, fontFamily: "inherit" }} />
+
+                          {groupGrantConfirm ? (
+                            <div style={{ background: "#F3E8FF", borderRadius: 7, padding: "10px 12px" }}>
+                              <div style={{ fontSize: 12, color: "#6D28D9", fontWeight: 600, marginBottom: 8 }}>{groupSsoResult.name}에게 그룹 전체보기 권한을 부여하시겠습니까?</div>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <button onClick={() => setGroupGrantConfirm(null)} style={{ flex: 1, background: "#fff", border: "1px solid #E9D5FF", borderRadius: 6, padding: "6px 0", fontSize: 11, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                                <button onClick={() => handleGroupGrant(groupSsoResult)} disabled={!groupGrantReason.trim()} style={{
+                                  flex: 1, background: groupGrantReason.trim() ? "#7C3AED" : "#D1D5DB", border: "none", borderRadius: 6,
+                                  padding: "6px 0", fontSize: 11, fontWeight: 700, color: "#fff", cursor: groupGrantReason.trim() ? "pointer" : "not-allowed",
+                                }}>부여 확인</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button onClick={() => setGroupGrantConfirm(groupSsoResult)} disabled={!groupGrantReason.trim()} style={{
+                              width: "100%", background: groupGrantReason.trim() ? "#7C3AED" : "#D1D5DB", color: "#fff", border: "none", borderRadius: 7,
+                              padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: groupGrantReason.trim() ? "pointer" : "not-allowed",
+                            }}>그룹 전체보기 권한 부여</button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
+                  <strong>운영 유의사항</strong><br />
+                  그룹 전체보기는 조회 전용 권한입니다. 프로젝트 승인·분류 관리 등 관리 작업 권한은 부여되지 않으며, 별도로 관리자 권한을 부여해야 합니다.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== 탭 3: 등록자 관리 (기존 그대로) ===== */}
           {activeTab === "등록자 관리" && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -245,6 +448,7 @@ export default function AdminUsers() {
             </div>
           )}
 
+          {/* ===== 탭 4: 활동 로그 (기존 그대로) ===== */}
           {activeTab === "활동 로그" && (
             <div>
               <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -262,13 +466,13 @@ export default function AdminUsers() {
                 </div>
               </div>
               <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "140px 80px 80px 1fr", padding: "10px 18px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "140px 80px 100px 1fr", padding: "10px 18px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                   {["일시", "사용자", "액션", "대상"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>{h}</div>)}
                 </div>
                 {filteredLogs.map((log, i) => {
                   const catStyle = LOG_CATEGORY_STYLE[log.category];
                   return (
-                    <div key={log.id} style={{ display: "grid", gridTemplateColumns: "140px 80px 80px 1fr", padding: "11px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                    <div key={log.id} style={{ display: "grid", gridTemplateColumns: "140px 80px 100px 1fr", padding: "11px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                       <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace" }}>{log.datetime}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{log.actor}</div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>{log.action}</div>
