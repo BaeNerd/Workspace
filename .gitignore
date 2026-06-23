@@ -3,7 +3,10 @@
 /OCRTOEXCEL
 /Random
 /Ref
-/techhub
+/BokBulBok
+/MLP
+/my-app
+/my-react-app
 
 # 의존성
 node_modules
