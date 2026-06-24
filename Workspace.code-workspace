@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../WORKSPACE2"
+		}
+	],
+	"settings": {
+		"claudeCode.enableNewConversationShortcut": true
+	}
+}
