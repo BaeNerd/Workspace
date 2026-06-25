@@ -2,11 +2,37 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const PROBLEMS = [
-  { title: "중복 개발", desc: "유사한 기술과 기능을 여러 팀이 따로 만듭니다" },
-  { title: "담당자 확인 부담", desc: "누가 무엇을 담당하는지 찾는 데 시간과 노력이 듭니다" },
-  { title: "온보딩 지연", desc: "신규 구성원이 기존 자산을 파악하기 어렵습니다" },
-  { title: "기술 현황 파악 불가", desc: "조직 차원에서 보유 기술을 파악할 수 없습니다" },
+const PROBLEM_VALUE_MAP = [
+  {
+    problem: "중복 개발",
+    problemDesc: "유사한 기술과 기능을 여러 팀이 따로 만듭니다",
+    value: "협업 기반 기술 재사용",
+    valueDesc: "등록된 프로젝트를 손쉽게 탐색하고 재사용하여 중복 개발을 줄이고 협업을 늘립니다",
+  },
+  {
+    problem: "담당자 확인 부담",
+    problemDesc: "누가 무엇을 담당하는지 찾는 데 시간과 노력이 듭니다",
+    value: "명확한 책임자 연결",
+    valueDesc: "프로젝트별 담당자가 명확히 정의되어 즉시 연락하고 협업할 수 있습니다",
+  },
+  {
+    problem: "온보딩 지연",
+    problemDesc: "신규 구성원이 기존 자산을 파악하기 어렵습니다",
+    value: "빠른 온보딩 지원",
+    valueDesc: "검색과 분류 체계를 통해 조직의 기술 자산을 빠르게 이해하고 활용할 수 있습니다",
+  },
+  {
+    problem: "기술 현황 파악 불가",
+    problemDesc: "조직 차원에서 보유 기술을 파악할 수 없습니다",
+    value: "기술 자산 가시화",
+    valueDesc: "조직 내 모든 프로젝트와 기술 현황을 한눈에 파악할 수 있습니다",
+  },
+];
+
+const FOUNDATION_VALUES = [
+  { title: "신뢰 기반 정보 관리", desc: "관리자 검토를 통해 검증된 정보만 제공됩니다" },
+  { title: "유연한 분류 체계", desc: "고정 분류와 자유 태그로 다양한 기술을 빠짐없이 정리합니다" },
+  { title: "실시간 알림 연동", desc: "Teams 및 이메일로 업데이트와 협업 흐름을 즉시 공유합니다" },
 ];
 
 const FEATURES = [
@@ -14,14 +40,6 @@ const FEATURES = [
   { step: "02", title: "검토", desc: "관리자가 내용을 검토하고 분류를 정리한 뒤 승인합니다." },
   { step: "03", title: "탐색", desc: "전 임직원이 검색과 필터로 필요한 프로젝트를 찾습니다." },
   { step: "04", title: "연결", desc: "담당자에게 바로 연락하거나 업데이트를 받아봅니다." },
-];
-
-const CORE_VALUES = [
-  { title: "역할 단순화", desc: "User / Admin 2단계로 누구나 쉽게 참여합니다" },
-  { title: "신뢰 구조", desc: "관리자 검토를 거쳐 게시되는 검증된 정보만 노출됩니다" },
-  { title: "유연한 분류", desc: "고정 분류와 자유 태그를 함께 운영해 빠짐없이 담아냅니다" },
-  { title: "기술 확산", desc: "그룹 및 사내 전체로 검증된 기술과 노하우를 퍼뜨립니다" },
-  { title: "알림 연동", desc: "Microsoft Teams와 이메일로 진행 상황을 바로 전달합니다" },
 ];
 
 function SectionLabel({ children, small, dark }: { children: React.ReactNode; small?: boolean; dark?: boolean }) {
@@ -33,6 +51,54 @@ function SectionLabel({ children, small, dark }: { children: React.ReactNode; sm
       marginBottom: small ? 12 : 18,
     }}>
       {children}
+    </div>
+  );
+}
+
+function ProblemValueRow({ problem, problemDesc, value, valueDesc }: {
+  problem: string; problemDesc: string; value: string; valueDesc: string;
+}) {
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 120px 1fr",
+      alignItems: "center",
+      gap: 0,
+      padding: "24px 0",
+      borderBottom: "1px solid #E2E8F0",
+    }}>
+      {/* 문제 */}
+      <div style={{ paddingRight: 24 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+          문제
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>{problem}</div>
+        <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{problemDesc}</div>
+      </div>
+
+      {/* 중앙 — 화살표 + Tech Hub 라벨 */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{
+          fontSize: 9, fontWeight: 800, color: "#fff", background: "#2563EB",
+          borderRadius: 4, padding: "2px 8px", letterSpacing: "0.04em",
+          marginBottom: 6, whiteSpace: "nowrap",
+        }}>
+          TECH HUB
+        </div>
+        <svg width="64" height="16" viewBox="0 0 64 16" fill="none">
+          <line x1="0" y1="8" x2="54" y2="8" stroke="#94A3B8" strokeWidth="2" />
+          <path d="M54 2L60 8L54 14" stroke="#94A3B8" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* 해결 / 가치 */}
+      <div style={{ paddingLeft: 24, borderLeft: "1px solid #F1F5F9" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+          해결
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>{value}</div>
+        <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{valueDesc}</div>
+      </div>
     </div>
   );
 }
@@ -68,17 +134,36 @@ export default function AboutPage() {
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 32px" }}>
 
-        {/* 문제 정의 */}
+        {/* 문제–가치 매핑 */}
         <div style={{ marginBottom: 48 }}>
-          <SectionLabel>왜 필요한가</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-            {PROBLEMS.map((p, i) => (
+          <SectionLabel>문제와 개선된 가치</SectionLabel>
+          <div style={{
+            background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12,
+            padding: "0 28px",
+          }}>
+            {PROBLEM_VALUE_MAP.map((item, i) => (
+              <ProblemValueRow
+                key={i}
+                problem={item.problem}
+                problemDesc={item.problemDesc}
+                value={item.value}
+                valueDesc={item.valueDesc}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 공통 기반 가치 */}
+        <div style={{ marginBottom: 48 }}>
+          <SectionLabel>공통 기반 가치</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {FOUNDATION_VALUES.map((v, i) => (
               <div key={i} style={{
                 background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10,
-                padding: "18px 16px", borderTop: "3px solid #EF4444",
+                padding: "18px 16px", borderTop: "3px solid #0F172A",
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{p.title}</div>
-                <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>{p.desc}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{v.title}</div>
+                <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>{v.desc}</div>
               </div>
             ))}
           </div>
@@ -104,22 +189,6 @@ export default function AboutPage() {
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{f.title}</div>
                   <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{f.desc}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 핵심 가치 — 5개 그리드 카드형 */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>핵심 가치</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
-            {CORE_VALUES.map((v, i) => (
-              <div key={i} style={{
-                background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10,
-                padding: "18px 14px", borderTop: "3px solid #2563EB",
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{v.title}</div>
-                <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>{v.desc}</div>
               </div>
             ))}
           </div>

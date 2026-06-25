@@ -16,6 +16,10 @@ import AdminTaxonomy from "./pages/admin/AdminTaxonomy";
 import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
+import N8nPage from "./pages/N8nPage";
+import AssistantPage from "./pages/AssistantPage";
+import AiOrchestrationPage from "./pages/AiOrchestrationPage";
+import PlatformItemDetailPage from "./pages/PlatformItemDetailPage";
 
 export default function App() {
   return (
@@ -28,6 +32,11 @@ export default function App() {
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutPage />} />
+           <Route path="/n8n" element={<N8nPage />} />
+           <Route path="/n8n/:itemId" element={<PlatformItemDetailPage />} />
+          <Route path="/assistant" element={<AssistantPage />} />
+          <Route path="/assistant/:itemId" element={<PlatformItemDetailPage />} />
+          <Route path="/ai-orchestration" element={<AiOrchestrationPage />} />
 
           {/* 로그인 필요 */}
           <Route path="/projects/new" element={<RequireAuth><ProjectRegisterPage /></RequireAuth>} />
@@ -42,6 +51,8 @@ export default function App() {
           <Route path="/admin/org" element={<RequireAdmin><AdminOrg /></RequireAdmin>} />
           <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
           <Route path="/admin/statistics" element={<RequireAdmin><AdminStatistics /></RequireAdmin>} />
+           <Route path="/n8n" element={<N8nPage />} />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

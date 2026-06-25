@@ -66,7 +66,7 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
 
 export default function MyStatusPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<MyItem[]>(INITIAL_ITEMS);
+  const items = INITIAL_ITEMS;
   const [filter, setFilter] = useState<"전체" | ApprovalStatus>("전체");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [resubmit, setResubmit] = useState<string | null>(null);

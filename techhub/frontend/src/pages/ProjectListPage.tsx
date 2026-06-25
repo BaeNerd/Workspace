@@ -1,8 +1,27 @@
+/* ============================================================
+   파일: src/pages/ProjectListPage.tsx
+   경로: /projects
+
+   변경 사항 (이번 작업):
+   1. Project.orgEntries 추가 — 각 프로젝트의 관계사/본부/부서 계층 정보.
+      카드에는 입력된 깊이만큼만 표시 (관계사만/본부까지/부서까지).
+   2. useAuth()로 로그인 사용자의 소속 관계사(user.company)와
+      그룹 전체보기 권한(isGroupViewer) 확인.
+   3. 노출 필터링 로직:
+      - 비노출(visible: false) 관계사 소속 프로젝트는 기본적으로 숨김
+      - 그룹 전체보기 권한자는 비노출 관계사도 모두 조회 가능
+      - 소속 관계사가 있는 일반 사용자는 기본 "내 관계사" 필터가 적용된 상태로 시작
+        (필터에서 다른 관계사로 전환 가능 — 비노출이 아닌 관계사에 한함,
+         단 그룹 전체보기 권한자는 비노출 관계사도 필터 옵션에 노출)
+   4. 사이드바에 "관계사" 필터 추가, 카드에 조직 계층 배지 추가.
+   ============================================================ */
+
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
+import type { PlatformItem } from "../types/platformTypes";
 
 const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "운영 중": { bg: "#D1FAE5", color: "#065F46" },
@@ -52,6 +71,8 @@ type Project = {
   orgEntries: OrgEntry[];
 };
 
+const PLATFORM_TYPE = "내부 플랫폼"; // 시스템 유형이 이 값이면 카드에 플랫폼 배지 표시
+
 const MOCK_PROJECTS: Project[] = [
   { id: "PRJ-2025-038", title: "통합 정산 자동화 시스템", dept: "재무팀", stack: ["Python", "Airflow", "PostgreSQL"], status: "운영 중", domain: "재무/회계", type: "데이터 파이프라인", updated: "2025.05.12", orgEntries: [{ id: 1, company: "KKM", parent: "경영지원본부", dept: "재무팀" }] },
   { id: "PRJ-2025-070", title: "고객 문의 분류 ML 모델", dept: "고객서비스팀", stack: ["Python", "FastAPI", "AWS"], status: "개발 중", domain: "고객 서비스", type: "ML/AI 모델", updated: "2025.05.28", orgEntries: [{ id: 2, company: "KKM", parent: "영업마케팅본부", dept: "고객서비스팀" }] },
@@ -67,12 +88,56 @@ const MOCK_PROJECTS: Project[] = [
   { id: "PRJ-2025-044", title: "원가 분석 리포팅 자동화", dept: "재무팀", stack: ["Python", "Airflow", "Tableau"], status: "운영 중", domain: "재무/회계", type: "데이터 파이프라인", updated: "2025.04.20", orgEntries: [{ id: 12, company: "KKM", parent: "경영지원본부", dept: "재무팀" }] },
   // 비노출 관계사 프로젝트 — 그룹 전체보기 권한자에게만 보여야 함
   { id: "PRJ-2025-090", title: "친환경 원료 추적 시스템", dept: "품질관리팀", stack: ["Python", "PostgreSQL"], status: "개발 중", domain: "제조/생산", type: "데이터 파이프라인", updated: "2025.06.10", orgEntries: [{ id: 13, company: "KAF", parent: null, dept: null }] },
+  // 플랫폼형 프로젝트 — 시스템 유형이 "내부 플랫폼"인 경우 카드에 강조 배지 표시
+  { id: "PRJ-2025-100", title: "n8n 워크플로 자동화 플랫폼", dept: "IT개발팀", stack: ["Docker", "Node.js"], status: "운영 중", domain: "IT 인프라", type: "내부 플랫폼", updated: "2025.06.15", orgEntries: [{ id: 14, company: "KMH", parent: null, dept: null }] },
+  { id: "PRJ-2025-101", title: "나만의 비서 (사내 LLM 어시스턴트)", dept: "IT개발팀", stack: ["Python", "FastAPI", "React"], status: "운영 중", domain: "IT 인프라", type: "내부 플랫폼", updated: "2025.06.14", orgEntries: [{ id: 15, company: "KMH", parent: null, dept: null }] },
+  { id: "PRJ-2025-102", title: "AI Orchestration 게이트웨이", dept: "IT개발팀", stack: ["Python", "FastAPI", "Kubernetes"], status: "개발 중", domain: "IT 인프라", type: "내부 플랫폼", updated: "2025.06.16", orgEntries: [{ id: 16, company: "KMH", parent: null, dept: null }] },
 ];
 
 const DOMAINS = ["전체", "재무/회계", "고객 서비스", "제조/생산", "HR/인사", "IT 인프라", "영업/CRM", "마케팅"];
 const STATUSES = ["전체", "운영 중", "개발 중", "파일럿", "종료", "보류"];
 const TYPES = ["전체", "웹 애플리케이션", "ML/AI 모델", "데이터 파이프라인", "API/서비스", "내부 도구"];
 const SORT_OPTIONS = ["최신순", "이름순", "부서순"] as const;
+
+function FilterSection({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {options.map(opt => (
+          <div key={opt} onClick={() => onChange(opt)} style={{
+            padding: "6px 10px", borderRadius: 6, cursor: "pointer",
+            fontSize: 13, fontWeight: value === opt ? 600 : 400,
+            color: value === opt ? "#2563EB" : "#475569",
+            background: value === opt ? "#EFF6FF" : "transparent",
+            transition: "all 0.1s",
+          }}
+            onMouseEnter={e => { if (value !== opt) e.currentTarget.style.background = "#F8FAFC"; }}
+            onMouseLeave={e => { if (value !== opt) e.currentTarget.style.background = "transparent"; }}
+          >
+            {opt}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// PlatformItem(n8n 워크플로우 / 나만의 비서 에이전트)을 Project 목록과 동일한 카드 구조로
+// 검색 결과에 통합하기 위한 어댑터. AI Orchestration은 모델 비교형이라 검색 통합 대상에서 제외.
+// TODO: 실제 연동 시 GET /api/v1/platform-items?platformId=n8n,assistant 응답으로 교체
+const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
+  { id: "N8N-001", platformId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", description: "", status: "운영 중", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["HR", "계정자동화", "온보딩"], specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.06.05" },
+  { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "", status: "운영 중", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08" },
+  { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "", status: "운영 중", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12" },
+  { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "", status: "파일럿", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18" },
+  { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "", status: "운영 중", dept: "법무팀", owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10" },
+  { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "", status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14" },
+  { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "", status: "개발 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19" },
+  { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "", status: "파일럿", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20" },
+];
 
 export default function ProjectListPage() {
   const navigate = useNavigate();
@@ -110,17 +175,13 @@ export default function ProjectListPage() {
   }, [search]);
 
   const filtered = useMemo(() => {
-    return projects
+    const filteredProjects = projects
       .filter(p => {
-        // 1) 권한 기반 노출 제어: 비노출 관계사 프로젝트는 그룹 전체보기 권한이 없으면 제외
         const projectCompanies = p.orgEntries.map(e => e.company);
         const hasNonVisible = projectCompanies.some(code => !COMPANIES.find(c => c.code === code)?.visible);
         if (hasNonVisible && !isGroupViewer) return false;
-
-        // 2) 관계사 필터
         if (company !== "전체" && !projectCompanies.includes(company)) return false;
 
-        // 3) 기존 필터
         return (search === "" ||
           p.title.includes(search) ||
           p.stack.some(s => s.toLowerCase().includes(search.toLowerCase())) ||
@@ -128,38 +189,39 @@ export default function ProjectListPage() {
           (domain === "전체" || p.domain === domain) &&
           (status === "전체" || p.status === status) &&
           (type === "전체" || p.type === type);
-      })
-      .sort((a, b) => {
-        if (sort === "최신순") return new Date(b.updated.replace(/\./g, "-")).getTime() - new Date(a.updated.replace(/\./g, "-")).getTime();
-        if (sort === "이름순") return a.title.localeCompare(b.title, "ko");
-        if (sort === "부서순") return a.dept.localeCompare(b.dept, "ko");
-        return 0;
       });
-  }, [projects, search, domain, status, type, sort, company, isGroupViewer]);
 
-  const FilterSection = ({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) => (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {options.map(opt => (
-          <div key={opt} onClick={() => onChange(opt)} style={{
-            padding: "6px 10px", borderRadius: 6, cursor: "pointer",
-            fontSize: 13, fontWeight: value === opt ? 600 : 400,
-            color: value === opt ? "#2563EB" : "#475569",
-            background: value === opt ? "#EFF6FF" : "transparent",
-            transition: "all 0.1s",
-          }}
-            onMouseEnter={e => { if (value !== opt) e.currentTarget.style.background = "#F8FAFC"; }}
-            onMouseLeave={e => { if (value !== opt) e.currentTarget.style.background = "transparent"; }}
-          >
-            {opt}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    // 관계사 필터가 특정 관계사로 좁혀진 경우 플랫폼 항목은 관계사 개념이 없으므로 검색 결과에서 제외
+    // (플랫폼 항목은 회사 소속이 아니라 전사 공용 도구이므로 도메인/유형 필터도 적용하지 않음 — 검색어로만 매칭)
+    const matchedPlatformItems = company === "전체" && domain === "전체" && status === "전체" && type === "전체"
+      ? MOCK_PLATFORM_ITEMS.filter(item =>
+          search !== "" && (
+            item.title.includes(search) ||
+            item.summary.includes(search) ||
+            item.tags.some(t => t.includes(search)) ||
+            item.dept.includes(search)
+          )
+        )
+      : [];
+
+    const combined: Array<{ kind: "project"; data: Project } | { kind: "platform"; data: PlatformItem }> = [
+      ...filteredProjects.map(p => ({ kind: "project" as const, data: p })),
+      ...matchedPlatformItems.map(p => ({ kind: "platform" as const, data: p })),
+    ];
+
+    return combined.sort((a, b) => {
+      const aDate = a.kind === "project" ? a.data.updated : a.data.updatedAt;
+      const bDate = b.kind === "project" ? b.data.updated : b.data.updatedAt;
+      const aTitle = a.data.title;
+      const bTitle = b.data.title;
+      const aDept = a.kind === "project" ? a.data.dept : a.data.dept;
+      const bDept = b.kind === "project" ? b.data.dept : b.data.dept;
+      if (sort === "최신순") return new Date(bDate.replace(/\./g, "-")).getTime() - new Date(aDate.replace(/\./g, "-")).getTime();
+      if (sort === "이름순") return aTitle.localeCompare(bTitle, "ko");
+      if (sort === "부서순") return aDept.localeCompare(bDept, "ko");
+      return 0;
+    });
+  }, [projects, search, domain, status, type, sort, company, isGroupViewer]);
 
   // 관계사 필터는 옵션이 많아 별도 컴포넌트 (검색 가능)
   const [companySearch, setCompanySearch] = useState("");
@@ -338,7 +400,7 @@ export default function ProjectListPage() {
                   onMouseLeave={() => setHovered(null)}
                   style={{
                     background: "#fff",
-                    border: `1.5px solid ${hovered === i ? "#2563EB" : "#E2E8F0"}`,
+                    border: `1.5px solid ${hovered === i ? "#2563EB" : p.type === PLATFORM_TYPE ? "#DDD6FE" : "#E2E8F0"}`,
                     borderRadius: 10, padding: "18px 18px 16px",
                     cursor: "pointer",
                     transition: "border-color 0.15s, box-shadow 0.15s",
@@ -347,14 +409,26 @@ export default function ProjectListPage() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700,
-                      background: STATUS_COLOR[p.status]?.bg,
-                      color: STATUS_COLOR[p.status]?.color,
-                      padding: "2px 8px", borderRadius: 20,
-                    }}>
-                      {p.status}
-                    </span>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        background: STATUS_COLOR[p.status]?.bg,
+                        color: STATUS_COLOR[p.status]?.color,
+                        padding: "2px 8px", borderRadius: 20,
+                      }}>
+                        {p.status}
+                      </span>
+                      {p.type === PLATFORM_TYPE && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700,
+                          background: "#EDE9FE", color: "#5B21B6",
+                          padding: "2px 8px", borderRadius: 20,
+                          display: "flex", alignItems: "center", gap: 3,
+                        }}>
+                          플랫폼
+                        </span>
+                      )}
+                    </div>
                     <span style={{ fontSize: 10, color: "#94A3B8" }}>{p.domain}</span>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4, lineHeight: 1.4 }}>

@@ -1,5 +1,5 @@
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     // 데모용 임시 처리: 관리자 계정으로 로그인 후 redirectTo로 이동
     setTimeout(() => {
-      login({ name: "김관리", email: "admin.kim@kolmar.co.kr", dept: "IT개발팀", title: "팀장", role: "admin" });
+      login({ name: "김관리", email: "admin.kim@kolmar.co.kr", dept: "IT개발팀", title: "팀장", role: "admin", company: "KKM", isGroupViewer: true });
       navigate(redirectTo);
     }, 800);
   };

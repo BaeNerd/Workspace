@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -74,7 +74,6 @@ export default function ProjectDetailPage() {
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
   const [activeTab, setActiveTab] = useState<"overview" | "tech" | "contacts" | "comments">("overview");
   const [copied, setCopied] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   // TODO: 실제 연동 시 id로 프로젝트 상세 조회
   // const [project, setProject] = useState<ProjectDetail | null>(null);
