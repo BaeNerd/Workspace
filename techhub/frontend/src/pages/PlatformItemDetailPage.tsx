@@ -9,7 +9,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, PlatformItem } from "../types/platform";
+import { PLATFORMS } from "../types/platformTypes";
+import type { PlatformItem } from "../types/platformTypes";
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items/:id 응답으로 교체 (위 카탈로그 페이지와 동일 소스 공유 권장)
 const MOCK_ITEMS: PlatformItem[] = [

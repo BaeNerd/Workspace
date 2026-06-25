@@ -14,7 +14,8 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, PlatformId, PlatformItem } from "../types/platform";
+import { PLATFORMS } from "../types/platformTypes";
+import type { PlatformId, PlatformItem } from "../types/platformTypes";
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items?platformId=:id 응답으로 교체
 const MOCK_ITEMS: PlatformItem[] = [

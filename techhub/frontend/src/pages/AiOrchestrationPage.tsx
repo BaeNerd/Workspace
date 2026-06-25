@@ -13,7 +13,8 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, PlatformItem } from "../types/platform";
+import { PLATFORMS } from "../types/platformTypes";
+import type { PlatformItem } from "../types/platformTypes";
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items?platformId=ai-orchestration 응답으로 교체
 const MOCK_MODELS: PlatformItem[] = [
