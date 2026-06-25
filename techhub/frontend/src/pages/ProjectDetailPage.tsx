@@ -11,6 +11,25 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "보류": { bg: "#FEE2E2", color: "#991B1B" },
 };
 
+// TODO: 실제 연동 시 GET /api/v1/admin/companies 응답으로 교체 (MK-01과 동일 소스 공유 권장)
+const COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
+  { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" },
+  { code: "KMW", name: "무석콜마" }, { code: "KMB", name: "북경콜마" },
+  { code: "KUS", name: "미국콜마" }, { code: "KBT", name: "콜마바이오텍" },
+  { code: "KAF", name: "근오농림" }, { code: "NAB", name: "넥스트앤바이오" }, { code: "HNG", name: "에치엔지" },
+];
+
+type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
+
+const orgEntryDisplay = (e: OrgEntry) => {
+  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
+  if (!e.parent) return companyName;
+  if (!e.dept) return `${companyName} > ${e.parent}`;
+  return `${companyName} > ${e.parent} > ${e.dept}`;
+};
+
 // TODO: 실제 연동 시 GET /api/v1/projects/:id 응답으로 교체
 type Contact = { name: string; dept: string; role: string; email: string; teams: string };
 type Comment = { author: string; dept: string; date: string; text: string; isPinned: boolean };
@@ -31,6 +50,7 @@ type ProjectDetail = {
   integrations: string[];
   contacts: Contact[];
   links: { label: string; url: string }[];
+  orgEntries: OrgEntry[]; // ★ 추가 — MK-01에서 줄인 조직 계층 정보를 여기서 복원
 };
 
 const MOCK_PROJECT: ProjectDetail = {
@@ -59,6 +79,10 @@ const MOCK_PROJECT: ProjectDetail = {
     { label: "프로젝트 노션 문서", url: "https://notion.so/kolmar/color-predict" },
     { label: "I/F 정의서", url: "https://confluence.kolmar.co.kr/color-predict-if" },
   ],
+  orgEntries: [
+    { id: 1, company: "KKM", parent: "연구개발본부", dept: "메이크업연구소" },
+    { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+  ],
 };
 
 const MOCK_COMMENTS: Comment[] = [
@@ -76,13 +100,6 @@ export default function ProjectDetailPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   // TODO: 실제 연동 시 id로 프로젝트 상세 조회
-  // const [project, setProject] = useState<ProjectDetail | null>(null);
-  // useEffect(() => {
-  //   setLoading(true);
-  //   fetch(`${import.meta.env.VITE_API_URL}/api/v1/projects/${id}`)
-  //     .then(res => res.json())
-  //     .then(data => { setProject(data); setLoading(false); });
-  // }, [id]);
   const project = MOCK_PROJECT;
 
   const handleComment = () => {
@@ -170,7 +187,20 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 20, fontSize: 12, color: "#94A3B8", paddingBottom: 16 }}>
+          {/* ★ 조직 계층 배지 — MK-01 카드에서 줄인 정보를 여기서 명확히 노출 */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+            {project.orgEntries.map(e => (
+              <span key={e.id} style={{
+                fontSize: 11, fontWeight: 600,
+                background: "#EFF6FF", color: "#1E40AF",
+                padding: "3px 10px", borderRadius: 5,
+              }}>
+                {orgEntryDisplay(e)}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 20, fontSize: 12, color: "#94A3B8", paddingBottom: 16, flexWrap: "wrap" }}>
             <span>등록일 {project.createdAt}</span>
             <span>·</span>
             <span>최종 수정 {project.updatedAt}</span>
@@ -207,6 +237,20 @@ export default function ProjectDetailPage() {
                   {project.description}
                 </div>
               </div>
+
+              {/* ★ 소속 조직 카드 — 개요 탭에서도 한 번 더 명확히 확인 가능하도록 */}
+              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>소속 조직</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {project.orgEntries.map(e => (
+                    <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#334155" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563EB", flexShrink: 0 }} />
+                      {orgEntryDisplay(e)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>사용 대상</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -257,12 +301,7 @@ export default function ProjectDetailPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>기술 스택</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {project.stack.map((s, i) => (
-                  <span key={i} style={{
-                    fontSize: 13, fontWeight: 600,
-                    background: "#EFF6FF", color: "#1E40AF",
-                    padding: "6px 14px", borderRadius: 6,
-                    border: "1px solid #BFDBFE",
-                  }}>
+                  <span key={i} style={{ fontSize: 13, fontWeight: 600, background: "#F1F5F9", color: "#475569", padding: "6px 14px", borderRadius: 6 }}>
                     {s}
                   </span>
                 ))}
@@ -270,11 +309,11 @@ export default function ProjectDetailPage() {
             </div>
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>연동 시스템</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {project.integrations.map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#334155" }}>
-                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563EB", flexShrink: 0 }} />
-                    {s}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {project.integrations.map((it, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#334155" }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563EB", flexShrink: 0 }} />
+                    {it}
                   </div>
                 ))}
               </div>
@@ -283,23 +322,23 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === "contacts" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {project.contacts.map((c, i) => (
-              <div key={i} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div key={i} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{
-                      width: 42, height: 42, borderRadius: "50%",
+                      width: 38, height: 38, borderRadius: "50%",
                       background: i === 0 ? "#0F172A" : "#E2E8F0",
                       color: i === 0 ? "#fff" : "#475569",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 15, fontWeight: 700, flexShrink: 0,
+                      fontSize: 14, fontWeight: 700, flexShrink: 0,
                     }}>
                       {c.name[0]}
                     </div>
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{c.name}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{c.name}</span>
                         <span style={{
                           fontSize: 10, fontWeight: 700,
                           background: i === 0 ? "#0F172A" : "#F1F5F9",
@@ -400,20 +439,16 @@ export default function ProjectDetailPage() {
                 onChange={e => setComment(e.target.value)}
                 placeholder="진행 상황, 변경 사항, 공지 내용을 입력하세요. 등록 시 플랫폼 구독자에게 Teams 알림이 발송됩니다."
                 style={{
-                  width: "100%", boxSizing: "border-box",
-                  padding: "10px 12px", fontSize: 13, color: "#0F172A",
-                  background: "#F8FAFC", border: "1.5px solid #E2E8F0",
-                  borderRadius: 7, outline: "none", resize: "vertical",
-                  minHeight: 90, fontFamily: "inherit", lineHeight: 1.6,
+                  width: "100%", boxSizing: "border-box", minHeight: 80,
+                  padding: "12px 14px", fontSize: 13, color: "#0F172A",
+                  border: "1.5px solid #E2E8F0", borderRadius: 8, outline: "none",
+                  resize: "vertical", fontFamily: "inherit",
                 }}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")}
               />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
-                <span style={{ fontSize: 11, color: "#94A3B8" }}>담당자 및 관리자만 업데이트를 등록할 수 있습니다.</span>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
                 <button onClick={handleComment} style={{
-                  background: "#2563EB", color: "#fff", border: "none",
-                  borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  background: "#2563EB", color: "#fff", border: "none", borderRadius: 7,
+                  padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>
                   등록
                 </button>

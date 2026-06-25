@@ -13,9 +13,6 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import ProjectRegisterPage from "./pages/ProjectRegisterPage";
 import MyStatusPage from "./pages/MyStatusPage";
 import EditRequestPage from "./pages/EditRequestPage";
-import N8nPage from "./pages/N8nPage";
-import AssistantPage from "./pages/AssistantPage";
-import AiOrchestrationPage from "./pages/AiOrchestrationPage";
 import PlatformItemDetailPage from "./pages/PlatformItemDetailPage";
 
 // 관리자 전용 페이지
@@ -45,11 +42,8 @@ export default function App() {
           <Route path="/projects/:id/edit-request" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
           <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
 
-          <Route path="/n8n" element={<ProtectedRoute><N8nPage /></ProtectedRoute>} />
           <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/assistant" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
           <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/ai-orchestration" element={<ProtectedRoute><AiOrchestrationPage /></ProtectedRoute>} />
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

@@ -6,7 +6,6 @@ const NAV_LINKS = [
   { label: "소개", path: "/about" },
   { label: "Tech Hub", path: "/projects" },
   { label: "프로젝트 등록", path: "/projects/new" },
-  { label: "n8n", path: "/n8n", external: true }, // n8n 메뉴
 ];
 
 export default function Navbar() {
@@ -14,16 +13,6 @@ export default function Navbar() {
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleClick = (link: typeof NAV_LINKS[number]) => {
-    if (link.external) {
-      // n8n이 별도 서비스(외부 URL)라면 새 탭으로 열기
-      // 실제 n8n 워크플로우 URL로 교체하세요. 예: https://n8n.kolmar.co.kr
-      window.open("https://n8n.kolmar.co.kr", "_blank");
-    } else {
-      navigate(link.path);
-    }
-  };
 
   return (
     <nav style={{
@@ -39,22 +28,15 @@ export default function Navbar() {
         </div>
         <div style={{ display: "flex", gap: 36 }}>
           {NAV_LINKS.map(l => (
-            <span key={l.label} onClick={() => handleClick(l)} style={{
+            <span key={l.label} onClick={() => navigate(l.path)} style={{
               fontSize: 13, cursor: "pointer",
               fontWeight: location.pathname === l.path ? 600 : 500,
               color: location.pathname === l.path ? "#2563EB" : "#475569",
-              display: "flex", alignItems: "center", gap: 4,
             }}>
               {l.label}
-              {l.external && (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              )}
             </span>
           ))}
 
-          {/* 관리자에게만 보이는 링크 */}
           {isAdmin && (
             <span onClick={() => navigate("/admin")} style={{
               fontSize: 13, cursor: "pointer",
@@ -71,7 +53,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* 우측: 로그인 상태에 따라 분기 */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {user ? (
           <div style={{ position: "relative" }}>
