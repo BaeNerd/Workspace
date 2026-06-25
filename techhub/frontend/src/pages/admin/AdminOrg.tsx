@@ -1,15 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-const ADMIN_NAV = [
-{ label: "대시보드", path: "/admin" },
-{ label: "등록 신청 검토", path: "/admin/review" },
-{ label: "프로젝트 관리", path: "/admin/projects" },
-{ label: "분류체계 관리", path: "/admin/taxonomy" },
-{ label: "부서/조직 관리", path: "/admin/org" },
-{ label: "사용자 관리", path: "/admin/users" },
-{ label: "통계", path: "/admin/statistics" },
-];
+import AdminNavbar from "../../components/AdminNavbar";
+import AdminSidebar from "../../components/AdminSidebar";
 
 type Company = { code: string; name: string; visible: boolean };
 
@@ -108,7 +99,6 @@ return (
 }
 
 export default function AdminOrg() {
-const navigate = useNavigate();
 const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
 const [depts, setDepts] = useState<Dept[]>(INITIAL_DEPTS);
 const [search, setSearch] = useState("");
@@ -204,29 +194,10 @@ setTimeout(() => {
 
 return (
 <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
-  <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid #E2E8F0", padding: "0 32px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-    <div style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
-      <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: "-0.03em" }}>KOLMAR</span>
-      <span style={{ fontWeight: 500, fontSize: 12, color: "#94A3B8" }}>Tech Hub</span>
-    </div>
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "3px 10px", borderRadius: 20 }}>관리자</span>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>김</div>
-    </div>
-  </nav>
+  <AdminNavbar />
 
   <div style={{ display: "flex" }}>
-    <aside style={{ width: 200, flexShrink: 0, background: "#fff", borderRight: "1px solid #E2E8F0", padding: "20px 12px", position: "sticky", top: 56, height: "calc(100vh - 56px)", overflowY: "auto" }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, padding: "0 8px" }}>관리자 메뉴</div>
-      {ADMIN_NAV.map(n => (
-        <div key={n.path} onClick={() => navigate(n.path)} style={{
-          padding: "8px 10px", borderRadius: 7, cursor: "pointer", marginBottom: 2,
-          fontSize: 13, fontWeight: n.path === "/admin/org" ? 700 : 500,
-          color: n.path === "/admin/org" ? "#2563EB" : "#475569",
-          background: n.path === "/admin/org" ? "#EFF6FF" : "transparent",
-        }}>{n.label}</div>
-      ))}
-    </aside>
+    <AdminSidebar />
 
     <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
       <div style={{ marginBottom: 20 }}>
