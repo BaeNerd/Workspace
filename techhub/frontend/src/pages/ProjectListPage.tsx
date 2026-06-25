@@ -71,7 +71,6 @@ type Project = {
   orgEntries: OrgEntry[];
 };
 
-const PLATFORM_TYPE = "내부 플랫폼"; // 시스템 유형이 이 값이면 카드에 플랫폼 배지 표시
 
 const MOCK_PROJECTS: Project[] = [
   { id: "PRJ-2025-038", title: "통합 정산 자동화 시스템", dept: "재무팀", stack: ["Python", "Airflow", "PostgreSQL"], status: "운영 중", domain: "재무/회계", type: "데이터 파이프라인", updated: "2025.05.12", orgEntries: [{ id: 1, company: "KKM", parent: "경영지원본부", dept: "재무팀" }] },
@@ -392,78 +391,90 @@ export default function ProjectListPage() {
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-              {filtered.map((p, i) => (
-                <div
-                  key={p.id}
-                  onClick={() => navigate(`/projects/${p.id}`)}
-                  onMouseEnter={() => setHovered(i)}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{
-                    background: "#fff",
-                    border: `1.5px solid ${hovered === i ? "#2563EB" : p.type === PLATFORM_TYPE ? "#DDD6FE" : "#E2E8F0"}`,
-                    borderRadius: 10, padding: "18px 18px 16px",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s, box-shadow 0.15s",
-                    boxShadow: hovered === i ? "0 4px 16px rgba(37,99,235,0.08)" : "none",
-                    display: "flex", flexDirection: "column",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700,
-                        background: STATUS_COLOR[p.status]?.bg,
-                        color: STATUS_COLOR[p.status]?.color,
-                        padding: "2px 8px", borderRadius: 20,
-                      }}>
-                        {p.status}
-                      </span>
-                      {p.type === PLATFORM_TYPE && (
+              {filtered.map((p, i) => {
+                const isPlatform = p.kind === "platform";
+                const cardId = p.data.id;
+                const cardTitle = p.data.title;
+                const cardStatus = p.data.status;
+                const cardDomain = p.kind === "project" ? p.data.domain : "";
+                const cardTags = p.kind === "project" ? p.data.stack : p.data.tags;
+                const cardOrgEntries = p.kind === "project" ? p.data.orgEntries : [];
+                const cardUpdated = p.kind === "project" ? p.data.updated : p.data.updatedAt;
+                const handleClick = isPlatform
+                  ? () => navigate(`/${p.data.platformId}/${p.data.id}`)
+                  : () => navigate(`/projects/${p.data.id}`);
+                return (
+                  <div
+                    key={cardId}
+                    onClick={handleClick}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      background: "#fff",
+                      border: `1.5px solid ${hovered === i ? "#2563EB" : isPlatform ? "#DDD6FE" : "#E2E8F0"}`,
+                      borderRadius: 10, padding: "18px 18px 16px",
+                      cursor: "pointer",
+                      transition: "border-color 0.15s, box-shadow 0.15s",
+                      boxShadow: hovered === i ? "0 4px 16px rgba(37,99,235,0.08)" : "none",
+                      display: "flex", flexDirection: "column",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                         <span style={{
                           fontSize: 10, fontWeight: 700,
-                          background: "#EDE9FE", color: "#5B21B6",
+                          background: STATUS_COLOR[cardStatus]?.bg,
+                          color: STATUS_COLOR[cardStatus]?.color,
                           padding: "2px 8px", borderRadius: 20,
-                          display: "flex", alignItems: "center", gap: 3,
                         }}>
-                          플랫폼
+                          {cardStatus}
                         </span>
-                      )}
+                        {isPlatform && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700,
+                            background: "#EDE9FE", color: "#5B21B6",
+                            padding: "2px 8px", borderRadius: 20,
+                            display: "flex", alignItems: "center", gap: 3,
+                          }}>
+                            플랫폼
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 10, color: "#94A3B8" }}>{cardDomain}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: "#94A3B8" }}>{p.domain}</span>
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4, lineHeight: 1.4 }}>
-                    {p.title}
-                  </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4, lineHeight: 1.4 }}>
+                      {cardTitle}
+                    </div>
 
-                  {/* ===== 조직 계층 배지 (변경된 부분) — 입력 깊이만큼만 표시 ===== */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-                    {p.orgEntries.map(e => (
-                      <span key={e.id} style={{
-                        fontSize: 10, fontWeight: 600,
-                        background: "#EFF6FF", color: "#1E40AF",
-                        padding: "2px 8px", borderRadius: 4,
-                      }}>
-                        {orgEntryDisplay(e)}
-                      </span>
-                    ))}
-                  </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+                      {cardOrgEntries.map((e: OrgEntry) => (
+                        <span key={e.id} style={{
+                          fontSize: 10, fontWeight: 600,
+                          background: "#EFF6FF", color: "#1E40AF",
+                          padding: "2px 8px", borderRadius: 4,
+                        }}>
+                          {orgEntryDisplay(e)}
+                        </span>
+                      ))}
+                    </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
-                    {p.stack.map((s, si) => (
-                      <span key={si} style={{
-                        fontSize: 10, fontWeight: 600,
-                        background: "#F1F5F9", color: "#475569",
-                        padding: "2px 7px", borderRadius: 4,
-                      }}>
-                        {s}
-                      </span>
-                    ))}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
+                      {cardTags.map((s: string, si: number) => (
+                        <span key={si} style={{
+                          fontSize: 10, fontWeight: 600,
+                          background: "#F1F5F9", color: "#475569",
+                          padding: "2px 7px", borderRadius: 4,
+                        }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#CBD5E1", marginTop: "auto" }}>
+                      업데이트 {cardUpdated}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10, color: "#CBD5E1", marginTop: "auto" }}>
-                    업데이트 {p.updated}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

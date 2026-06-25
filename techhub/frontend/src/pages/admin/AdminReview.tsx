@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 
@@ -164,7 +163,6 @@ const FieldRow = ({ label, children }: { label: string; children: React.ReactNod
 );
 
 export default function AdminReview() {
-  const navigate = useNavigate();
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_ITEMS);
   const [selected, setSelected] = useState(INITIAL_ITEMS[0]?.id ?? "");
   const [edits, setEdits] = useState<Record<string, Partial<ReviewItem>>>({});
@@ -210,8 +208,6 @@ export default function AdminReview() {
 
   const removeOrgEntry = (id: number) => setEdit("orgEntries", currentOrgEntries.filter(e => e.id !== id));
 
-  const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
-  const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const handleApprove = () => {
     // TODO: 실제 연동 시 PATCH /api/v1/admin/projects/:id/approve (body: edit)

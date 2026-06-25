@@ -1,14 +1,24 @@
-import { AuthProvider } from "./context/AuthContext";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { RequireAuth, RequireAdmin } from "./components/Guards";
-import LoginPage from "./pages/LoginPage";
-import EditRequestPage from "./pages/EditRequestPage";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// 공개 페이지
 import LandingPage from "./pages/LandingPage";
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+
+// 로그인 필요 페이지
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import ProjectRegisterPage from "./pages/ProjectRegisterPage";
 import MyStatusPage from "./pages/MyStatusPage";
-import AboutPage from "./pages/AboutPage";
+import EditRequestPage from "./pages/EditRequestPage";
+import N8nPage from "./pages/N8nPage";
+import AssistantPage from "./pages/AssistantPage";
+import AiOrchestrationPage from "./pages/AiOrchestrationPage";
+import PlatformItemDetailPage from "./pages/PlatformItemDetailPage";
+
+// 관리자 전용 페이지
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminReview from "./pages/admin/AdminReview";
 import AdminProjectManage from "./pages/admin/AdminProjectManage";
@@ -16,42 +26,39 @@ import AdminTaxonomy from "./pages/admin/AdminTaxonomy";
 import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
-import N8nPage from "./pages/N8nPage";
-import AssistantPage from "./pages/AssistantPage";
-import AiOrchestrationPage from "./pages/AiOrchestrationPage";
-import PlatformItemDetailPage from "./pages/PlatformItemDetailPage";
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* 공개 */}
+
+          {/* ===== 공개 (비로그인 접근 가능) ===== */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/projects" element={<ProjectListPage />} />
-          <Route path="/projects/:id" element={<ProjectDetailPage />} />
-          <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutPage />} />
-           <Route path="/n8n" element={<N8nPage />} />
-           <Route path="/n8n/:itemId" element={<PlatformItemDetailPage />} />
-          <Route path="/assistant" element={<AssistantPage />} />
-          <Route path="/assistant/:itemId" element={<PlatformItemDetailPage />} />
-          <Route path="/ai-orchestration" element={<AiOrchestrationPage />} />
+          <Route path="/login" element={<LoginPage />} />
 
-          {/* 로그인 필요 */}
-          <Route path="/projects/new" element={<RequireAuth><ProjectRegisterPage /></RequireAuth>} />
-          <Route path="/projects/:id/edit-request" element={<RequireAuth><EditRequestPage /></RequireAuth>} />
-          <Route path="/my-status" element={<RequireAuth><MyStatusPage /></RequireAuth>} />
+          {/* ===== 로그인 필요 ===== */}
+          <Route path="/projects" element={<ProtectedRoute><ProjectListPage /></ProtectedRoute>} />
+          <Route path="/projects/new" element={<ProtectedRoute><ProjectRegisterPage /></ProtectedRoute>} />
+          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
+          <Route path="/projects/:id/edit-request" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
+          <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
 
-          {/* 관리자 전용 */}
-          <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
-          <Route path="/admin/review" element={<RequireAdmin><AdminReview /></RequireAdmin>} />
-          <Route path="/admin/projects" element={<RequireAdmin><AdminProjectManage /></RequireAdmin>} />
-          <Route path="/admin/taxonomy" element={<RequireAdmin><AdminTaxonomy /></RequireAdmin>} />
-          <Route path="/admin/org" element={<RequireAdmin><AdminOrg /></RequireAdmin>} />
-          <Route path="/admin/users" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
-          <Route path="/admin/statistics" element={<RequireAdmin><AdminStatistics /></RequireAdmin>} />
-           <Route path="/n8n" element={<N8nPage />} />
+          <Route path="/n8n" element={<ProtectedRoute><N8nPage /></ProtectedRoute>} />
+          <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/assistant" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
+          <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/ai-orchestration" element={<ProtectedRoute><AiOrchestrationPage /></ProtectedRoute>} />
+
+          {/* ===== 관리자 전용 ===== */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/review" element={<ProtectedRoute requireAdmin><AdminReview /></ProtectedRoute>} />
+          <Route path="/admin/projects" element={<ProtectedRoute requireAdmin><AdminProjectManage /></ProtectedRoute>} />
+          <Route path="/admin/taxonomy" element={<ProtectedRoute requireAdmin><AdminTaxonomy /></ProtectedRoute>} />
+          <Route path="/admin/org" element={<ProtectedRoute requireAdmin><AdminOrg /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/statistics" element={<ProtectedRoute requireAdmin><AdminStatistics /></ProtectedRoute>} />
 
         </Routes>
       </BrowserRouter>

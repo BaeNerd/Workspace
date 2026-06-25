@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 
@@ -195,7 +194,6 @@ const EMPTY: ProjectItem = {
 };
 
 export default function AdminProjectManage() {
-  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectItem[]>(INITIAL_PROJECTS);
   const [selected, setSelected] = useState(INITIAL_PROJECTS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
