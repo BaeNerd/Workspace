@@ -42,8 +42,10 @@ export default function App() {
           <Route path="/projects/:id/edit-request" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
           <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
 
+          {/* 플랫폼 항목 상세 — 통합 그리드 카드를 클릭했을 때 도달하는 페이지 */}
           <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/ai-orchestration/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

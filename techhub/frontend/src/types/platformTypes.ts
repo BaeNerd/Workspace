@@ -11,11 +11,10 @@ export type Platform = {
   icon: "automation" | "assistant" | "orchestration";
 };
 
-// TODO: 실제 연동 시 GET /api/v1/platforms 응답으로 교체
 export const PLATFORMS: Platform[] = [
   { id: "n8n", name: "n8n", shortDesc: "업무 자동화 워크플로우 플랫폼", path: "/n8n", accessUrl: "https://n8n.kolmar.co.kr", color: "#EA580C", bg: "#FFF7ED", icon: "automation" },
-  { id: "assistant", name: "나만의 비서", shortDesc: "업무별 맞춤 LLM 에이전트 모음", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#EFF6FF", icon: "assistant" },
-  { id: "ai-orchestration", name: "AI Orchestration", shortDesc: "업무에 맞는 AI 모델을 선택하여 연결", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
+  { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 업무·개인에 맞게 커스터마이징한 에이전트 모음", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#EFF6FF", icon: "assistant" },
+  { id: "ai-orchestration", name: "AI Agent", shortDesc: "업무에 맞는 AI 모델을 선택하여 연결", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
 ];
 
 export type PlatformItemStatus = "운영 중" | "개발 중" | "파일럿" | "보류" | "종료";
@@ -33,8 +32,15 @@ export type PlatformItem = {
   tags: string[];
   specificUrl: string;
   updatedAt: string;
-  likes: number; // ★ 추가 — 카드/상세페이지 좋아요 카운트
+  likes: number;
 
+  // n8n / 나만의 비서(HK GPT 커스텀) 전용 — 노드 구성·연동 앱·예상 효과
+  nodes?: string[];
+  connectedApps?: string[];
+  expectedTimeSaved?: string;
+  difficulty?: "쉬움" | "보통" | "어려움";
+
+  // AI Agent(구 AI Orchestration) 전용
   modelMeta?: {
     provider: string;
     contextWindow: string;

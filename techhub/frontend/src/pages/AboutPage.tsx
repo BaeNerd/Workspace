@@ -2,40 +2,52 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const PROBLEM_VALUE_MAP = [
+const PROBLEM_SOLUTION = [
   {
     problem: "중복 개발",
-    problemDesc: "유사한 기술과 기능을 여러 팀이 따로 만듭니다",
-    value: "협업 기반 기술 재사용",
-    valueDesc: "등록된 프로젝트를 손쉽게 탐색하고 재사용하여 중복 개발을 줄이고 협업을 늘립니다",
+    problemDesc: "여러 팀이 유사한 기능을 반복 개발합니다.",
+    solution: "협업 기반 재사용",
+    solutionDesc: "기존 자산을 탐색하여 리소스를 최적화합니다.",
   },
   {
     problem: "담당자 확인 부담",
-    problemDesc: "누가 무엇을 담당하는지 찾는 데 시간과 노력이 듭니다",
-    value: "명확한 책임자 연결",
-    valueDesc: "프로젝트별 담당자가 명확히 정의되어 즉시 연락하고 협업할 수 있습니다",
+    problemDesc: "프로젝트 담당자를 찾는 데 시간이 소요됩니다.",
+    solution: "명확한 책임자 연결",
+    solutionDesc: "담당자를 즉시 확인하고 바로 협업합니다.",
   },
   {
     problem: "온보딩 지연",
-    problemDesc: "신규 구성원이 기존 자산을 파악하기 어렵습니다",
-    value: "빠른 온보딩 지원",
-    valueDesc: "검색과 분류 체계를 통해 조직의 기술 자산을 빠르게 이해하고 활용할 수 있습니다",
+    problemDesc: "신규 구성원이 자산을 파악하기 어렵습니다.",
+    solution: "빠른 온보딩 지원",
+    solutionDesc: "체계적인 분류로 자산을 빠르게 학습합니다.",
   },
   {
     problem: "기술 현황 파악 불가",
-    problemDesc: "조직 차원에서 보유 기술을 파악할 수 없습니다",
-    value: "기술 자산 가시화",
-    valueDesc: "조직 내 모든 프로젝트와 기술 현황을 한눈에 파악할 수 있습니다",
+    problemDesc: "조직 내 보유 기술 가시성이 낮습니다.",
+    solution: "기술 자산 가시화",
+    solutionDesc: "조직의 모든 기술 현황을 한눈에 봅니다.",
   },
 ];
 
-const FOUNDATION_VALUES = [
-  { title: "신뢰 기반 정보 관리", desc: "관리자 검토를 통해 검증된 정보만 제공됩니다" },
-  { title: "유연한 분류 체계", desc: "고정 분류와 자유 태그로 다양한 기술을 빠짐없이 정리합니다" },
-  { title: "실시간 알림 연동", desc: "Teams 및 이메일로 업데이트와 협업 흐름을 즉시 공유합니다" },
+const CORE_VALUES = [
+  {
+    title: "신뢰 기반 관리",
+    desc: "검증된 정보만 제공합니다.",
+    sub: "관리자 검토 후 게시되는 신뢰 구조",
+  },
+  {
+    title: "유연한 분류 체계",
+    desc: "표준 분류와 자유 태그를 지원합니다.",
+    sub: "고정 분류 + 자유 태그 병행 운영",
+  },
+  {
+    title: "실시간 협업 연동",
+    desc: "Teams / 이메일 알림을 제공합니다.",
+    sub: "승인·반려·업데이트 즉시 통보",
+  },
 ];
 
-const FEATURES = [
+const FLOW_STEPS = [
   { step: "01", title: "등록", desc: "진행 중인 프로젝트를 4단계 폼으로 간단히 등록 신청합니다." },
   { step: "02", title: "검토", desc: "관리자가 내용을 검토하고 분류를 정리한 뒤 승인합니다." },
   { step: "03", title: "탐색", desc: "전 임직원이 검색과 필터로 필요한 프로젝트를 찾습니다." },
@@ -51,54 +63,6 @@ function SectionLabel({ children, small, dark }: { children: React.ReactNode; sm
       marginBottom: small ? 12 : 18,
     }}>
       {children}
-    </div>
-  );
-}
-
-function ProblemValueRow({ problem, problemDesc, value, valueDesc }: {
-  problem: string; problemDesc: string; value: string; valueDesc: string;
-}) {
-  return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "1fr 120px 1fr",
-      alignItems: "center",
-      gap: 0,
-      padding: "24px 0",
-      borderBottom: "1px solid #E2E8F0",
-    }}>
-      {/* 문제 */}
-      <div style={{ paddingRight: 24 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-          문제
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>{problem}</div>
-        <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{problemDesc}</div>
-      </div>
-
-      {/* 중앙 — 화살표 + Tech Hub 라벨 */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{
-          fontSize: 9, fontWeight: 800, color: "#fff", background: "#2563EB",
-          borderRadius: 4, padding: "2px 8px", letterSpacing: "0.04em",
-          marginBottom: 6, whiteSpace: "nowrap",
-        }}>
-          TECH HUB
-        </div>
-        <svg width="64" height="16" viewBox="0 0 64 16" fill="none">
-          <line x1="0" y1="8" x2="54" y2="8" stroke="#94A3B8" strokeWidth="2" />
-          <path d="M54 2L60 8L54 14" stroke="#94A3B8" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-
-      {/* 해결 / 가치 */}
-      <div style={{ paddingLeft: 24, borderLeft: "1px solid #F1F5F9" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
-          해결
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>{value}</div>
-        <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{valueDesc}</div>
-      </div>
     </div>
   );
 }
@@ -125,57 +89,56 @@ export default function AboutPage() {
           About Kolmar Tech Hub
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 800, color: "#F8FAFC", letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.3 }}>
-          흩어진 기술을 한곳으로,<br />중복을 줄이고 협업을 늘립니다
+          그룹 IT 프로젝트를 등록·탐색·연결하여<br />조직의 기술 생산성을 극대화합니다
         </h1>
-        <p style={{ fontSize: 14, color: "#94A3B8", lineHeight: 1.7, maxWidth: 520, margin: "0 auto" }}>
-          Kolmar Tech Hub는 그룹 IT 프로젝트를 등록·탐색·연결하는 사내 플랫폼입니다.
+        <p style={{ fontSize: 14, color: "#94A3B8", lineHeight: 1.7, maxWidth: 540, margin: "0 auto" }}>
+          Kolmar Tech Hub는 콜마그룹 전체의 IT 프로젝트를 한곳에서 등록·탐색·연결하는 내부 플랫폼입니다.
         </p>
       </section>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 32px" }}>
 
-        {/* 문제–가치 매핑 */}
+        {/* 왜 Tech Hub인가 — Problem → Solution 매칭 */}
         <div style={{ marginBottom: 48 }}>
-          <SectionLabel>문제와 개선된 가치</SectionLabel>
-          <div style={{
-            background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12,
-            padding: "0 28px",
-          }}>
-            {PROBLEM_VALUE_MAP.map((item, i) => (
-              <ProblemValueRow
-                key={i}
-                problem={item.problem}
-                problemDesc={item.problemDesc}
-                value={item.value}
-                valueDesc={item.valueDesc}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* 공통 기반 가치 */}
-        <div style={{ marginBottom: 48 }}>
-          <SectionLabel>공통 기반 가치</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-            {FOUNDATION_VALUES.map((v, i) => (
+          <SectionLabel>왜 Tech Hub인가요?</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {PROBLEM_SOLUTION.map((ps, i) => (
               <div key={i} style={{
-                background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10,
-                padding: "18px 16px", borderTop: "3px solid #0F172A",
+                display: "grid", gridTemplateColumns: "1fr 40px 1fr", alignItems: "center", gap: 16,
+                background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px",
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{v.title}</div>
-                <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>{v.desc}</div>
+                {/* PROBLEM */}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", letterSpacing: "0.06em", marginBottom: 6 }}>PROBLEM</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{ps.problem}</div>
+                  <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{ps.problemDesc}</div>
+                </div>
+
+                {/* ARROW */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="13 6 19 12 13 18" />
+                  </svg>
+                </div>
+
+                {/* SOLUTION */}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#059669", letterSpacing: "0.06em", marginBottom: 6 }}>SOLUTION</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{ps.solution}</div>
+                  <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{ps.solutionDesc}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 작동 방식 */}
+        {/* 어떻게 작동하는가 — 등록→검토→탐색→연결 (유지) */}
         <div style={{ marginBottom: 48 }}>
           <SectionLabel>어떻게 작동하는가</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, position: "relative" }}>
-            {FEATURES.map((f, i) => (
+            {FLOW_STEPS.map((f, i) => (
               <div key={i} style={{ position: "relative", padding: "0 14px" }}>
-                {i < FEATURES.length - 1 && (
+                {i < FLOW_STEPS.length - 1 && (
                   <div style={{ position: "absolute", top: 22, left: "calc(50% + 30px)", right: -14, height: 2, background: "#E2E8F0" }} />
                 )}
                 <div style={{
@@ -194,13 +157,25 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Phase 2 — 풀와이드 배너 */}
-        <div style={{ background: "#0F172A", borderRadius: 10, padding: "24px 28px", marginBottom: 48 }}>
-          <SectionLabel small dark>다음 단계 (Phase 2)</SectionLabel>
-          <div style={{ fontSize: 12, color: "#CBD5E1", lineHeight: 1.8 }}>
-            "이런 기능을 만들고 싶은데 참고할 게 있나?"처럼 자연어로 질문하면,
-            그룹과 사내에 이미 존재하는 유사 프로젝트를 추천해주는
-            <strong style={{ color: "#93C5FD" }}> RAG 기반 검색</strong>을 준비하고 있습니다.
+        {/* 핵심 가치 3개 */}
+        <div style={{ marginBottom: 48 }}>
+          <SectionLabel>핵심 가치</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+            {CORE_VALUES.map((v, i) => (
+              <div key={i} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 20px" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{v.title}</div>
+                <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.6, marginBottom: 10 }}>{v.desc}</div>
+                <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.6, paddingTop: 10, borderTop: "1px solid #F1F5F9" }}>{v.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Phase 2 예고 */}
+        <div style={{ background: "#0F172A", borderRadius: 10, padding: "22px 24px", marginBottom: 48 }}>
+          <SectionLabel dark small>NEXT PHASE</SectionLabel>
+          <div style={{ fontSize: 13, color: "#CBD5E1", lineHeight: 1.8 }}>
+            <strong style={{ color: "#93C5FD" }}>RAG 기반 AI 검색</strong>이 도입될 예정입니다. 질문만으로 가장 적합한 프로젝트와 담당자를 즉시 찾아드립니다.
           </div>
         </div>
 
