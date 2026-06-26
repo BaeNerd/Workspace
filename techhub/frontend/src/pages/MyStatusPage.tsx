@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -66,15 +66,23 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
 
 export default function MyStatusPage() {
   const navigate = useNavigate();
-  const items = INITIAL_ITEMS;
   const [filter, setFilter] = useState<"전체" | ApprovalStatus>("전체");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [resubmit, setResubmit] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<string[]>([]);
 
-  const visible = items.filter(i => !deleted.includes(i.id) && (filter === "전체" || i.approval === filter));
-  const allActive = items.filter(i => !deleted.includes(i.id));
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
+  const items = useMemo(() =>
+    [...INITIAL_ITEMS].sort((a, b) =>
+      new Date(b.submittedAt.replace(/\./g, "-")).getTime() - new Date(a.submittedAt.replace(/\./g, "-")).getTime()
+    ), []);
+
+  const visible = items.filter((i: MyItem) => !deleted.includes(i.id) && (filter === "전체" || i.approval === filter));
+  const allActive = items.filter((i: MyItem) => !deleted.includes(i.id));
 
   const counts: Record<"전체" | ApprovalStatus, number> = {
     "전체": allActive.length,

@@ -32,13 +32,6 @@ const COMPANIES = [
 
 type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
 
-const orgEntryDisplay = (e: OrgEntry) => {
-  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
-  if (!e.parent) return companyName;
-  if (!e.dept) return `${companyName} > ${e.parent}`;
-  return `${companyName} > ${e.parent} > ${e.dept}`;
-};
-
 type Project = {
   id: string;
   title: string;
