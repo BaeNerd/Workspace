@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 type ApprovalStatus = "승인" | "대기" | "반려";
+const STATUS_OPTIONS = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
 
 type MyItem = {
   id: string;
@@ -18,7 +19,6 @@ type MyItem = {
   rejectionReason: string | null;
 };
 
-// TODO: 실제 연동 시 GET /api/v1/my/projects 응답으로 교체
 const INITIAL_ITEMS: MyItem[] = [
   {
     id: "PRJ-2025-041", title: "조색 예측 ML 모델",
@@ -64,6 +64,37 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "보류": { bg: "#FEE2E2", color: "#991B1B" },
 };
 
+// ★ 상태 변경 드롭다운 — 모듈 레벨 컴포넌트 (입력 끊김 버그 방지 규칙 적용)
+function StatusChanger({ status, onChange }: { status: string; onChange: (v: string) => void }) {
+  const isTerminated = status === "종료";
+  return (
+    <div>
+      <select
+        value={status}
+        disabled={isTerminated}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          fontSize: 11, fontWeight: 700,
+          background: STATUS_COLOR[status]?.bg, color: STATUS_COLOR[status]?.color,
+          border: "none", borderRadius: 20, padding: "3px 22px 3px 10px",
+          cursor: isTerminated ? "not-allowed" : "pointer", outline: "none",
+          opacity: isTerminated ? 0.7 : 1,
+          appearance: "none",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(STATUS_COLOR[status]?.color ?? "#475569")}' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center",
+        }}
+      >
+        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+      </select>
+      {isTerminated && (
+        <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
+          종료된 항목의 상태 복원은 관리자에게 문의하세요.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MyStatusPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"전체" | ApprovalStatus>("전체");
@@ -71,58 +102,54 @@ export default function MyStatusPage() {
   const [resubmit, setResubmit] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<string[]>([]);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
-  const items = useMemo(() =>
-    [...INITIAL_ITEMS].sort((a, b) =>
-      new Date(b.submittedAt.replace(/\./g, "-")).getTime() - new Date(a.submittedAt.replace(/\./g, "-")).getTime()
-    ), []);
+  const items = useMemo(() => {
+    return [...INITIAL_ITEMS]
+      .sort((a, b) => new Date(b.submittedAt.replace(/\./g, "-")).getTime() - new Date(a.submittedAt.replace(/\./g, "-")).getTime())
+      .map(item => ({ ...item, status: statusOverrides[item.id] ?? item.status }));
+  }, [statusOverrides]);
 
-  const visible = items.filter((i: MyItem) => !deleted.includes(i.id) && (filter === "전체" || i.approval === filter));
-  const allActive = items.filter((i: MyItem) => !deleted.includes(i.id));
-
-  const counts: Record<"전체" | ApprovalStatus, number> = {
-    "전체": allActive.length,
-    "승인": allActive.filter(i => i.approval === "승인").length,
-    "대기": allActive.filter(i => i.approval === "대기").length,
-    "반려": allActive.filter(i => i.approval === "반려").length,
+  const handleStatusChange = (id: string, newStatus: string) => {
+    // TODO: 실제 연동 시 PATCH /api/v1/projects/:id/status (body: { status: newStatus })
+    // 백엔드에서도 "종료 → 다른 상태"는 본인 권한으로 거부하고 관리자 전용 엔드포인트로 분리해야 함
+    setStatusOverrides(p => ({ ...p, [id]: newStatus }));
   };
 
-  const handleDelete = (id: string) => {
-    // TODO: 실제 연동 시 DELETE /api/v1/my/projects/:id
-    setDeleted(p => [...p, id]);
-    setDeleteConfirm(null);
-    setExpanded(null);
-    setResubmit(null);
+  const visible = items.filter(i => !deleted.includes(i.id) && (filter === "전체" || i.approval === filter));
+  const counts = {
+    "전체": items.filter(i => !deleted.includes(i.id)).length,
+    "승인": items.filter(i => !deleted.includes(i.id) && i.approval === "승인").length,
+    "대기": items.filter(i => !deleted.includes(i.id) && i.approval === "대기").length,
+    "반려": items.filter(i => !deleted.includes(i.id) && i.approval === "반려").length,
   };
+
+  const STAT_TABS: { key: "전체" | ApprovalStatus; label: string; color: string }[] = [
+    { key: "전체", label: "전체", color: "#0F172A" },
+    { key: "승인", label: "승인", color: "#059669" },
+    { key: "대기", label: "대기", color: "#D97706" },
+    { key: "반려", label: "반려", color: "#EF4444" },
+  ];
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
-
       <Navbar />
 
-      {/* PAGE HEADER */}
       <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "20px 32px" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>내 활동</div>
+        <div style={{ maxWidth: 880, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>나의 등록</div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>내 등록 현황</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>신청한 프로젝트의 검토 상태를 확인하고 반려된 항목을 수정하여 재제출할 수 있습니다.</p>
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "28px 32px" }}>
+      <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 32px" }}>
 
-        {/* SUMMARY + FILTER */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
-          {([
-            { label: "전체 신청", key: "전체" as const, color: "#0F172A" },
-            { label: "승인 완료", key: "승인" as const, color: "#059669" },
-            { label: "검토 대기", key: "대기" as const, color: "#D97706" },
-            { label: "반려", key: "반려" as const, color: "#EF4444" },
-          ]).map((s) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
+          {STAT_TABS.map(s => (
             <div key={s.key} onClick={() => setFilter(s.key)} style={{
               background: filter === s.key ? s.color : "#fff",
               border: `1.5px solid ${filter === s.key ? s.color : "#E2E8F0"}`,
@@ -140,7 +167,6 @@ export default function MyStatusPage() {
           ))}
         </div>
 
-        {/* LIST */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {visible.length === 0 && (
             <div style={{ textAlign: "center", padding: "48px 0", color: "#94A3B8", fontSize: 14 }}>
@@ -167,12 +193,21 @@ export default function MyStatusPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", color: "#94A3B8" }}>{item.id}</span>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700,
-                          background: STATUS_COLOR[item.status]?.bg,
-                          color: STATUS_COLOR[item.status]?.color,
-                          padding: "2px 8px", borderRadius: 20,
-                        }}>{item.status}</span>
+
+                        {/* ★ 승인된 항목만 상태 변경 드롭다운, 그 외는 읽기 전용 배지 */}
+                        {item.approval === "승인" ? (
+                          <span onClick={e => e.stopPropagation()}>
+                            <StatusChanger status={item.status} onChange={v => handleStatusChange(item.id, v)} />
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700,
+                            background: STATUS_COLOR[item.status]?.bg,
+                            color: STATUS_COLOR[item.status]?.color,
+                            padding: "2px 8px", borderRadius: 20,
+                          }}>{item.status}</span>
+                        )}
+
                         <span style={{ fontSize: 11, color: "#94A3B8" }}>{item.domain}</span>
                         <span style={{ fontSize: 11, color: "#CBD5E1" }}>·</span>
                         <span style={{ fontSize: 11, color: "#94A3B8" }}>{item.type}</span>
@@ -243,43 +278,16 @@ export default function MyStatusPage() {
                       <span style={{ color: "#334155" }}>{item.type}</span>
                       <span style={{ color: "#94A3B8", fontWeight: 600 }}>비즈니스 도메인</span>
                       <span style={{ color: "#334155" }}>{item.domain}</span>
-                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>프로젝트 상태</span>
-                      <span style={{ color: "#334155" }}>{item.status}</span>
-                    </div>
-                  </div>
-                )}
-
-                {isResubmit && (
-                  <div style={{ borderTop: "1px solid #FECACA", padding: "20px 22px", background: "#FFF8F8" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>재제출 — 수정 메모</div>
-                    <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12 }}>반려 사유를 참고하여 수정한 항목을 간략히 기재해 주세요.</div>
-                    <textarea placeholder="예: 기능적 차별점(실시간 Delta E 추적 기능 포함) 및 담당자 정보 보완 완료" style={{
-                      width: "100%", boxSizing: "border-box",
-                      padding: "10px 12px", fontSize: 13, color: "#0F172A",
-                      background: "#fff", border: "1.5px solid #FECACA",
-                      borderRadius: 7, outline: "none", resize: "vertical",
-                      minHeight: 80, fontFamily: "inherit", lineHeight: 1.6,
-                    }} />
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
-                      <button onClick={() => setResubmit(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
-                      <button onClick={() => navigate("/projects/new")} style={{ background: "#2563EB", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>재제출</button>
                     </div>
                   </div>
                 )}
 
                 {isDeleteConfirm && (
-                  <div style={{ borderTop: `1px solid ${item.approval === "반려" ? "#FECACA" : "#E2E8F0"}`, padding: "16px 22px", background: "#FFFBEB" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 6 }}>
-                      {item.approval === "반려" ? "신청을 삭제하시겠습니까?" : "신청을 취소하시겠습니까?"}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14 }}>
-                      {item.approval === "반려" ? "삭제된 신청은 복구할 수 없습니다." : "취소 후 동일한 내용으로 다시 신청할 수 있습니다."}
-                    </div>
+                  <div style={{ borderTop: "1px solid #FECACA", padding: "14px 22px", background: "#FEF2F2" }}>
+                    <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 10 }}>이 신청 건을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>돌아가기</button>
-                      <button onClick={() => handleDelete(item.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
-                        {item.approval === "반려" ? "삭제 확인" : "취소 확인"}
-                      </button>
+                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                      <button onClick={() => { setDeleted(p => [...p, item.id]); setDeleteConfirm(null); }} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>삭제 확인</button>
                     </div>
                   </div>
                 )}
