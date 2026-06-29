@@ -34,6 +34,10 @@ export type PlatformItem = {
   updatedAt: string;
   likes: number;
 
+  // ★ 신규 — 소속/대상 관계사 (복수 선택, 관계사 코드 배열 예: ["KKM", "KBH"])
+  // 비워두거나 생략하면 "전사 공용"으로 간주
+  company?: string[];
+
   // n8n / 나만의 비서(HK GPT 커스텀) 전용 — 노드 구성·연동 앱·예상 효과
   nodes?: string[];
   connectedApps?: string[];
@@ -54,3 +58,4 @@ export const PLATFORM_ICON_PATH: Record<Platform["icon"], string> = {
   assistant: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 16v-4M12 8h.01",
   orchestration: "M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z",
 };
+

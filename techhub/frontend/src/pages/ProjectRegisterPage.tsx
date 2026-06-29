@@ -25,13 +25,42 @@ const APP_SUGGESTIONS = [
   "HTTP Request", "Spreadsheet File", "Respond To Webhook",
 ];
 
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체 (AdminOrg와 동일 소스 공유)
 const COMPANIES = [
-  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
-  { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
-  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" },
-  { code: "KMW", name: "무석콜마" }, { code: "KMB", name: "북경콜마" },
-  { code: "KUS", name: "미국콜마" }, { code: "KBT", name: "콜마바이오텍" },
+  { code: "KMH", name: "콜마홀딩스", visible: true },
+  { code: "KKM", name: "한국콜마", visible: true },
+  { code: "KBH", name: "콜마비앤에이치", visible: true },
+  { code: "HKN", name: "에이치케이이노엔", visible: true },
+  { code: "YWK", name: "연우", visible: true },
+  { code: "KAF", name: "근오농림", visible: false },
+  { code: "NAB", name: "넥스트앤바이오", visible: false },
+  { code: "HC", name: "콜마생활건강", visible: true },
+  { code: "HNG", name: "에치엔지", visible: false },
+  { code: "MOD", name: "엠오디머티리얼즈", visible: false },
+  { code: "KMG", name: "콜마글로벌", visible: true },
+  { code: "KMSK", name: "콜마스크", visible: true },
+  { code: "KUX", name: "콜마유엑스", visible: false },
+  { code: "KMW", name: "무석콜마", visible: true },
+  { code: "KMB", name: "북경콜마", visible: true },
+  { code: "KBJ", name: "강소콜마", visible: false },
+  { code: "KAY", name: "연태콜마", visible: false },
+  { code: "HKV", name: "한국헬스케어베너", visible: false },
+  { code: "PLT", name: "플래닛147", visible: false },
+  { code: "LSL", name: "레스리", visible: false },
+  { code: "LOD", name: "라우드랩스", visible: false },
+  { code: "KMP", name: "콜마헬스케어필리핀", visible: false },
+  { code: "KMS", name: "에이치케이콜마싱가포르", visible: false },
+  { code: "KML", name: "콜마랩스", visible: false },
+  { code: "KUS", name: "미국콜마", visible: true },
+  { code: "KCA", name: "캐나다콜마", visible: false },
+  { code: "HKJ", name: "에이치케이글로벌퍼팩", visible: false },
+  { code: "KMM", name: "에이치케이콜마말레이시아", visible: false },
+  { code: "KBT", name: "콜마바이오텍", visible: true },
 ];
+
+// 관계사 선택 드롭다운(조직 계층 등록용)은 노출(visible) 관계사만 — 비노출 관계사는 그룹 전체보기 권한자만 보는 영역이라 일반 등록 폼에서는 제외
+const SELECTABLE_COMPANIES = COMPANIES.filter(c => c.visible);
+
 const NO_PARENT = "본부 없음 (관계사 직속)";
 const PARENTS_BY_COMPANY: Record<string, string[]> = {
   KKM: ["경영지원본부", "영업마케팅본부", "연구개발본부", "생산본부", "IT본부"],
@@ -51,6 +80,14 @@ const orgEntryDisplay = (e: OrgEntry) => {
   if (!e.parent) return companyName;
   if (!e.dept) return `${companyName} > ${e.parent}`;
   return `${companyName} > ${e.parent} > ${e.dept}`;
+};
+
+// ★ 신규 — PlatformItem.company 표시용 헬퍼 (요약 텍스트, 닫힌 드롭다운 상태 표시에도 사용)
+const platformCompanyDisplay = (codes: string[]): string => {
+  if (codes.length === 0) return "전사 공용";
+  const names = codes.map(c => COMPANIES.find(co => co.code === c)?.name ?? c);
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}곳`;
 };
 
 type Contact = { name: string; dept: string; role: string; email: string };
@@ -84,13 +121,15 @@ type FormState = {
   triggerAction: string;
   itemTags: string;
   specificUrl: string;
-  nodes: string[];            // ★ 추가 — 노드명 칩
-  connectedApps: string[];    // ★ 추가 — 연동 앱 칩
-  expectedTimeSaved: string;  // ★ 추가 — 예상 절감 시간
-  difficulty: typeof DIFFICULTY_LEVELS[number]; // ★ 추가 — 난이도
+  nodes: string[];            // 노드명 칩
+  connectedApps: string[];    // 연동 앱 칩
+  expectedTimeSaved: string;  // 예상 절감 시간
+  difficulty: typeof DIFFICULTY_LEVELS[number]; // 난이도
   // AI 모델 전용
   provider: string; contextWindow: string; strengths: string;
   costTier: typeof COST_TIERS[number];
+  // ★ 플랫폼 항목(n8n/나만의비서/AI Agent) 공용: 소속·대상 관계사 (복수 선택, 빈 배열 = 전사 공용)
+  platformCompanies: string[];
   contacts: Contact[];
   links: LinkItem[];
 };
@@ -124,11 +163,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 8 }}>
-        {label} {required && <span style={{ color: "#EF4444" }}>*</span>}
-      </div>
+      <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>
+        {label}{required && <span style={{ color: "#EF4444", marginLeft: 3 }}>*</span>}
+      </label>
+      {hint && <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 8 }}>{hint}</div>}
       {children}
-      {hint && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>{hint}</div>}
     </div>
   );
 }
@@ -136,46 +175,126 @@ function Field({ label, required, hint, children }: { label: string; required?: 
 function Tag({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
     <span onClick={onClick} style={{
-      fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 20, cursor: "pointer",
+      fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 20,
       border: `1.5px solid ${selected ? "#2563EB" : "#E2E8F0"}`,
       background: selected ? "#EFF6FF" : "#fff",
       color: selected ? "#2563EB" : "#475569",
-    }}>
-      {label}
-    </span>
+      cursor: "pointer", userSelect: "none",
+    }}>{label}</span>
+  );
+}
+
+// ★ 신규 — 플랫폼 항목 공용: 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨)
+// 맨 위 "전사 공용" 체크가 관계사 개별 체크와 상호배타 관계
+function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChange: (codes: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const isCompanyWide = selected.length === 0;
+  const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
+    search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
+  );
+
+  const toggleCompany = (code: string) => {
+    onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
+  };
+
+  const selectCompanyWide = () => onChange([]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        type="button"
+        style={{
+          ...inputStyle, textAlign: "left", width: "100%", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          color: "#0F172A", fontWeight: 600,
+        }}
+      >
+        <span>{platformCompanyDisplay(selected)}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 20,
+          background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+          boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
+          maxHeight: 340, display: "flex", flexDirection: "column",
+        }}>
+          {/* 전사 공용 체크박스 — 관계사 개별 체크와 상호배타 */}
+          <label style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
+            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
+            marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+          }}>
+            <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
+          </label>
+
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="관계사명 또는 코드로 검색"
+            style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }}
+          />
+
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {filteredCompanies.map(c => (
+              <label key={c.code} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+                borderRadius: 6, cursor: "pointer",
+                background: selected.includes(c.code) ? "#EFF6FF" : "transparent",
+              }}>
+                <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
+                <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
+              </label>
+            ))}
+            {filteredCompanies.length === 0 && (
+              <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
+            )}
+          </div>
+
+          <button onClick={() => setOpen(false)} type="button" style={{
+            marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6,
+            padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
+          }}>
+            완료
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
 function ChipInput({
-  items, draft, setDraft, onAdd, onRemove, suggestions, placeholder, chipColor,
+  items, onAdd, onRemove, draft, onDraftChange, suggestions, placeholder,
 }: {
-  items: string[]; draft: string; setDraft: (v: string) => void;
-  onAdd: (v?: string) => void; onRemove: (v: string) => void;
-  suggestions: string[]; placeholder: string; chipColor: { bg: string; color: string };
+  items: string[]; onAdd: (value?: string) => void; onRemove: (v: string) => void;
+  draft: string; onDraftChange: (v: string) => void; suggestions: string[]; placeholder: string;
 }) {
   return (
     <div>
-      {items.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-          {items.map((v, i) => (
-            <span key={i} style={{
-              display: "flex", alignItems: "center", gap: 5,
-              fontSize: 12, fontWeight: 600, background: chipColor.bg, color: chipColor.color,
-              padding: "5px 6px 5px 12px", borderRadius: 20,
-            }}>
-              {v}
-              <button onClick={() => onRemove(v)} style={{
-                background: "none", border: "none", color: chipColor.color, cursor: "pointer",
-                fontSize: 14, lineHeight: 1, padding: "0 4px", opacity: 0.7,
-              }}>×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: items.length > 0 ? 10 : 0 }}>
+        {items.map(item => (
+          <span key={item} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF",
+            padding: "4px 6px 4px 10px", borderRadius: 6, border: "1px solid #BFDBFE",
+          }}>
+            {item}
+            <button onClick={() => onRemove(item)} style={{ background: "none", border: "none", color: "#1E40AF", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
         <input
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={e => onDraftChange(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
           placeholder={placeholder}
           style={{ ...inputStyle, flex: 1 }}
@@ -218,11 +337,16 @@ export default function ProjectRegisterPage() {
     triggerAction: "", itemTags: "", specificUrl: "",
     nodes: [], connectedApps: [], expectedTimeSaved: "", difficulty: "보통",
     provider: "", contextWindow: "", strengths: "", costTier: "보통",
+    platformCompanies: [],
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
 
-  const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code);
+  // ★ 신규 — 관계사 범위 상태. "unset"이면 등록자가 아직 드롭다운을 열어
+  // 명시적으로 선택하지 않은 것으로 간주 → 다음 단계 진행 차단
+  const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">("unset");
+
+  const [draftCompany, setDraftCompany] = useState(SELECTABLE_COMPANIES[1]?.code ?? SELECTABLE_COMPANIES[0].code);
   const [draftParent, setDraftParent] = useState(NO_PARENT);
   const [draftDept, setDraftDept] = useState("");
   const [draftNode, setDraftNode] = useState("");
@@ -231,6 +355,13 @@ export default function ProjectRegisterPage() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(p => ({ ...p, [k]: v }));
   const toggle = (k: "domains" | "audiences" | "stack", v: string) =>
     setForm(p => ({ ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] }));
+
+  // ★ 신규 — 관계사 선택 변경 핸들러. 드롭다운이 호출할 단일 진입점.
+  // codes가 빈 배열이면 "전사 공용"으로 명시적 선택된 것으로 처리.
+  const handlePlatformCompaniesChange = (codes: string[]) => {
+    setForm(p => ({ ...p, platformCompanies: codes }));
+    setPlatformScope(codes.length === 0 ? "company-wide" : "specific");
+  };
 
   const addOrgEntry = () => {
     const newEntry: OrgEntry = {
@@ -249,7 +380,7 @@ export default function ProjectRegisterPage() {
   const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
   const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
-  // ★ 노드 칩 추가/삭제
+  // 노드 칩 추가/삭제
   const addNode = (value?: string) => {
     const v = (value ?? draftNode).trim();
     if (!v || form.nodes.includes(v)) return;
@@ -258,7 +389,7 @@ export default function ProjectRegisterPage() {
   };
   const removeNode = (v: string) => setForm(p => ({ ...p, nodes: p.nodes.filter(n => n !== v) }));
 
-  // ★ 연동 앱 칩 추가/삭제
+  // 연동 앱 칩 추가/삭제
   const addApp = (value?: string) => {
     const v = (value ?? draftApp).trim();
     if (!v || form.connectedApps.includes(v)) return;
@@ -285,10 +416,10 @@ export default function ProjectRegisterPage() {
         return Boolean(form.status && form.systemType && form.domains.length > 0 && form.orgEntries.length > 0 && form.audiences.length > 0);
       }
       if (kind && isModelKind(kind)) {
-        return Boolean(form.status && form.provider.trim() && form.contextWindow.trim() && form.specificUrl.trim());
+        return Boolean(form.status && platformScope !== "unset" && form.provider.trim() && form.contextWindow.trim() && form.specificUrl.trim());
       }
       // n8n / 나만의 비서(HK GPT 커스텀) — 구성·효과 단계
-      return Boolean(form.status && form.nodes.length > 0 && form.specificUrl.trim());
+      return Boolean(form.status && platformScope !== "unset" && form.nodes.length > 0 && form.specificUrl.trim());
     }
     if (step === 3) return Boolean(form.contacts[0]?.name && form.contacts[0]?.email);
     return true;
@@ -298,7 +429,7 @@ export default function ProjectRegisterPage() {
     setSaving(true);
     // TODO: 실제 연동 시 kind === "project" → POST /api/v1/projects
     //       그 외 → POST /api/v1/platform-items (body에 platformId: kind, nodes, connectedApps,
-    //       expectedTimeSaved, difficulty 포함)
+    //       expectedTimeSaved, difficulty, company: platformCompanies 포함)
     await new Promise(r => setTimeout(r, 600));
     setSaving(false);
     setSaved(true);
@@ -381,14 +512,14 @@ export default function ProjectRegisterPage() {
           <Section title={`기본정보 ${selectedKindMeta ? `(${selectedKindMeta.label})` : ""}`}>
             <Field label="제목" required>
               <input value={form.title} onChange={e => set("title", e.target.value)}
-                placeholder={kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" : kind === "project" ? "프로젝트명을 입력하세요" : kind === "n8n" ? "워크플로우 이름을 입력하세요" : "에이전트(HK GPT 커스텀) 이름을 입력하세요"}
+                placeholder={kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" : kind === "project" ? "프로젝트명을 입력하세요" : kind === "n8n" ? "예: 신규 입사자 계정 자동 생성" : "에이전트명을 입력하세요"}
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
-            <Field label="한 줄 요약" required hint="목록 카드에 표시되는 짧은 설명입니다.">
+            <Field label="한 줄 요약" required>
               <input value={form.summary} onChange={e => set("summary", e.target.value)}
-                placeholder="핵심 기능이나 목적을 한 줄로 설명하세요"
+                placeholder="이 항목이 무엇을 하는지 한 문장으로 설명하세요"
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
@@ -444,40 +575,31 @@ export default function ProjectRegisterPage() {
 
             <Field label="참여 관계사 / 본부 / 부서" required hint="관계사는 필수이며, 본부와 부서는 선택사항입니다.">
               {form.orgEntries.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
                   {form.orgEntries.map(e => (
                     <div key={e.id} style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 7, padding: "8px 12px",
+                      background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 11px",
                     }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
-                      <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
+                      <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
                     </div>
                   ))}
                 </div>
               )}
-              <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 8, padding: "14px 16px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>관계사 <span style={{ color: "#EF4444" }}>*</span></div>
-                    <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px" }}>
-                      {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>본부 (선택)</div>
-                    <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px" }}>
-                      <option value={NO_PARENT}>{NO_PARENT}</option>
-                      {availableParents.map(p => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>부서 (선택)</div>
-                    <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 12, padding: "8px 28px 8px 10px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
-                      <option value="">부서 없음</option>
-                      {availableDepts.map(d => <option key={d}>{d}</option>)}
-                    </select>
-                  </div>
+              <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                  <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px" }}>
+                    {SELECTABLE_COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                  </select>
+                  <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px" }}>
+                    <option value={NO_PARENT}>본부 없음</option>
+                    {availableParents.map(p => <option key={p}>{p}</option>)}
+                  </select>
+                  <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                    <option value="">부서 없음</option>
+                    {availableDepts.map(d => <option key={d}>{d}</option>)}
+                  </select>
                 </div>
                 <button onClick={addOrgEntry} style={{
                   background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
@@ -522,65 +644,57 @@ export default function ProjectRegisterPage() {
                   {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
                 </div>
               </Field>
+              <Field
+                label="소속 / 대상 관계사"
+                required
+                hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다. 관계사마다 시스템 환경이 다를 수 있어 복수 선택이 가능합니다."
+              >
+                <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
+                {platformScope === "unset" && (
+                  <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
+                )}
+              </Field>
               <Field label="트리거 · 동작 설명" required hint="언제 실행되고, 어떤 순서로 동작하는지 설명하세요.">
                 <textarea value={form.triggerAction} onChange={e => set("triggerAction", e.target.value)}
-                  placeholder="예: Outlook에 새 이메일이 도착하면 → 제목/본문에 '긴급' 포함 여부 확인 → 팀장님께 이메일 전달"
+                  placeholder="예: Schedule Trigger(매일 오전 8시) → 재고 API 조회 → IF(임계치 이하) → Teams 알림"
                   style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7 }}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
-              <Field label="실행 URL" required hint="이 워크플로우/에이전트에 직접 접근할 수 있는 주소입니다.">
+              <Field label="실행 URL" required>
                 <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
-                  placeholder={`예: https://${kind}.kolmar.co.kr/...`} style={inputStyle}
+                  placeholder="https://"
+                  style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
               <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
                 <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
-                  placeholder="예: HR, 계정자동화, 온보딩" style={inputStyle}
+                  placeholder="예: HR, 계정자동화"
+                  style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
             </Section>
 
-            {/* ★ 노드 구성 — n8n 화면의 [Outlook Trigger]→[IF]→[Teams] 같은 노드 체인을 칩으로 입력 */}
             <Section title="노드 구성">
-              <Field label="사용된 노드" required hint="워크플로우/에이전트를 구성하는 노드명을 순서대로 추가하세요. (예: Outlook Trigger, IF, Microsoft Teams)">
-                <ChipInput
-                  items={form.nodes}
-                  draft={draftNode}
-                  setDraft={setDraftNode}
-                  onAdd={addNode}
-                  onRemove={removeNode}
-                  suggestions={NODE_SUGGESTIONS}
-                  placeholder="노드명을 입력 후 Enter 또는 추가"
-                  chipColor={{ bg: "#EEF2FF", color: "#4338CA" }}
-                />
+              <Field label="사용된 노드" required>
+                <ChipInput items={form.nodes} onAdd={addNode} onRemove={removeNode} draft={draftNode} onDraftChange={setDraftNode} suggestions={NODE_SUGGESTIONS} placeholder="노드명 입력 후 Enter" />
               </Field>
-              <Field label="연동 앱·서비스" hint="이 워크플로우/에이전트가 연결하는 외부 앱·서비스를 추가하세요. (예: Microsoft Outlook, Microsoft Teams)">
-                <ChipInput
-                  items={form.connectedApps}
-                  draft={draftApp}
-                  setDraft={setDraftApp}
-                  onAdd={addApp}
-                  onRemove={removeApp}
-                  suggestions={APP_SUGGESTIONS}
-                  placeholder="연동 앱명을 입력 후 Enter 또는 추가"
-                  chipColor={{ bg: "#ECFDF5", color: "#047857" }}
-                />
+              <Field label="연동 앱·서비스">
+                <ChipInput items={form.connectedApps} onAdd={addApp} onRemove={removeApp} draft={draftApp} onDraftChange={setDraftApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
               </Field>
             </Section>
 
-            {/* ★ 예상 효과 — n8n 화면의 "예상 절감 시간 / 난이도"와 동일한 정보 구조 */}
             <Section title="예상 효과">
-              <Field label="예상 절감 시간" hint="이 자동화를 적용하면 절감되는 시간을 입력하세요. (예: 주 1시간, 월 4시간)">
+              <Field label="예상 절감 시간">
                 <input value={form.expectedTimeSaved} onChange={e => set("expectedTimeSaved", e.target.value)}
                   placeholder="예: 주 1시간" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
               <Field label="구성 난이도">
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {DIFFICULTY_LEVELS.map(d => <Tag key={d} label={d} selected={form.difficulty === d} onClick={() => set("difficulty", d)} />)}
                 </div>
               </Field>
@@ -588,7 +702,7 @@ export default function ProjectRegisterPage() {
           </>
         )}
 
-        {/* ===== STEP 2 — AI Agent(구 AI Orchestration) 모델 사양 ===== */}
+        {/* ===== STEP 2 — AI Agent(모델형) "모델 사양" ===== */}
         {step === 2 && kind && isModelKind(kind) && (
           <Section title="모델 사양">
             <Field label="상태" required>
@@ -596,9 +710,19 @@ export default function ProjectRegisterPage() {
                 {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
               </div>
             </Field>
+            <Field
+              label="소속 / 대상 관계사"
+              required
+              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다."
+            >
+              <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
+              {platformScope === "unset" && (
+                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
+              )}
+            </Field>
             <Field label="제공사" required>
               <input value={form.provider} onChange={e => set("provider", e.target.value)}
-                placeholder="예: OpenAI, Anthropic, 사내 파인튜닝" style={inputStyle}
+                placeholder="예: OpenAI, Anthropic, Google" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
@@ -608,45 +732,45 @@ export default function ProjectRegisterPage() {
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
-            <Field label="비용 등급" required>
-              <div style={{ display: "flex", gap: 8 }}>
+            <Field label="비용 등급">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {COST_TIERS.map(c => <Tag key={c} label={c} selected={form.costTier === c} onClick={() => set("costTier", c)} />)}
               </div>
             </Field>
             <Field label="강점" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.strengths} onChange={e => set("strengths", e.target.value)}
-                placeholder="예: 긴 컨텍스트, 정밀 추론, 안전성" style={inputStyle}
+                placeholder="예: 긴 컨텍스트, 정밀 추론" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
             <Field label="모델 접속 URL" required>
               <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
-                placeholder="예: https://ai-gateway.kolmar.co.kr/models/..." style={inputStyle}
+                placeholder="https://" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
-                placeholder="예: 범용, 코드생성, 문서작성" style={inputStyle}
+                placeholder="예: 문서분석, 법무" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
           </Section>
         )}
 
-        {/* ===== STEP 3 — 공통 담당자·링크 ===== */}
+        {/* ===== STEP 3 — 담당자 / 링크 (공통) ===== */}
         {step === 3 && (
           <>
             <Section title="담당자">
               {form.contacts.map((c, i) => (
-                <div key={i} style={{
-                  display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8,
-                  marginBottom: 10, alignItems: "center",
-                }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 10, alignItems: "center" }}>
                   <input value={c.name} onChange={e => setContact(i, "name", e.target.value)} placeholder="이름" style={inputStyle} />
                   <input value={c.dept} onChange={e => setContact(i, "dept", e.target.value)} placeholder="부서" style={inputStyle} />
-                  <input value={c.role} onChange={e => setContact(i, "role", e.target.value)} placeholder="역할" style={inputStyle} />
                   <input value={c.email} onChange={e => setContact(i, "email", e.target.value)} placeholder="이메일" style={inputStyle} />
+                  <select value={c.role} onChange={e => setContact(i, "role", e.target.value)} style={selectStyle}>
+                    <option value="주담당자">주담당자</option>
+                    <option value="공동담당자">공동담당자</option>
+                  </select>
                   {i > 0 && (
                     <button onClick={() => removeContact(i)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18 }}>×</button>
                   )}
@@ -706,6 +830,7 @@ export default function ProjectRegisterPage() {
                 { label: "자유 태그", value: form.freeTags || "—" },
               ] : []),
               ...(kind && !isModelKind(kind) && kind !== "project" ? [
+                { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
                 { label: "트리거·동작 설명", value: form.triggerAction || "—" },
                 { label: "사용된 노드", value: form.nodes.join(" → ") || "—" },
                 { label: "연동 앱·서비스", value: form.connectedApps.join(", ") || "—" },
@@ -715,6 +840,7 @@ export default function ProjectRegisterPage() {
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
               ...(kind && isModelKind(kind) ? [
+                { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
                 { label: "제공사", value: form.provider || "—" },
                 { label: "컨텍스트 윈도우", value: form.contextWindow || "—" },
                 { label: "비용 등급", value: form.costTier },
@@ -745,43 +871,44 @@ export default function ProjectRegisterPage() {
           </Section>
         )}
 
-        {/* BOTTOM ACTIONS */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <button onClick={() => setStep(s => Math.max(0, s - 1))} style={{
-            background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7,
-            padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569",
-            cursor: step === 0 ? "not-allowed" : "pointer", opacity: step === 0 ? 0.4 : 1,
-          }} disabled={step === 0}>
+        {/* ===== 하단 네비게이션 버튼 ===== */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+          <button
+            onClick={() => setStep(s => Math.max(0, s - 1))}
+            disabled={step === 0 || saving || saved}
+            style={{
+              background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+              padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569",
+              cursor: step === 0 ? "not-allowed" : "pointer", opacity: step === 0 ? 0.5 : 1,
+            }}
+          >
             이전
           </button>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <button style={{
-              background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7,
-              padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
-            }}>
-              임시저장
+          {step < 4 ? (
+            <button
+              onClick={() => setStep(s => Math.min(4, s + 1))}
+              disabled={!canNext()}
+              style={{
+                background: canNext() ? "#2563EB" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 8,
+                padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-allowed",
+              }}
+            >
+              다음
             </button>
-            {step < STEPS.length - 1 ? (
-              <button onClick={() => canNext() && setStep(s => s + 1)} style={{
-                background: canNext() ? "#2563EB" : "#CBD5E1",
-                border: "none", borderRadius: 7,
-                padding: "10px 28px", fontSize: 13, fontWeight: 700, color: "#fff",
-                cursor: canNext() ? "pointer" : "not-allowed",
-              }}>
-                다음
-              </button>
-            ) : (
-              <button onClick={handleSubmit} disabled={saving || saved} style={{
-                background: saving || saved ? "#94A3B8" : "#059669",
-                border: "none", borderRadius: 7,
-                padding: "10px 28px", fontSize: 13, fontWeight: 700, color: "#fff",
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={saving || saved}
+              style={{
+                background: saved ? "#059669" : "#2563EB", color: "#fff", border: "none", borderRadius: 8,
+                padding: "10px 22px", fontSize: 13, fontWeight: 700,
                 cursor: saving || saved ? "not-allowed" : "pointer",
-              }}>
-                {saving ? "제출 중..." : saved ? "제출 완료" : "등록 신청"}
-              </button>
-            )}
-          </div>
+              }}
+            >
+              {saving ? "제출 중..." : saved ? "제출 완료" : "제출하기"}
+            </button>
+          )}
         </div>
       </div>
 

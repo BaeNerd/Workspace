@@ -3,10 +3,12 @@
    경로: /n8n/:itemId, /assistant/:itemId, /ai-orchestration/:itemId
 
    ★ 이번 변경 사항 ★
-   1. 헤더에 좋아요 버튼(토글) + 카운트 추가 (Project와 동일 패턴)
-   2. "업데이트" 탭(이전엔 안내 문구만) → "업데이트 & 논의" 탭으로
-      전면 개편. ProjectDetailPage와 동일한 자유 게시판 패턴
-      (태그: 공지/Q&A/이슈제보/건의, 게시글별 좋아요)
+   1. PlatformItem.company(소속/대상 관계사) 표시 추가
+      - 헤더 메타정보 줄: "· 대상 관계사: 한국콜마 외 2곳" 형태로 요약
+      - 개요 탭 "출처" 카드 옆에 "대상 관계사" 카드 신설 — 전체
+        관계사 리스트를 칩 형태로 펼쳐 보여줌(전사 공용이면 안내문)
+   2. MOCK_ITEMS 전체 항목에 company 필드 채움 (타입에 필수 필드로
+      추가되어 있었으나 목업 데이터에는 누락되어 있었음)
    ============================================================ */
 
 import { useState } from "react";
@@ -51,42 +53,74 @@ type Post = {
   likedByMe: boolean;
 };
 
+// ★ 신규 — company 표시용 29개 전체 관계사 (AdminOrg.tsx/ProjectRegisterPage.tsx와 동일 소스)
+// TODO: 실제 연동 시 GET /api/v1/admin/companies 응답으로 교체
+const FULL_COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
+  { code: "KBH", name: "콜마비앤에이치" }, { code: "HKN", name: "에이치케이이노엔" },
+  { code: "YWK", name: "연우" }, { code: "KAF", name: "근오농림" },
+  { code: "NAB", name: "넥스트앤바이오" }, { code: "HC", name: "콜마생활건강" },
+  { code: "HNG", name: "에치엔지" }, { code: "MOD", name: "엠오디머티리얼즈" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" },
+  { code: "KUX", name: "콜마유엑스" }, { code: "KMW", name: "무석콜마" },
+  { code: "KMB", name: "북경콜마" }, { code: "KBJ", name: "강소콜마" },
+  { code: "KAY", name: "연태콜마" }, { code: "HKV", name: "한국헬스케어베너" },
+  { code: "PLT", name: "플래닛147" }, { code: "LSL", name: "레스리" },
+  { code: "LOD", name: "라우드랩스" }, { code: "KMP", name: "콜마헬스케어필리핀" },
+  { code: "KMS", name: "에이치케이콜마싱가포르" }, { code: "KML", name: "콜마랩스" },
+  { code: "KUS", name: "미국콜마" }, { code: "KCA", name: "캐나다콜마" },
+  { code: "HKJ", name: "에이치케이글로벌퍼팩" }, { code: "KMM", name: "에이치케이콜마말레이시아" },
+  { code: "KBT", name: "콜마바이오텍" },
+];
+
+// 헤더 메타정보 줄용 — 짧은 요약
+const companyShortDisplay = (codes: string[]): string => {
+  if (codes.length === 0) return "전사 공용";
+  const names = codes.map(c => FULL_COMPANIES.find(co => co.code === c)?.name ?? c);
+  if (names.length <= 2) return names.join(", ");
+  return `${names[0]} 외 ${names.length - 1}곳`;
+};
+
+// "대상 관계사" 카드용 — 전체 이름 배열
+const companyFullNames = (codes: string[]): string[] =>
+  codes.map(c => FULL_COMPANIES.find(co => co.code === c)?.name ?? c);
+
 // TODO: 실제 연동 시 GET /api/v1/platform-items/:id 응답으로 교체
 const MOCK_ITEMS: PlatformItem[] = [
-  { id: "N8N-001", platformId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", description: "HR 시스템에 신규 입사자가 등록되면 Active Directory 계정, Teams 채널 초대, 사내 이메일 계정을 자동으로 생성하고 담당 부서에 알림을 발송합니다.", status: "운영 중", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["HR", "계정자동화", "온보딩"], specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.06.05", likes: 19 },
-  { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "구매 시스템에서 발주 요청이 생성되면 승인자에게 Teams 메시지로 즉시 알림을 보내고, 승인/반려 결과를 발주 시스템에 자동 반영합니다.", status: "운영 중", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7 },
-  { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "ERP 매출 데이터를 집계하여 매일 오전 경영진 메일링 리스트에 전일 매출 요약 리포트를 자동으로 발송합니다.", status: "운영 중", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12 },
-  { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "생산 품질관리 시스템에서 기준치 이탈이 감지되면 품질관리팀, 생산본부, 관련 연구소에 동시에 Teams 알림을 발송합니다.", status: "파일럿", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3 },
-  { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "업로드된 계약서 초안에서 표준 계약서와 다른 조항, 위험 요소가 있는 조항을 자동으로 식별하고 검토 포인트를 제시합니다.", status: "운영 중", dept: "법무팀", owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10", likes: 25 },
-  { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "Teams 회의 녹음 파일 또는 자막을 업로드하면 핵심 논의 내용, 결정 사항, 액션 아이템을 구조화하여 정리해줍니다.", status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18 },
-  { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "Pull Request가 생성되면 코드 스타일, 잠재적 버그, 보안 이슈를 자동으로 분석하여 리뷰 코멘트를 남깁니다.", status: "개발 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19", likes: 10 },
-  { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "원료명을 입력하면 MSDS 정보, 국가별 사용 제한 규제, 과거 클레임 이력을 통합 조회하여 답변합니다.", status: "파일럿", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20", likes: 5 },
+  { id: "N8N-001", platformId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", description: "HR 시스템에 신규 입사자가 등록되면 Active Directory 계정, Teams 채널 초대, 사내 이메일 계정을 자동으로 생성하고 담당 부서에 알림을 발송합니다.", status: "운영 중", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["HR", "계정자동화", "온보딩"], specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.06.05", likes: 19, company: ["KKM"] },
+  { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "구매 시스템에서 발주 요청이 생성되면 승인자에게 Teams 메시지로 즉시 알림을 보내고, 승인/반려 결과를 발주 시스템에 자동 반영합니다.", status: "운영 중", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7, company: ["KKM"] },
+  { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "ERP 매출 데이터를 집계하여 매일 오전 경영진 메일링 리스트에 전일 매출 요약 리포트를 자동으로 발송합니다.", status: "운영 중", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12, company: ["KKM", "KMG"] },
+  { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "생산 품질관리 시스템에서 기준치 이탈이 감지되면 품질관리팀, 생산본부, 관련 연구소에 동시에 Teams 알림을 발송합니다.", status: "파일럿", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3, company: ["KMW"] },
+  { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "업로드된 계약서 초안에서 표준 계약서와 다른 조항, 위험 요소가 있는 조항을 자동으로 식별하고 검토 포인트를 제시합니다.", status: "운영 중", dept: "법무팀", owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10", likes: 25, company: [] },
+  { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "Teams 회의 녹음 파일 또는 자막을 업로드하면 핵심 논의 내용, 결정 사항, 액션 아이템을 구조화하여 정리해줍니다.", status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18, company: [] },
+  { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "Pull Request가 생성되면 코드 스타일, 잠재적 버그, 보안 이슈를 자동으로 분석하여 리뷰 코멘트를 남깁니다.", status: "개발 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19", likes: 10, company: [] },
+  { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "원료명을 입력하면 MSDS 정보, 국가별 사용 제한 규제, 과거 클레임 이력을 통합 조회하여 답변합니다.", status: "파일럿", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20", likes: 5, company: ["KKM"] },
   {
     id: "AIO-001", platformId: "ai-orchestration", title: "GPT-4 (범용)", summary: "범용 작업에 적합한 OpenAI GPT-4 모델",
     description: "다양한 업무 전반에 활용 가능한 범용 모델입니다. 코드 생성, 문서 작성, 데이터 분석 보조 등에 적합합니다.\n\n권장 활용처: 사내 보고서 초안 작성, 코드 스니펫 생성, 일반 문의 응대",
     status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["범용", "코드생성", "문서작성"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4", updatedAt: "2025.06.10", likes: 31,
+    tags: ["범용", "코드생성", "문서작성"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4", updatedAt: "2025.06.10", likes: 31, company: [],
     modelMeta: { provider: "OpenAI", contextWindow: "128K", strengths: ["범용성", "코드 생성", "빠른 응답"], costTier: "보통" },
   },
   {
     id: "AIO-002", platformId: "ai-orchestration", title: "Claude (문서 분석 특화)", summary: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델",
     description: "긴 컨텍스트가 필요한 계약서 검토, 보고서 분석, 복잡한 추론 작업에 적합합니다.\n\n권장 활용처: 장문 계약서·보고서 분석, 다단계 추론이 필요한 의사결정 보조",
     status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["문서분석", "긴컨텍스트", "법무"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude", updatedAt: "2025.06.12", likes: 27,
+    tags: ["문서분석", "긴컨텍스트", "법무"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude", updatedAt: "2025.06.12", likes: 27, company: [],
     modelMeta: { provider: "Anthropic", contextWindow: "200K", strengths: ["긴 컨텍스트", "정밀 추론", "안전성"], costTier: "보통" },
   },
   {
     id: "AIO-003", platformId: "ai-orchestration", title: "콜마 파인튜닝 모델 (사내 전용 용어 특화)", summary: "콜마 사내 용어와 제품 데이터로 파인튜닝된 전용 모델",
     description: "화장품 원료명, 사내 제품 코드, 콜마 그룹 조직 용어 등을 정확히 이해하는 사내 전용 모델입니다.\n\n권장 활용처: 원료/제품 코드가 포함된 업무 문의, 사내 용어가 많은 문서 처리",
     status: "파일럿", dept: "IT개발팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
-    tags: ["사내전용", "화장품용어", "원료데이터"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/kolmar-ft", updatedAt: "2025.06.18", likes: 8,
+    tags: ["사내전용", "화장품용어", "원료데이터"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/kolmar-ft", updatedAt: "2025.06.18", likes: 8, company: ["KKM", "KBH", "KMG"],
     modelMeta: { provider: "사내 파인튜닝", contextWindow: "32K", strengths: ["콜마 전용 용어", "원료 데이터 이해"], costTier: "낮음" },
   },
   {
     id: "AIO-004", platformId: "ai-orchestration", title: "Gemini (멀티모달)", summary: "이미지·문서를 함께 분석할 수 있는 Google Gemini 모델",
     description: "용기 디자인 이미지 분석, 도면 검토 등 이미지와 텍스트를 함께 다루는 작업에 적합합니다.\n\n권장 활용처: 용기 디자인 시안 검토, 도면·이미지가 포함된 자료 분석",
     status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["멀티모달", "이미지분석", "도면검토"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gemini", updatedAt: "2025.06.15", likes: 14,
+    tags: ["멀티모달", "이미지분석", "도면검토"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gemini", updatedAt: "2025.06.15", likes: 14, company: [],
     modelMeta: { provider: "Google", contextWindow: "1M", strengths: ["멀티모달", "이미지 분석"], costTier: "보통" },
   },
 ];
@@ -127,6 +161,7 @@ export default function PlatformItemDetailPage() {
 
   const isModel = !!item.modelMeta;
   const detailTabLabel = isModel ? "모델 사양" : "상세 동작";
+  const isCompanyWide = (item.company ?? []).length === 0;
 
   const TABS = [
     { id: "overview" as const, label: "개요" },
@@ -150,7 +185,7 @@ export default function PlatformItemDetailPage() {
   const handlePost = () => {
     if (!postText.trim()) return;
     setPosts(prev => [{
-      id: Date.now(), author: "김철수", dept: "IT개발팀", date: "2025.06.25",
+      id: Date.now(), author: "김철수", dept: "IT개발팀", date: "2025.06.29",
       tag: postTag, text: postText, likes: 0, likedByMe: false,
     }, ...prev]);
     setPostText("");
@@ -196,7 +231,6 @@ export default function PlatformItemDetailPage() {
               </p>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
-              {/* ★ 좋아요 버튼 */}
               <button onClick={toggleLike} style={{
                 background: liked ? "#FEF2F2" : "#fff",
                 border: `1.5px solid ${liked ? "#FCA5A5" : "#E2E8F0"}`,
@@ -226,12 +260,15 @@ export default function PlatformItemDetailPage() {
             </div>
           </div>
 
+          {/* ★ 변경 — 메타정보 줄에 대상 관계사 요약 추가 */}
           <div style={{ display: "flex", gap: 20, fontSize: 12, color: "#94A3B8", paddingBottom: 16, flexWrap: "wrap" }}>
             <span>등록 부서 {item.dept}</span>
             <span>·</span>
             <span>최종 수정 {item.updatedAt}</span>
             <span>·</span>
             <span>플랫폼 {platform.name}</span>
+            <span>·</span>
+            <span>대상 관계사 {companyShortDisplay(item.company ?? [])}</span>
           </div>
 
           <div style={{ display: "flex", gap: 0, marginTop: 4 }}>
@@ -262,7 +299,7 @@ export default function PlatformItemDetailPage() {
                 </div>
               </div>
 
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>출처</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   <span style={{ fontSize: 12, background: platform.bg, color: platform.color, padding: "4px 12px", borderRadius: 6, fontWeight: 600 }}>
@@ -272,6 +309,24 @@ export default function PlatformItemDetailPage() {
                     {platform.shortDesc}
                   </span>
                 </div>
+              </div>
+
+              {/* ★ 신규 — 대상 관계사 카드 (전체 리스트) */}
+              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>대상 관계사</div>
+                {isCompanyWide ? (
+                  <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7 }}>
+                    특정 관계사로 한정되지 않은 <strong>전사 공용</strong> 항목입니다.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {companyFullNames(item.company ?? []).map((name, i) => (
+                      <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "4px 12px", borderRadius: 6, border: "1px solid #BFDBFE" }}>
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -399,7 +454,6 @@ export default function PlatformItemDetailPage() {
           </div>
         )}
 
-        {/* ★ "업데이트 & 논의" — Project와 동일한 자유 게시판 패턴 */}
         {activeTab === "posts" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#64748B" }}>

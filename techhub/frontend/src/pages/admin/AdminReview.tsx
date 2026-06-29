@@ -22,6 +22,8 @@ const APP_SUGGESTIONS = [
   "HTTP Request", "Spreadsheet File", "Respond To Webhook",
 ];
 
+// ★ 변경 — 조직 계층 등록용(orgEntries, Project 전용)은 29개 전체가 아닌 기존 10개 약식 유지.
+// 이 파일에서는 Project의 orgEntries에는 손대지 않고, PlatformItem.company만 29개 전체 노출 대상.
 const COMPANIES = [
   { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
   { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
@@ -40,6 +42,48 @@ const DEPTS_BY_PARENT: Record<string, string[]> = {
   "연구개발본부": ["메이크업연구소", "디자인팀"],
   "생산본부": ["제조기술팀", "품질관리팀"],
   "IT본부": ["IT인프라팀", "IT개발팀"],
+};
+
+// ★ 신규 — PlatformItem.company 선택용 29개 전체 관계사 (AdminOrg.tsx, ProjectRegisterPage.tsx와 동일 소스)
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
+const FULL_COMPANIES = [
+  { code: "KMH", name: "콜마홀딩스", visible: true },
+  { code: "KKM", name: "한국콜마", visible: true },
+  { code: "KBH", name: "콜마비앤에이치", visible: true },
+  { code: "HKN", name: "에이치케이이노엔", visible: true },
+  { code: "YWK", name: "연우", visible: true },
+  { code: "KAF", name: "근오농림", visible: false },
+  { code: "NAB", name: "넥스트앤바이오", visible: false },
+  { code: "HC", name: "콜마생활건강", visible: true },
+  { code: "HNG", name: "에치엔지", visible: false },
+  { code: "MOD", name: "엠오디머티리얼즈", visible: false },
+  { code: "KMG", name: "콜마글로벌", visible: true },
+  { code: "KMSK", name: "콜마스크", visible: true },
+  { code: "KUX", name: "콜마유엑스", visible: false },
+  { code: "KMW", name: "무석콜마", visible: true },
+  { code: "KMB", name: "북경콜마", visible: true },
+  { code: "KBJ", name: "강소콜마", visible: false },
+  { code: "KAY", name: "연태콜마", visible: false },
+  { code: "HKV", name: "한국헬스케어베너", visible: false },
+  { code: "PLT", name: "플래닛147", visible: false },
+  { code: "LSL", name: "레스리", visible: false },
+  { code: "LOD", name: "라우드랩스", visible: false },
+  { code: "KMP", name: "콜마헬스케어필리핀", visible: false },
+  { code: "KMS", name: "에이치케이콜마싱가포르", visible: false },
+  { code: "KML", name: "콜마랩스", visible: false },
+  { code: "KUS", name: "미국콜마", visible: true },
+  { code: "KCA", name: "캐나다콜마", visible: false },
+  { code: "HKJ", name: "에이치케이글로벌퍼팩", visible: false },
+  { code: "KMM", name: "에이치케이콜마말레이시아", visible: false },
+  { code: "KBT", name: "콜마바이오텍", visible: true },
+];
+const SELECTABLE_COMPANIES = FULL_COMPANIES.filter(c => c.visible);
+
+const platformCompanyDisplay = (codes: string[]): string => {
+  if (codes.length === 0) return "전사 공용";
+  const names = codes.map(c => FULL_COMPANIES.find(co => co.code === c)?.name ?? c);
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}곳`;
 };
 
 type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
@@ -76,11 +120,214 @@ type ReviewPlatformItem = {
   expectedTimeSaved?: string; difficulty?: string; specificUrl?: string; itemTags?: string;
   // 모델형 (ai-orchestration)
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
+  // ★ 신규 — 소속/대상 관계사 (복수선택, 빈배열=전사공용) + 선택 여부 추적
+  company: string[];
+  platformScope: "unset" | "company-wide" | "specific";
   contacts: Contact[]; links: LinkItem[]; approval: Approval; rejectionReason?: string;
 };
 
 type ReviewItem = ReviewProjectItem | ReviewPlatformItem;
 const isProjectKind = (i: ReviewItem): i is ReviewProjectItem => i.kind === "project";
+
+const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = {
+  project: { color: "#475569", bg: "#F1F5F9", label: "프로젝트" },
+  ...Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])),
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 13, color: "#0F172A",
+  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, outline: "none", fontFamily: "inherit",
+};
+const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`;
+const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "none", backgroundImage: selectArrow, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32, cursor: "pointer" };
+
+// ===== 재사용 서브컴포넌트 (모듈 레벨) =====
+const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div style={{ marginBottom: 14 }}>
+    <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>{label}</label>
+    {children}
+  </div>
+);
+
+const SectionBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #F1F5F9" }}>{title}</div>
+    {children}
+  </div>
+);
+
+const TagSelect = ({ options, selected, onChange, disabled }: { options: string[]; selected: string[]; onChange: (v: string) => void; disabled?: boolean }) => (
+  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+    {options.map(opt => {
+      const isSel = selected.includes(opt);
+      return (
+        <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
+          fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 20,
+          border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
+          background: isSel ? "#EFF6FF" : "#fff",
+          color: isSel ? "#2563EB" : "#475569",
+          cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
+          opacity: disabled ? 0.6 : 1,
+        }}>{opt}</span>
+      );
+    })}
+  </div>
+);
+
+const SingleSelectTag = ({ options, value, onChange, disabled }: { options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean }) => (
+  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+    {options.map(opt => {
+      const isSel = value === opt;
+      return (
+        <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
+          fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 20,
+          border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
+          background: isSel ? "#EFF6FF" : "#fff",
+          color: isSel ? "#2563EB" : "#475569",
+          cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
+          opacity: disabled ? 0.6 : 1,
+        }}>{opt}</span>
+      );
+    })}
+  </div>
+);
+
+const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled }: {
+  items: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void;
+  suggestions: string[]; placeholder: string; disabled?: boolean;
+}) => {
+  const [draft, setDraft] = useState("");
+  const commit = () => {
+    const v = draft.trim();
+    if (!v) return;
+    onAdd(v);
+    setDraft("");
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: items.length > 0 ? 8 : 0 }}>
+        {items.map(item => (
+          <span key={item} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF",
+            padding: "4px 6px 4px 10px", borderRadius: 6, border: "1px solid #BFDBFE",
+          }}>
+            {item}
+            {!disabled && (
+              <button onClick={() => onRemove(item)} style={{ background: "none", border: "none", color: "#1E40AF", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+            )}
+          </span>
+        ))}
+      </div>
+      {!disabled && (
+        <>
+          <input
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
+            placeholder={placeholder}
+            style={{ ...inputStyle, fontSize: 12, padding: "7px 10px" }}
+          />
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+            {suggestions.filter(s => !items.includes(s)).slice(0, 8).map(s => (
+              <span key={s} onClick={() => onAdd(s)} style={{
+                fontSize: 11, color: "#64748B", background: "#F1F5F9",
+                padding: "3px 9px", borderRadius: 14, cursor: "pointer",
+              }}>+ {s}</span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ★ 신규 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, ProjectRegisterPage.tsx와 동일 패턴)
+// 검토 화면에서도 관리자가 등록자가 선택한 관계사 범위를 직접 수정 가능
+function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const isCompanyWide = selected.length === 0;
+  const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
+    search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
+  );
+
+  const toggleCompany = (code: string) => {
+    onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
+  };
+  const selectCompanyWide = () => onChange([]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => !disabled && setOpen(v => !v)}
+        type="button"
+        disabled={disabled}
+        style={{
+          ...inputStyle, textAlign: "left", width: "100%",
+          cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          color: "#0F172A", fontWeight: 600,
+        }}
+      >
+        <span>{platformCompanyDisplay(selected)}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && !disabled && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 20,
+          background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+          boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
+          maxHeight: 340, display: "flex", flexDirection: "column",
+        }}>
+          <label style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
+            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
+            marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+          }}>
+            <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
+          </label>
+
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="관계사명 또는 코드로 검색"
+            style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }}
+          />
+
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {filteredCompanies.map(c => (
+              <label key={c.code} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+                borderRadius: 6, cursor: "pointer",
+                background: selected.includes(c.code) ? "#EFF6FF" : "transparent",
+              }}>
+                <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
+                <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
+              </label>
+            ))}
+            {filteredCompanies.length === 0 && (
+              <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
+            )}
+          </div>
+
+          <button onClick={() => setOpen(false)} type="button" style={{
+            marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6,
+            padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
+          }}>
+            완료
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // TODO: 실제 연동 시 GET /api/v1/admin/review-queue 응답으로 교체
 // (Project 신청 + PlatformItem 신청을 백엔드에서 합쳐 같은 대기열로 응답해야 함)
@@ -125,210 +372,79 @@ const INITIAL_ITEMS: ReviewItem[] = [
     kind: "project",
     id: "PRJ-2025-075", title: "현장 안전 점검 체크리스트 앱",
     summary: "생산 현장 안전 점검을 위한 모바일 체크리스트 도구",
-    description: "기존 종이 점검표를 대체하여 사진 첨부, 즉시 보고가 가능한 점검 도구를 개발합니다. 시스템 유형과 도메인 모두 표준 분류 외 항목으로 신청됨.",
-    dept: "제조기술팀", submittedBy: "윤성민", submittedAt: "2025.06.05",
-    status: "개발 중", domain: ["제조/생산", "기타"], domainOther: "현장 안전관리", type: "기타", typeOther: "PWA(프로그레시브 웹 앱)",
-    stack: ["React", "Node.js"],
+    description: "기존 종이 점검표를 대체하여 사진 첨부, 즉시 보고가 가능한 점검 도구를 개발합니다.",
+    dept: "품질관리팀", submittedBy: "정유진", submittedAt: "2025.06.03",
+    status: "개발 중", domain: ["제조/생산"], domainOther: "", type: "기타", typeOther: "모바일 PWA",
+    stack: ["React", "FastAPI"],
     audience: ["특정 부서"],
-    orgEntries: [{ id: 6, company: "KKM", parent: "생산본부", dept: "제조기술팀" }],
-    integrations: "", freeTags: "안전점검, 모바일체크리스트",
-    contacts: [{ name: "윤성민", dept: "제조기술팀", role: "주담당자", email: "seongmin.yoon@kolmar.co.kr" }],
+    orgEntries: [{ id: 6, company: "KMW", parent: "생산본부", dept: "품질관리팀" }],
+    integrations: "", freeTags: "안전점검, 현장관리",
+    contacts: [{ name: "정유진", dept: "품질관리팀", role: "주담당자", email: "yujin.jung@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — n8n 워크플로우 신청
+  // ★ 신규 — n8n 등록 신청 (관계사 미지정 상태 시뮬레이션: platformScope "unset")
   {
     kind: "n8n",
-    id: "N8N-2025-010", title: "재고 임계치 도달 시 Teams 알림",
-    summary: "재고관리 시스템의 재고가 임계치 이하로 떨어지면 담당자에게 즉시 알림",
-    description: "재고관리 시스템 API를 주기적으로 조회하여 임계치 이하 품목을 감지하면 담당 부서 Teams 채널에 알림을 발송합니다.",
-    dept: "생산본부", submittedBy: "김도윤", submittedAt: "2025.06.08",
-    status: "파일럿",
-    triggerAction: "Schedule Trigger(매일 오전 8시) → 재고 API 조회 → IF(임계치 이하) → Teams 알림",
-    nodes: ["Schedule Trigger", "HTTP Request", "IF", "Microsoft Teams"],
-    connectedApps: ["Microsoft Teams"],
-    expectedTimeSaved: "주 2시간", difficulty: "보통",
-    specificUrl: "https://n8n.kolmar.co.kr/workflow/010",
-    itemTags: "재고관리, 알림자동화",
-    contacts: [{ name: "김도윤", dept: "생산본부", role: "주담당자", email: "doyoon.kim@kolmar.co.kr" }],
+    id: "N8N-014", title: "협력사 정산서 자동 검증",
+    summary: "협력사가 제출한 정산서를 ERP 데이터와 자동 대조",
+    description: "매월 말 협력사로부터 수신되는 정산서를 ERP 발주 데이터와 자동으로 대조하여 불일치 항목을 표시합니다.",
+    dept: "구매팀", submittedBy: "박성훈", submittedAt: "2025.06.20",
+    status: "개발 중",
+    triggerAction: "Schedule Trigger(매월 말일) → ERP API 조회 → 정산서 파싱 → 대조 → 불일치 시 Teams 알림",
+    nodes: ["Schedule Trigger", "HTTP Request", "Code", "IF"], connectedApps: ["Microsoft Teams"],
+    expectedTimeSaved: "월 4시간", difficulty: "보통", specificUrl: "https://n8n.kolmar.co.kr/workflow/014",
+    itemTags: "정산, 구매자동화",
+    company: [], platformScope: "unset",
+    contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — 나만의 비서(HK GPT 커스텀) 신청
+  // ★ 신규 — 나만의 비서 등록 신청 (특정 관계사 한정)
   {
     kind: "assistant",
-    id: "AST-2025-007", title: "신제품 기획서 초안 작성 도우미",
-    summary: "HK GPT를 신제품 기획서 양식에 맞게 커스터마이징한 에이전트",
-    description: "제품 컨셉과 타겟 고객층을 입력하면 사내 표준 기획서 양식에 맞춰 초안을 자동 생성합니다.",
-    dept: "마케팅팀", submittedBy: "한지민", submittedAt: "2025.06.10",
-    status: "개발 중",
-    triggerAction: "사용자가 제품 컨셉·타겟 고객층 입력 → 사내 표준 기획서 양식으로 초안 생성",
-    nodes: [], connectedApps: ["HK GPT"],
-    expectedTimeSaved: "건당 1.5시간", difficulty: "쉬움",
-    specificUrl: "https://assistant.kolmar.co.kr/agents/product-brief",
-    itemTags: "기획서, 신제품, 마케팅",
-    contacts: [{ name: "한지민", dept: "마케팅팀", role: "주담당자", email: "jimin.han@kolmar.co.kr" }],
+    id: "AST-011", title: "해외법인 계약서 1차 검토 비서",
+    summary: "해외법인向 영문 계약서의 주요 리스크 조항을 1차 스크리닝",
+    description: "미국콜마·북경콜마 등 해외법인에서 체결하는 영문 계약서의 주요 조항을 1차로 스크리닝하여 법무팀 검토 시간을 단축합니다.",
+    dept: "법무팀", submittedBy: "강현우", submittedAt: "2025.06.22",
+    status: "파일럿",
+    specificUrl: "https://assistant.kolmar.co.kr/agents/global-contract-review",
+    itemTags: "계약서, 법무, 해외법인",
+    company: ["KUS", "KMB"], platformScope: "specific",
+    contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — AI Agent(구 AI Orchestration) 신청
+  // ★ 신규 — AI Agent 등록 신청 (전사 공용)
   {
     kind: "ai-orchestration",
-    id: "AIO-2025-005", title: "Llama 3 (온프레미스 보안 특화)",
-    summary: "외부 전송이 차단된 민감 문서 처리를 위한 온프레미스 모델",
-    description: "기밀 등급 문서나 외부 유출이 금지된 자료를 처리할 때 사용하는 온프레미스 모델입니다.",
-    dept: "IT개발팀", submittedBy: "정태영", submittedAt: "2025.06.11",
-    status: "파일럿",
-    provider: "Meta (사내 온프레미스 배포)", contextWindow: "128K", costTier: "낮음",
-    strengths: "외부 전송 차단, 기밀문서 처리, 온프레미스",
-    specificUrl: "https://ai-gateway.kolmar.co.kr/models/llama3-onprem",
-    itemTags: "보안, 온프레미스, 기밀문서",
+    id: "AIO-006", title: "GPT-4o (범용 업무 보조)",
+    summary: "전사 직원 누구나 사용할 수 있는 범용 업무 보조 모델",
+    description: "이메일 작성, 보고서 초안, 데이터 요약 등 범용 업무에 적합합니다.",
+    dept: "IT개발팀", submittedBy: "정태영", submittedAt: "2025.06.24",
+    status: "개발 중",
+    provider: "OpenAI", contextWindow: "128K", strengths: "범용성, 빠른 응답속도", costTier: "보통",
+    specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4o",
+    itemTags: "범용, 업무보조",
+    company: [], platformScope: "company-wide",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
 ];
 
-const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  project: { color: "#475569", bg: "#F1F5F9", label: "프로젝트" },
-  ...Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])),
-};
-
-// ===== 모듈 레벨 공용 스타일 / 컴포넌트 =====
-const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box",
-  padding: "8px 12px", fontSize: 13, color: "#0F172A",
-  background: "#F8FAFC", border: "1.5px solid #E2E8F0",
-  borderRadius: 7, outline: "none", fontFamily: "inherit",
-};
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle,
-  appearance: "none",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
-  paddingRight: 32, cursor: "pointer",
-};
-
-function TagSelect({ options, selected, onChange, disabled }: { options: string[]; selected: string[]; onChange: (v: string) => void; disabled?: boolean }) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {options.map(opt => {
-        const isSel = selected.includes(opt);
-        return (
-          <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
-            fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 6,
-            border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-            background: isSel ? "#EFF6FF" : "#fff",
-            color: isSel ? "#2563EB" : "#475569",
-            cursor: disabled ? "default" : "pointer",
-            opacity: disabled ? 0.6 : 1, userSelect: "none",
-          }}>{opt}</span>
-        );
-      })}
-    </div>
-  );
-}
-
-function SingleSelectTag({ options, value, onChange, disabled }: { options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean }) {
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {options.map(opt => {
-        const isSel = value === opt;
-        return (
-          <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
-            fontSize: 12, fontWeight: 600, padding: "4px 11px", borderRadius: 6,
-            border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-            background: isSel ? "#EFF6FF" : "#fff",
-            color: isSel ? "#2563EB" : "#475569",
-            cursor: disabled ? "default" : "pointer",
-            opacity: disabled ? 0.6 : 1, userSelect: "none",
-          }}>{opt}</span>
-        );
-      })}
-    </div>
-  );
-}
-
-function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #F1F5F9" }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>{label}</label>
-      {children}
-    </div>
-  );
-}
-
-// 노드/연동앱 칩 — 검토 화면에서도 관리자가 직접 추가/삭제 가능
-function ChipEditor({ items, onAdd, onRemove, suggestions, placeholder, disabled }: {
-  items: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void;
-  suggestions: string[]; placeholder: string; disabled?: boolean;
-}) {
-  const [draft, setDraft] = useState("");
-  return (
-    <div>
-      {items.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-          {items.map((v, i) => (
-            <span key={i} style={{
-              display: "flex", alignItems: "center", gap: 5,
-              fontSize: 11, fontWeight: 600, background: "#EEF2FF", color: "#4338CA",
-              padding: "4px 6px 4px 10px", borderRadius: 20,
-            }}>
-              {v}
-              {!disabled && (
-                <button onClick={() => onRemove(v)} style={{ background: "none", border: "none", color: "#4338CA", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "0 3px", opacity: 0.7 }}>×</button>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
-      {!disabled && (
-        <>
-          <div style={{ display: "flex", gap: 6 }}>
-            <input value={draft} onChange={e => setDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (draft.trim()) { onAdd(draft.trim()); setDraft(""); } } }}
-              placeholder={placeholder} style={{ ...inputStyle, flex: 1 }} />
-            <button onClick={() => { if (draft.trim()) { onAdd(draft.trim()); setDraft(""); } }} style={{
-              background: "#2563EB", color: "#fff", border: "none", borderRadius: 7,
-              padding: "0 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-            }}>추가</button>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
-            {suggestions.filter(s => !items.includes(s)).slice(0, 6).map(s => (
-              <span key={s} onClick={() => onAdd(s)} style={{
-                fontSize: 10, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
-                padding: "2px 8px", borderRadius: 20, cursor: "pointer",
-              }}>+ {s}</span>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function AdminReview() {
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_ITEMS);
-  const [selected, setSelected] = useState(INITIAL_ITEMS[0]?.id ?? "");
-  const [edits, setEdits] = useState<Record<string, Partial<ReviewItem>>>({});
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [filter, setFilter] = useState<"전체" | "대기" | "처리완료">("전체");
-  const [sourceFilter, setSourceFilter] = useState<"전체" | "project" | PlatformId>("전체");
+  const [selected, setSelected] = useState<string>(INITIAL_ITEMS[0]?.id ?? "");
   const [done, setDone] = useState<string[]>([]);
+  const [edits, setEdits] = useState<Record<string, Partial<ReviewItem>>>({});
+  const [filter, setFilter] = useState<"전체" | "대기" | "처리완료">("대기");
+  const [sourceFilter, setSourceFilter] = useState<"전체" | "project" | PlatformId>("전체");
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code);
   const [draftParent, setDraftParent] = useState(NO_PARENT);
   const [draftDept, setDraftDept] = useState("");
 
-  const activeItem = items.find(i => i.id === selected);
-  const edit = (edits[selected] || {}) as Partial<ReviewItem>;
+  const activeItem = items.find(i => i.id === selected) ?? null;
+  const edit = edits[selected] ?? {};
   const merged = activeItem ? ({ ...activeItem, ...edit } as ReviewItem) : null;
   const isDisabled = done.includes(selected);
 
@@ -339,6 +455,12 @@ export default function AdminReview() {
     if (!merged || !isProjectKind(merged)) return;
     const cur = ((edit as any)[k] ?? (merged as any)[k] ?? []) as string[];
     setEdit(k as any, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
+  };
+
+  // ★ 신규 — 관계사 변경 핸들러. codes가 빈 배열이어도 명시적 선택(전사공용)으로 처리.
+  const setPlatformCompanies = (codes: string[]) => {
+    setEdit("company" as any, codes);
+    setEdit("platformScope" as any, codes.length === 0 ? "company-wide" : "specific");
   };
 
   const currentOrgEntries = (((edit as any).orgEntries ?? (merged && isProjectKind(merged) ? merged.orgEntries : [])) ?? []) as OrgEntry[];
@@ -370,9 +492,14 @@ export default function AdminReview() {
   const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const handleApprove = () => {
+    // ★ 신규 — PlatformItem이고 platformScope가 "unset"이면 승인 차단(등록자가 미선택으로 둔 채 신청이 들어온 예외 상황 방지)
+    if (merged && !isProjectKind(merged)) {
+      const scope = (edit as any).platformScope ?? merged.platformScope;
+      if (scope === "unset") return;
+    }
     // TODO: 실제 연동 시
     //   kind === "project" → PATCH /api/v1/admin/projects/:id/approve
-    //   그 외 → PATCH /api/v1/admin/platform-items/:id/approve
+    //   그 외 → PATCH /api/v1/admin/platform-items/:id/approve (body에 company, platformScope 포함)
     setItems(p => p.map(i => i.id === selected ? ({ ...i, ...edit, approval: "승인" } as ReviewItem) : i));
     setDone(p => [...p, selected]);
     const remaining = items.filter(i => !done.includes(i.id) && i.id !== selected);
@@ -402,6 +529,9 @@ export default function AdminReview() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
+  // ★ 신규 — 승인 버튼 비활성 조건 계산
+  const approveBlocked = !!(merged && !isProjectKind(merged) && (((edit as any).platformScope ?? merged.platformScope) === "unset"));
+
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
 
@@ -429,7 +559,7 @@ export default function AdminReview() {
                 ))}
               </div>
 
-              {/* ★ 출처 필터 — 유형별로 통합 대기열을 좁혀볼 수 있게 */}
+              {/* 출처 필터 — 유형별로 통합 대기열을 좁혀볼 수 있게 */}
               <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value as any)} style={{ ...selectStyle, fontSize: 11, padding: "6px 28px 6px 10px" }}>
                 {SOURCE_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
               </select>
@@ -439,6 +569,8 @@ export default function AdminReview() {
                 const isDone = done.includes(item.id);
                 const isSelected = selected === item.id;
                 const sourceStyle = SOURCE_STYLE[item.kind];
+                // ★ 신규 — platformScope가 unset인 신청 건은 목록에서 경고 배지 표시
+                const needsAttention = !isProjectKind(item) && item.platformScope === "unset" && !isDone;
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
                     padding: "12px 14px", cursor: "pointer",
@@ -453,6 +585,9 @@ export default function AdminReview() {
                       }}>{sourceStyle.label}</span>
                       {isDone && (
                         <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8" }}>처리완료</span>
+                      )}
+                      {needsAttention && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>
                       )}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
@@ -553,31 +688,40 @@ export default function AdminReview() {
 
                     <FieldRow label="참여 관계사 / 본부 / 부서">
                       {currentOrgEntries.length > 0 && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: isDisabled ? 0 : 10 }}>
                           {currentOrgEntries.map(e => (
-                            <div key={e.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 7, padding: "7px 11px" }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
-                              {!isDisabled && <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16 }}>×</button>}
-                            </div>
+                            isDisabled ? (
+                              <span key={e.id} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6, display: "inline-block", marginRight: 6, marginBottom: 6 }}>
+                                {orgEntryDisplay(e)}
+                              </span>
+                            ) : (
+                              <div key={e.id} style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 11px",
+                              }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
+                                <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                              </div>
+                            )
                           ))}
                         </div>
                       )}
                       {!isDisabled && (
-                        <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 8, padding: "12px 14px" }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-                            <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "6px 24px 6px 8px" }}>
+                        <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                            <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
                               {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                             </select>
-                            <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "6px 24px 6px 8px" }}>
-                              <option value={NO_PARENT}>{NO_PARENT}</option>
+                            <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                              <option value={NO_PARENT}>본부 없음</option>
                               {availableParents.map(p => <option key={p}>{p}</option>)}
                             </select>
-                            <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "6px 24px 6px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                            <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
                               <option value="">부서 없음</option>
                               {availableDepts.map(d => <option key={d}>{d}</option>)}
                             </select>
                           </div>
-                          <button onClick={addOrgEntry} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>+ 추가</button>
+                          <button onClick={addOrgEntry} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ 추가</button>
                         </div>
                       )}
                     </FieldRow>
@@ -588,22 +732,39 @@ export default function AdminReview() {
                     <FieldRow label="기술 스택">
                       <TagSelect options={STACK_OPTIONS} selected={(edit as any).stack ?? merged.stack} onChange={v => toggleMulti("stack", v)} disabled={isDisabled} />
                     </FieldRow>
-                    <FieldRow label="연동 시스템">
-                      <input value={(edit as any).integrations ?? merged.integrations} onChange={e => setEdit("integrations" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="자유 태그">
-                      <input value={(edit as any).freeTags ?? merged.freeTags} onChange={e => setEdit("freeTags" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                    </FieldRow>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <FieldRow label="연동 시스템">
+                        <input value={(edit as any).integrations ?? merged.integrations} onChange={e => setEdit("integrations" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
+                      </FieldRow>
+                      <FieldRow label="자유 태그">
+                        <input value={(edit as any).freeTags ?? merged.freeTags} onChange={e => setEdit("freeTags" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
+                      </FieldRow>
+                    </div>
                   </SectionBlock>
                 )}
 
-                {/* ===== 분기: n8n / 나만의 비서 — 동작 정보 ===== */}
-                {(merged.kind === "n8n" || merged.kind === "assistant") && (
+                {/* ===== 분기: 워크플로우/에이전트형(n8n, assistant) ===== */}
+                {!isProjectKind(merged) && (merged.kind === "n8n" || merged.kind === "assistant") && (
                   <>
                     <SectionBlock title={`${SOURCE_STYLE[merged.kind].label} 동작 정보`}>
                       <FieldRow label="상태">
                         <SingleSelectTag options={STATUSES} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
                       </FieldRow>
+
+                      {/* ★ 신규 — 소속/대상 관계사 */}
+                      <FieldRow label="소속 / 대상 관계사">
+                        <CompanyMultiSelect
+                          selected={(edit as any).company ?? merged.company}
+                          onChange={setPlatformCompanies}
+                          disabled={isDisabled}
+                        />
+                        {!isDisabled && (((edit as any).platformScope ?? merged.platformScope) === "unset") && (
+                          <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>
+                            신청자가 관계사 범위를 선택하지 않았습니다. 승인 전 직접 확인하여 선택해주세요.
+                          </div>
+                        )}
+                      </FieldRow>
+
                       <FieldRow label="트리거 · 동작 설명">
                         <textarea value={(edit as any).triggerAction ?? (merged as ReviewPlatformItem).triggerAction ?? ""} onChange={e => setEdit("triggerAction" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, minHeight: 70, resize: "vertical", lineHeight: 1.7, opacity: isDisabled ? 0.6 : 1 }} />
                       </FieldRow>
@@ -641,6 +802,21 @@ export default function AdminReview() {
                     <FieldRow label="상태">
                       <SingleSelectTag options={STATUSES} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
                     </FieldRow>
+
+                    {/* ★ 신규 — 소속/대상 관계사 */}
+                    <FieldRow label="소속 / 대상 관계사">
+                      <CompanyMultiSelect
+                        selected={(edit as any).company ?? merged.company}
+                        onChange={setPlatformCompanies}
+                        disabled={isDisabled}
+                      />
+                      {!isDisabled && (((edit as any).platformScope ?? merged.platformScope) === "unset") && (
+                        <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>
+                          신청자가 관계사 범위를 선택하지 않았습니다. 승인 전 직접 확인하여 선택해주세요.
+                        </div>
+                      )}
+                    </FieldRow>
+
                     <FieldRow label="제공사">
                       <input value={(edit as any).provider ?? (merged as ReviewPlatformItem).provider ?? ""} onChange={e => setEdit("provider" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
                     </FieldRow>
@@ -676,66 +852,85 @@ export default function AdminReview() {
                       const next = contacts.map((cc: Contact, ci: number) => ci === i ? { ...cc, [k]: v } : cc);
                       setEdit("contacts" as any, next);
                     };
-                    const removeContact = () => {
-                      setEdit("contacts" as any, contacts.filter((_: Contact, ci: number) => ci !== i));
-                    };
+                    const removeContact = () => setEdit("contacts" as any, contacts.filter((_: Contact, ci: number) => ci !== i));
 
                     return (
-                      <div key={i} style={{
-                        display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8,
-                        marginBottom: 8, alignItems: "center",
-                      }}>
-                        <input value={c.name} onChange={e => setContact("name", e.target.value)} disabled={isDisabled} placeholder="이름" style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                        <input value={c.dept} onChange={e => setContact("dept", e.target.value)} disabled={isDisabled} placeholder="부서" style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                        <input value={c.role} onChange={e => setContact("role", e.target.value)} disabled={isDisabled} placeholder="역할" style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                        <input value={c.email} onChange={e => setContact("email", e.target.value)} disabled={isDisabled} placeholder="이메일" style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} />
-                        {!isDisabled && contacts.length > 1 && (
-                          <button onClick={removeContact} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, marginBottom: 8 }}>
+                        {isDisabled ? (
+                          <>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                              {c.name ? c.name[0] : "?"}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.name} <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 400 }}>· {c.dept}</span></div>
+                              <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{c.email}</div>
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 700, background: "#0F172A", color: "#fff", padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{c.role}</span>
+                          </>
+                        ) : (
+                          <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, alignItems: "center" }}>
+                            <input value={c.name} onChange={e => setContact("name", e.target.value)} placeholder="이름" style={{ ...inputStyle, fontSize: 12, padding: "6px 9px" }} />
+                            <input value={c.dept} onChange={e => setContact("dept", e.target.value)} placeholder="부서" style={{ ...inputStyle, fontSize: 12, padding: "6px 9px" }} />
+                            <input value={c.email} onChange={e => setContact("email", e.target.value)} placeholder="이메일" style={{ ...inputStyle, fontSize: 12, padding: "6px 9px" }} />
+                            <select value={c.role} onChange={e => setContact("role", e.target.value)} style={{ ...selectStyle, fontSize: 12, padding: "6px 22px 6px 9px" }}>
+                              <option value="주담당자">주담당자</option>
+                              <option value="공동담당자">공동담당자</option>
+                            </select>
+                            {contacts.length > 1 && (
+                              <button onClick={removeContact} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
                   })}
 
                   {!isDisabled && (
-                    <button
-                      onClick={() => {
-                        const contacts = (edit as any).contacts ?? merged.contacts;
-                        setEdit("contacts" as any, [...contacts, { name: "", dept: "", role: "공동담당자", email: "" }]);
-                      }}
-                      style={{
-                        background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 6,
-                        padding: "7px 14px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer", marginTop: 4,
-                      }}
-                    >
+                    <button onClick={() => setEdit("contacts" as any, [...((edit as any).contacts ?? merged.contacts), { name: "", dept: "", role: "공동담당자", email: "" }])} style={{ background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>
                       + 담당자 추가
                     </button>
                   )}
                 </SectionBlock>
 
-                {/* ===== 승인/반려 액션 ===== */}
+                {/* ===== 승인 / 반려 액션 ===== */}
                 {!isDisabled && (
-                  <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                    <button onClick={handleApprove} style={{
-                      flex: 1, background: "#059669", border: "none", borderRadius: 8,
-                      padding: "11px 0", fontSize: 14, fontWeight: 700, color: "#fff", cursor: "pointer",
-                    }}>승인</button>
-                    <button onClick={() => setRejectOpen(v => !v)} style={{
-                      flex: 1, background: "#fff", border: "1.5px solid #FECACA", borderRadius: 8,
-                      padding: "11px 0", fontSize: 14, fontWeight: 700, color: "#EF4444", cursor: "pointer",
-                    }}>반려</button>
-                  </div>
-                )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {approveBlocked && (
+                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 14px", fontSize: 12, color: "#991B1B" }}>
+                        관계사 범위가 선택되지 않아 승인할 수 없습니다. "소속 / 대상 관계사"에서 전사 공용 또는 해당 관계사를 선택해주세요.
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button
+                        onClick={handleApprove}
+                        disabled={approveBlocked}
+                        style={{
+                          flex: 1, background: approveBlocked ? "#CBD5E1" : "#059669", color: "#fff", border: "none",
+                          borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700,
+                          cursor: approveBlocked ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        승인
+                      </button>
+                      <button onClick={() => setRejectOpen(v => !v)} style={{ flex: 1, background: "#fff", border: "1.5px solid #FECACA", color: "#EF4444", borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                        반려
+                      </button>
+                    </div>
 
-                {rejectOpen && !isDisabled && (
-                  <div style={{ marginTop: 12, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
-                    <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요 (필수)"
-                      style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
-                    <button onClick={handleReject} disabled={!rejectReason.trim()} style={{
-                      background: "#EF4444", border: "none", borderRadius: 7, padding: "8px 18px",
-                      fontSize: 13, fontWeight: 700, color: "#fff",
-                      cursor: rejectReason.trim() ? "pointer" : "not-allowed",
-                      opacity: rejectReason.trim() ? 1 : 0.4,
-                    }}>반려 확정</button>
+                    {rejectOpen && (
+                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수)</label>
+                        <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다."
+                          style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
+                        <button onClick={handleReject} disabled={!rejectReason.trim()} style={{
+                          background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none",
+                          borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700,
+                          cursor: rejectReason.trim() ? "pointer" : "not-allowed",
+                        }}>
+                          반려 확정
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
