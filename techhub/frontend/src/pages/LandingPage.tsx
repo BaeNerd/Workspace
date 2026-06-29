@@ -2,15 +2,35 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useAuth } from "../context/useAuth";
 import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 
-const STATS = [
-  { value: "124", label: "등록 프로젝트" },
-  { value: "12", label: "자동화·AI 도구" }, // ★ 추가 — n8n+나만의비서+AI Orchestration 항목 수
-  { value: "38", label: "참여 부서" },
-  { value: "9", label: "비즈니스 도메인" },
+// 랜딩 상단 지표 (사용자 효용 중심 — "지금 쓸 수 있는가 / 살아있는가").
+// 집계 기준: 전수(visible 무관). visible 토글은 목록·상세의 접근 제어에만 적용하며,
+//   랜딩 집계 숫자까지 가리면 목록과의 정합성 혼란만 생기므로 그룹 전체 규모를 그대로 노출한다.
+// TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체.
+//   값 기준: 전체 등록물 208(프로젝트 124 + 플랫폼 84) /
+//            바로 쓸 수 있는 도구 = 운영 중 플랫폼 항목 수 /
+//            이번 달 신규 = 최근 30일 등록(프로젝트+플랫폼 합산).
+const STATS: { value: string; label: string; sub: string }[] = [
+  { value: "208", label: "전체 등록물", sub: "프로젝트·자동화·AI 통합" },
+  { value: "84", label: "바로 쓸 수 있는 도구", sub: "운영 중인 자동화·AI 도구" },
+  { value: "14", label: "이번 달 신규", sub: "최근 30일 등록" },
 ];
+
+// 4번 칸(개인화) — 로그인 사용자의 소속 관계사(코드) 기준 누적 등록 수.
+// TODO: 실제 연동 시 GET /api/v1/stats/my-company?company=:code 응답으로 교체.
+//   미등록(0건) 관계사는 이 맵에 없으면 0건 + 초대 문구로 자연 처리된다.
+const COMPANY_REGISTRATIONS: Record<string, { name: string; count: number }> = {
+  KKM: { name: "한국콜마", count: 47 },
+  HKINNOEN: { name: "HK이노엔", count: 23 },
+  KMBNH: { name: "콜마비앤에이치", count: 0 },
+};
+
+// 비로그인 폴백 — 참여 관계사 수(분모 없는 절대값, 천장·서열 없음).
+// TODO: 실제 연동 시 GET /api/v1/stats/participating-companies 응답으로 교체.
+const PARTICIPATING_COMPANIES = 18;
 
 const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "운영 중": { bg: "#D1FAE5", color: "#065F46" },
@@ -55,6 +75,55 @@ const HeartIcon = () => (
     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
   </svg>
 );
+
+// 통계 셀 (모듈 레벨 — 4개 칸 공통 사용). last=true면 우측 구분선 제거.
+function StatCell({ value, label, sub, last }: { value: string; label: string; sub: string; last?: boolean }) {
+  return (
+    <div style={{
+      padding: "28px 24px", textAlign: "center",
+      borderRight: last ? "none" : "1px solid #E2E8F0",
+    }}>
+      <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", marginBottom: 4 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 12, color: "#475569", fontWeight: 600, marginBottom: 3 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, lineHeight: 1.4 }}>
+        {sub}
+      </div>
+    </div>
+  );
+}
+
+// 4번 칸 (개인화) — 로그인 시 소속 관계사 누적 등록, 비로그인 시 참여 관계사로 폴백.
+function MyCompanyStatCell() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <StatCell
+        value={String(PARTICIPATING_COMPANIES)}
+        label="참여 관계사"
+        sub="그룹 전반에서 활용 중"
+        last
+      />
+    );
+  }
+
+  const reg = COMPANY_REGISTRATIONS[user.company];
+  const count = reg?.count ?? 0;
+  const companyName = reg?.name ?? user.company;
+
+  return (
+    <StatCell
+      value={String(count)}
+      label="우리 회사 등록"
+      sub={count === 0 ? `${companyName} · 첫 등록을 남겨보세요` : `${companyName} 누적`}
+      last
+    />
+  );
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -151,25 +220,16 @@ export default function LandingPage() {
       </section>
 
       {/* STATS */}
-      {/* TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체 */}
+      {/* TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체 (전수 기준, visible 무관) */}
       <section style={{ background: "#fff", borderBottom: "1px solid #E2E8F0" }}>
         <div style={{
           maxWidth: 900, margin: "0 auto",
           display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
         }}>
           {STATS.map((s, i) => (
-            <div key={i} style={{
-              padding: "28px 24px", textAlign: "center",
-              borderRight: i < STATS.length - 1 ? "1px solid #E2E8F0" : "none",
-            }}>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", marginBottom: 4 }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 500 }}>
-                {s.label}
-              </div>
-            </div>
+            <StatCell key={i} value={s.value} label={s.label} sub={s.sub} />
           ))}
+          <MyCompanyStatCell />
         </div>
       </section>
 

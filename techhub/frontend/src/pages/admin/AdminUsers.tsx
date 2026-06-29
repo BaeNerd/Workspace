@@ -5,8 +5,11 @@ import AdminSidebar from "../../components/AdminSidebar";
 type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
 type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
 type SsoUser = { name: string; email: string; dept: string; title: string };
-type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "프로젝트" | "권한" | "분류체계" | "조직" };
-type Registrant = { name: string; email: string; dept: string; title: string; projectCount: number; lastSubmit: string; approved: number; pending: number; rejected: number };
+// category: 등록 콘텐츠(프로젝트/n8n/나만의비서/AI Agent)는 모두 "등록물" 분류로 통합. source는 등록물 행에서만 출처 구분용으로 사용.
+type LogSource = "프로젝트" | "n8n" | "나만의비서" | "AI Agent";
+type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "등록물" | "권한" | "분류체계" | "조직"; source?: LogSource };
+// projectCount: Project 등록 수 / platformCount: PlatformItem(n8n·나만의비서·AI Agent) 등록 수. approved/pending/rejected는 전체(프로젝트+플랫폼) 기준.
+type Registrant = { name: string; email: string; dept: string; title: string; projectCount: number; platformCount: number; lastSubmit: string; approved: number; pending: number; rejected: number };
 
 // TODO: 실제 연동 시 GET /api/v1/admin/users?role=admin 응답으로 교체
 const INITIAL_ADMINS: Admin[] = [
@@ -20,16 +23,20 @@ const INITIAL_GROUP_VIEWERS: GroupViewer[] = [
   { id: 2, name: "한서윤", email: "seoyoon.han@kolmar.co.kr", dept: "콜마홀딩스 경영기획팀", title: "차장", grantedAt: "2025.04.02", grantedBy: "김관리", reason: "지주사 관계사 현황 보고용" },
 ];
 
-// TODO: 실제 연동 시 GET /api/v1/admin/registrants 응답으로 교체
+// TODO: 실제 연동 시 GET /api/v1/admin/registrants 응답으로 교체 (프로젝트 + PlatformItem 등록자 통합 집계)
 const REGISTRANTS: Registrant[] = [
-  { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원", projectCount: 2, lastSubmit: "2025.06.01", approved: 1, pending: 1, rejected: 0 },
-  { name: "박성훈", email: "sunghoon.park@kolmar.co.kr", dept: "구매팀", title: "대리", projectCount: 1, lastSubmit: "2025.06.02", approved: 1, pending: 0, rejected: 0 },
-  { name: "이민호", email: "minho.lee@kolmar.co.kr", dept: "품질관리팀", title: "선임", projectCount: 1, lastSubmit: "2025.05.09", approved: 0, pending: 0, rejected: 1 },
+  { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원", projectCount: 2, platformCount: 1, lastSubmit: "2025.06.01", approved: 2, pending: 1, rejected: 0 },
+  { name: "정태영", email: "taeyoung.jung@kolmar.co.kr", dept: "IT개발팀", title: "선임", projectCount: 0, platformCount: 3, lastSubmit: "2025.06.10", approved: 2, pending: 1, rejected: 0 },
+  { name: "박성훈", email: "sunghoon.park@kolmar.co.kr", dept: "구매팀", title: "대리", projectCount: 1, platformCount: 0, lastSubmit: "2025.06.02", approved: 1, pending: 0, rejected: 0 },
+  { name: "이민호", email: "minho.lee@kolmar.co.kr", dept: "품질관리팀", title: "선임", projectCount: 1, platformCount: 0, lastSubmit: "2025.05.09", approved: 0, pending: 0, rejected: 1 },
 ];
 
 // TODO: 실제 연동 시 GET /api/v1/admin/logs 응답으로 교체
 const LOGS: LogEntry[] = [
-  { id: 1, datetime: "2025.06.04 09:32", actor: "김관리", action: "승인", target: "글로벌 규제 모니터링 대시보드 (PRJ-2025-074)", category: "프로젝트" },
+  { id: 8, datetime: "2025.06.06 09:05", actor: "김관리", action: "승인", target: "원료 추천 에이전트 (AGENT-2025-007)", category: "등록물", source: "AI Agent" },
+  { id: 7, datetime: "2025.06.05 14:20", actor: "이서현", action: "반려", target: "계약서 요약 비서 (HKGPT-2025-018)", category: "등록물", source: "나만의비서" },
+  { id: 6, datetime: "2025.06.05 10:12", actor: "김관리", action: "승인", target: "재고 알림 자동화 워크플로우 (N8N-2025-031)", category: "등록물", source: "n8n" },
+  { id: 1, datetime: "2025.06.04 09:32", actor: "김관리", action: "승인", target: "글로벌 규제 모니터링 대시보드 (PRJ-2025-074)", category: "등록물", source: "프로젝트" },
   { id: 2, datetime: "2025.06.03 16:44", actor: "김관리", action: "권한 부여", target: "박준서 → 관리자", category: "권한" },
   { id: 3, datetime: "2025.05.28 13:45", actor: "김관리", action: "분류 수정", target: "기술 스택 — Three.js 추가", category: "분류체계" },
   { id: 4, datetime: "2025.05.20 09:30", actor: "김관리", action: "부서 추가", target: "데이터분석팀 (IT본부)", category: "조직" },
@@ -37,13 +44,25 @@ const LOGS: LogEntry[] = [
 ];
 
 const LOG_CATEGORY_STYLE: Record<string, { bg: string; color: string }> = {
-  "프로젝트": { bg: "#DBEAFE", color: "#1E40AF" },
+  "등록물": { bg: "#DBEAFE", color: "#1E40AF" },
   "권한": { bg: "#FEF3C7", color: "#92400E" },
   "분류체계": { bg: "#F3E8FF", color: "#7E22CE" },
   "조직": { bg: "#D1FAE5", color: "#065F46" },
 };
 
+// 매핑에 없는 분류값이 들어와도 화면이 깨지지 않도록 fallback (런타임 크래시 방지)
+const LOG_CATEGORY_FALLBACK = { bg: "#F1F5F9", color: "#475569" };
+
+// 출처 칩 색상. TODO: platformTypes.ts의 PLATFORMS 출처 색상과 일치시켜 단일 소스로 관리 권장.
+const LOG_SOURCE_STYLE: Record<LogSource, { bg: string; color: string }> = {
+  "프로젝트": { bg: "#E0F2FE", color: "#0369A1" },
+  "n8n": { bg: "#FCE7F3", color: "#9D174D" },
+  "나만의비서": { bg: "#DCFCE7", color: "#166534" },
+  "AI Agent": { bg: "#EDE9FE", color: "#5B21B6" },
+};
+
 const TABS = ["관리자 권한", "그룹 전체보기", "등록자 관리", "활동 로그"] as const;
+const LOG_CATEGORIES = ["전체", "등록물", "권한", "분류체계", "조직"] as const;
 
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box", padding: "8px 12px", fontSize: 13, color: "#0F172A",
@@ -171,7 +190,9 @@ export default function AdminUsers() {
           <div style={{ display: "flex", gap: 0, marginBottom: 24, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "hidden", width: "fit-content" }}>
             {TABS.map((t, i) => (
               <button key={t} onClick={() => setActiveTab(t)} style={{
-                padding: "10px 24px", border: "none", borderRight: i < TABS.length - 1 ? "1px solid #E2E8F0" : "none",
+                padding: "10px 24px",
+                borderTop: "none", borderBottom: "none", borderLeft: "none",
+                borderRight: i < TABS.length - 1 ? "1px solid #E2E8F0" : "none",
                 background: activeTab === t ? "#0F172A" : "transparent",
                 color: activeTab === t ? "#fff" : "#64748B",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
@@ -269,7 +290,7 @@ export default function AdminUsers() {
             </div>
           )}
 
-          {/* ===== 탭 2: 그룹 전체보기 (신규) ===== */}
+          {/* ===== 탭 2: 그룹 전체보기 (기존 그대로) ===== */}
           {activeTab === "그룹 전체보기" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
               <div>
@@ -391,43 +412,56 @@ export default function AdminUsers() {
             </div>
           )}
 
-          {/* ===== 탭 3: 등록자 관리 (기존 그대로) ===== */}
+          {/* ===== 탭 3: 등록자 관리 (프로젝트 + PlatformItem 통합 집계) ===== */}
           {activeTab === "등록자 관리" && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>프로젝트 등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{REGISTRANTS.length}명</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{REGISTRANTS.length}명</span></div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>프로젝트 · n8n · 나만의비서 · AI Agent 등록 이력을 통합 집계합니다.</div>
+                </div>
                 <input value={regSearch} onChange={e => setRegSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />
               </div>
               <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 80px 80px 80px 100px", padding: "10px 18px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-                  {["이름 / 부서", "이메일", "전체", "승인", "대기/반려", "최근 신청"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>{h}</div>)}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 130px 70px 90px 90px", padding: "10px 18px", background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                  {["이름 / 부서", "이메일", "등록 (전체)", "승인", "대기/반려", "최근 신청"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>{h}</div>)}
                 </div>
-                {filteredReg.map((r, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 140px 80px 80px 80px 100px", padding: "12px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{r.name}</div>
-                      <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.title} · {r.dept}</div>
+                {filteredReg.map((r, i) => {
+                  const total = r.projectCount + r.platformCount;
+                  return (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 150px 130px 70px 90px 90px", padding: "12px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{r.name}</div>
+                        <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.title} · {r.dept}</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.email}</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{total}건</div>
+                        <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 1 }}>프로젝트 {r.projectCount} · 플랫폼 {r.platformCount}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#059669" }}>{r.approved}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: r.pending + r.rejected > 0 ? "#D97706" : "#94A3B8" }}>{r.pending + r.rejected}</div>
+                      <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.lastSubmit}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.email}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{r.projectCount}건</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#059669" }}>{r.approved}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: r.pending + r.rejected > 0 ? "#D97706" : "#94A3B8" }}>{r.pending + r.rejected}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{r.lastSubmit}</div>
-                  </div>
-                ))}
+                  );
+                })}
+                {filteredReg.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8", fontSize: 13 }}>검색 결과가 없습니다.</div>
+                )}
               </div>
             </div>
           )}
 
-          {/* ===== 탭 4: 활동 로그 (기존 그대로) ===== */}
+          {/* ===== 탭 4: 활동 로그 (등록물 분류로 프로젝트+플랫폼 통합, 출처 칩으로 구분) ===== */}
           {activeTab === "활동 로그" && (
             <div>
               <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
                 <input value={logSearch} onChange={e => setLogSearch(e.target.value)} placeholder="사용자, 대상, 액션 검색" style={{ ...inputStyle, flex: 1, minWidth: 200 }} />
                 <div style={{ display: "flex", gap: 6 }}>
-                  {["전체", "프로젝트", "권한", "분류체계", "조직"].map(c => (
+                  {LOG_CATEGORIES.map(c => (
                     <button key={c} onClick={() => setLogCategory(c)} style={{
-                      padding: "7px 14px", borderRadius: 7, border: "1.5px solid",
+                      padding: "7px 14px", borderRadius: 7,
+                      borderWidth: 1.5, borderStyle: "solid",
                       borderColor: logCategory === c ? "#2563EB" : "#E2E8F0",
                       background: logCategory === c ? "#EFF6FF" : "#fff",
                       color: logCategory === c ? "#2563EB" : "#475569",
@@ -441,19 +475,26 @@ export default function AdminUsers() {
                   {["일시", "사용자", "액션", "대상"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>{h}</div>)}
                 </div>
                 {filteredLogs.map((log, i) => {
-                  const catStyle = LOG_CATEGORY_STYLE[log.category];
+                  const catStyle = LOG_CATEGORY_STYLE[log.category] || LOG_CATEGORY_FALLBACK;
+                  const srcStyle = log.source ? LOG_SOURCE_STYLE[log.source] : null;
                   return (
                     <div key={log.id} style={{ display: "grid", gridTemplateColumns: "140px 80px 100px 1fr", padding: "11px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                       <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace" }}>{log.datetime}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{log.actor}</div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>{log.action}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: catStyle.bg, color: catStyle.color, flexShrink: 0 }}>{log.category}</span>
+                        {srcStyle && (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: srcStyle.bg, color: srcStyle.color, flexShrink: 0 }}>{log.source}</span>
+                        )}
                         <span style={{ fontSize: 12, color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.target}</span>
                       </div>
                     </div>
                   );
                 })}
+                {filteredLogs.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8", fontSize: 13 }}>해당 조건의 로그가 없습니다.</div>
+                )}
               </div>
             </div>
           )}
