@@ -3,6 +3,9 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
+// ★ 신규 — 권한 판정 헬퍼 사용. canManageItem / isGlobalAdmin / managedCompanies 재사용.
+// 주의: useAuth 경로는 프로젝트 구조에 맞게 확인 필요(아래 맨 마지막 질문 참고).
+import { useAuth } from "../../context/useAuth";
 
 const STATUSES = ["개발 중", "운영 중", "파일럿", "종료", "보류"];
 const SYSTEM_TYPES = ["웹 애플리케이션", "API/서비스", "ML/AI 모델", "데이터 파이프라인", "내부 도구", "기타"];
@@ -129,6 +132,13 @@ type ReviewPlatformItem = {
 type ReviewItem = ReviewProjectItem | ReviewPlatformItem;
 const isProjectKind = (i: ReviewItem): i is ReviewProjectItem => i.kind === "project";
 
+// ★ 신규 — 권한 판정용: 항목이 속한 관계사 코드 집합과 전사공용 여부를 도출.
+//   프로젝트는 orgEntries의 company, 플랫폼은 company 필드. canManageItem(useAuth)이 이 값을 소비.
+const itemCompaniesOf = (item: ReviewItem): string[] =>
+  isProjectKind(item) ? item.orgEntries.map(e => e.company) : item.company;
+const itemIsCompanyWideOf = (item: ReviewItem): boolean =>
+  isProjectKind(item) ? false : item.platformScope === "company-wide";
+
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = {
   project: { color: "#475569", bg: "#F1F5F9", label: "프로젝트" },
   ...Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])),
@@ -242,16 +252,34 @@ const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled
   );
 };
 
-// ★ 신규 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, ProjectRegisterPage.tsx와 동일 패턴)
-// 검토 화면에서도 관리자가 등록자가 선택한 관계사 범위를 직접 수정 가능
-function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean }) {
+// ★ 변경 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, ProjectRegisterPage.tsx와 동일 패턴)
+//   권한체계 enforcement 반영:
+//   - allowedCodes: 토글 가능한 관계사 코드 화이트리스트. 관계사관리자는 담당 관계사만 전달.
+//                   미지정(undefined) 시 전체(SELECTABLE_COMPANIES) 허용 = 전사관리자.
+//   - allowCompanyWide: 전사 공용 선택 허용 여부. 관계사관리자는 false(자기 권한 밖으로 승격 방지).
+//   selected에는 있으나 allowedCodes에 없는 관계사(타 관계사 공동 소속)는 잠금 상태로 표시.
+function CompanyMultiSelect({ selected, onChange, disabled, allowedCodes, allowCompanyWide = true }: {
+  selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean;
+  allowedCodes?: string[]; allowCompanyWide?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const isCompanyWide = selected.length === 0;
-  const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
+
+  // 토글 가능한 후보 목록
+  const baseList = allowedCodes
+    ? SELECTABLE_COMPANIES.filter(c => allowedCodes.includes(c.code))
+    : SELECTABLE_COMPANIES;
+  const filteredCompanies = baseList.filter(c =>
     search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
   );
+
+  // 선택돼 있으나 토글 불가한 관계사(담당 외 공동 소속) — 잠금 표시용
+  const lockedSelected = allowedCodes
+    ? SELECTABLE_COMPANIES.filter(c => selected.includes(c.code) && !allowedCodes.includes(c.code))
+        .filter(c => search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase()))
+    : [];
 
   const toggleCompany = (code: string) => {
     onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
@@ -284,14 +312,24 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
           maxHeight: 340, display: "flex", flexDirection: "column",
         }}>
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
-            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
-            marginBottom: 6, borderBottom: "1px solid #F1F5F9",
-          }}>
-            <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
-          </label>
+          {/* 전사 공용 — 전사관리자만 노출. 관계사관리자는 승격 불가하므로 숨김. */}
+          {allowCompanyWide ? (
+            <label style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
+              borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
+              marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+            }}>
+              <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
+            </label>
+          ) : (
+            <div style={{
+              padding: "8px 8px", marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+              fontSize: 11, color: "#94A3B8",
+            }}>
+              담당 관계사만 지정할 수 있습니다. 전사 공용 전환은 전사관리자 권한입니다.
+            </div>
+          )}
 
           <input
             value={search}
@@ -301,6 +339,18 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
           />
 
           <div style={{ overflowY: "auto", flex: 1 }}>
+            {/* 잠금: 담당 외 공동 소속 관계사 (해제 불가) */}
+            {lockedSelected.map(c => (
+              <label key={c.code} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+                borderRadius: 6, cursor: "not-allowed", background: "#F8FAFC", opacity: 0.85,
+              }}>
+                <input type="checkbox" checked disabled style={{ cursor: "not-allowed" }} />
+                <span style={{ fontSize: 12, color: "#64748B" }}>{c.name}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8", background: "#E2E8F0", padding: "1px 6px", borderRadius: 10, marginLeft: "auto" }}>담당 외</span>
+              </label>
+            ))}
+
             {filteredCompanies.map(c => (
               <label key={c.code} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
@@ -312,7 +362,8 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
                 <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
               </label>
             ))}
-            {filteredCompanies.length === 0 && (
+
+            {filteredCompanies.length === 0 && lockedSelected.length === 0 && (
               <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
             )}
           </div>
@@ -430,6 +481,9 @@ const INITIAL_ITEMS: ReviewItem[] = [
 ];
 
 export default function AdminReview() {
+  // ★ 신규 — 현재 관리자 권한 컨텍스트
+  const { isGlobalAdmin, managedCompanies, canManageItem } = useAuth();
+
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_ITEMS);
   const [selected, setSelected] = useState<string>(INITIAL_ITEMS[0]?.id ?? "");
   const [done, setDone] = useState<string[]>([]);
@@ -448,6 +502,13 @@ export default function AdminReview() {
   const merged = activeItem ? ({ ...activeItem, ...edit } as ReviewItem) : null;
   const isDisabled = done.includes(selected);
 
+  // ★ 신규 — 권한 판정. 항상 "원본 항목" 기준으로 판정해 편집을 통한 권한 우회를 차단.
+  const canManageReviewItem = (item: ReviewItem): boolean =>
+    canManageItem(itemCompaniesOf(item), itemIsCompanyWideOf(item));
+
+  // 관계사 편집 허용 범위 — 전사관리자는 전체(undefined), 관계사관리자는 담당 관계사로 제한.
+  const companyEditAllowed = isGlobalAdmin ? undefined : managedCompanies;
+
   const setEdit = <K extends keyof ReviewItem>(k: K, v: any) =>
     setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
 
@@ -457,8 +518,10 @@ export default function AdminReview() {
     setEdit(k as any, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
   };
 
-  // ★ 신규 — 관계사 변경 핸들러. codes가 빈 배열이어도 명시적 선택(전사공용)으로 처리.
+  // ★ 변경 — 관계사 변경 핸들러.
+  //   관계사관리자는 전사 공용(빈 배열)으로 승격할 수 없음(권한 범위 밖으로 이동 방지).
   const setPlatformCompanies = (codes: string[]) => {
+    if (!isGlobalAdmin && codes.length === 0) return;
     setEdit("company" as any, codes);
     setEdit("platformScope" as any, codes.length === 0 ? "company-wide" : "specific");
   };
@@ -492,7 +555,10 @@ export default function AdminReview() {
   const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
 
   const handleApprove = () => {
-    // ★ 신규 — PlatformItem이고 platformScope가 "unset"이면 승인 차단(등록자가 미선택으로 둔 채 신청이 들어온 예외 상황 방지)
+    if (!activeItem) return;
+    // ★ 신규 — 권한 범위 밖 항목은 승인 차단(원본 기준)
+    if (!canManageReviewItem(activeItem)) return;
+    // PlatformItem이고 platformScope가 "unset"이면 승인 차단(등록자가 미선택으로 둔 채 신청이 들어온 예외 상황 방지)
     if (merged && !isProjectKind(merged)) {
       const scope = (edit as any).platformScope ?? merged.platformScope;
       if (scope === "unset") return;
@@ -507,6 +573,9 @@ export default function AdminReview() {
   };
 
   const handleReject = () => {
+    if (!activeItem) return;
+    // ★ 신규 — 권한 범위 밖 항목은 반려도 차단(원본 기준)
+    if (!canManageReviewItem(activeItem)) return;
     if (!rejectReason.trim()) return;
     // TODO: 실제 연동 시 kind에 따라 /admin/projects/:id/reject 또는 /admin/platform-items/:id/reject
     setItems(p => p.map(i => i.id === selected ? ({ ...i, approval: "반려", rejectionReason: rejectReason } as ReviewItem) : i));
@@ -529,8 +598,12 @@ export default function AdminReview() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
-  // ★ 신규 — 승인 버튼 비활성 조건 계산
-  const approveBlocked = !!(merged && !isProjectKind(merged) && (((edit as any).platformScope ?? merged.platformScope) === "unset"));
+  // ★ 변경 — 승인/반려 차단 조건 계산
+  //   outOfScope: 담당 관계사 범위 밖(전사공용은 global만) → 승인·반려 모두 불가
+  //   unsetScope: PlatformItem 관계사 미지정 → 승인 불가(반려는 가능)
+  const outOfScope = !!activeItem && !canManageReviewItem(activeItem);
+  const unsetScope = !!(merged && !isProjectKind(merged) && (((edit as any).platformScope ?? merged.platformScope) === "unset"));
+  const approveBlocked = unsetScope;
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -547,6 +620,13 @@ export default function AdminReview() {
           <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 10 }}>등록 신청 목록</div>
+
+              {/* ★ 신규 — 관계사관리자 안내 배너 */}
+              {!isGlobalAdmin && (
+                <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 10px", marginBottom: 8, fontSize: 10.5, color: "#1E40AF", lineHeight: 1.5 }}>
+                  담당 관계사 신청 건만 승인·반려할 수 있습니다. 범위 밖 항목은 열람만 가능합니다.
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
                 {(["전체", "대기", "처리완료"] as const).map(f => (
@@ -569,8 +649,10 @@ export default function AdminReview() {
                 const isDone = done.includes(item.id);
                 const isSelected = selected === item.id;
                 const sourceStyle = SOURCE_STYLE[item.kind];
-                // ★ 신규 — platformScope가 unset인 신청 건은 목록에서 경고 배지 표시
+                // platformScope가 unset인 신청 건은 목록에서 경고 배지 표시
                 const needsAttention = !isProjectKind(item) && item.platformScope === "unset" && !isDone;
+                // ★ 신규 — 담당 범위 밖 신청 건은 "권한 범위 외" 배지
+                const outOfScopeItem = !isDone && !canManageReviewItem(item);
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
                     padding: "12px 14px", cursor: "pointer",
@@ -586,11 +668,14 @@ export default function AdminReview() {
                       {isDone && (
                         <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8" }}>처리완료</span>
                       )}
-                      {needsAttention && (
+                      {/* 권한 범위 밖이면 그것을 우선 표기, 아니면 미지정 표기 */}
+                      {outOfScopeItem ? (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#64748B", background: "#E2E8F0", padding: "1px 7px", borderRadius: 20 }}>권한 범위 외</span>
+                      ) : needsAttention ? (
                         <span style={{ fontSize: 9, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>
-                      )}
+                      ) : null}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2, opacity: isDone || outOfScopeItem ? 0.5 : 1 }}>{item.title}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>{item.dept} · {item.submittedBy}</div>
                   </div>
                 );
@@ -629,7 +714,14 @@ export default function AdminReview() {
                   </div>
                 )}
 
-                {!isDisabled && (
+                {/* ★ 신규 — 권한 범위 밖 항목 열람 안내 (처리 전이지만 담당 아님) */}
+                {!isDisabled && outOfScope && (
+                  <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#475569" }}>
+                    이 신청 건의 대상 관계사가 담당 관계사 범위에 포함되지 않습니다. 내용은 열람할 수 있으나 승인·반려 처리는 담당 관리자만 가능합니다.
+                  </div>
+                )}
+
+                {!isDisabled && !outOfScope && (
                   <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "9px 14px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
                     내용을 직접 수정한 후 승인할 수 있습니다. 수정된 내용이 최종 게시됩니다.
                   </div>
@@ -751,12 +843,14 @@ export default function AdminReview() {
                         <SingleSelectTag options={STATUSES} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
                       </FieldRow>
 
-                      {/* ★ 신규 — 소속/대상 관계사 */}
+                      {/* 소속/대상 관계사 — 권한 범위 제한 적용 */}
                       <FieldRow label="소속 / 대상 관계사">
                         <CompanyMultiSelect
                           selected={(edit as any).company ?? merged.company}
                           onChange={setPlatformCompanies}
                           disabled={isDisabled}
+                          allowedCodes={companyEditAllowed}
+                          allowCompanyWide={isGlobalAdmin}
                         />
                         {!isDisabled && (((edit as any).platformScope ?? merged.platformScope) === "unset") && (
                           <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>
@@ -803,12 +897,14 @@ export default function AdminReview() {
                       <SingleSelectTag options={STATUSES} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
                     </FieldRow>
 
-                    {/* ★ 신규 — 소속/대상 관계사 */}
+                    {/* 소속/대상 관계사 — 권한 범위 제한 적용 */}
                     <FieldRow label="소속 / 대상 관계사">
                       <CompanyMultiSelect
                         selected={(edit as any).company ?? merged.company}
                         onChange={setPlatformCompanies}
                         disabled={isDisabled}
+                        allowedCodes={companyEditAllowed}
+                        allowCompanyWide={isGlobalAdmin}
                       />
                       {!isDisabled && (((edit as any).platformScope ?? merged.platformScope) === "unset") && (
                         <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>
@@ -895,41 +991,51 @@ export default function AdminReview() {
                 {/* ===== 승인 / 반려 액션 ===== */}
                 {!isDisabled && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {approveBlocked && (
-                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 14px", fontSize: 12, color: "#991B1B" }}>
-                        관계사 범위가 선택되지 않아 승인할 수 없습니다. "소속 / 대상 관계사"에서 전사 공용 또는 해당 관계사를 선택해주세요.
+                    {outOfScope ? (
+                      // ★ 신규 — 권한 범위 밖: 처리 버튼 미노출, 안내만
+                      <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, padding: "11px 14px", fontSize: 12, color: "#475569", lineHeight: 1.6 }}>
+                        이 신청 건은 담당 관계사 범위에 속하지 않아 승인·반려할 수 없습니다.
+                        {itemIsCompanyWideOf(activeItem!) && " 전사 공용 항목은 전사관리자만 처리할 수 있습니다."}
                       </div>
-                    )}
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button
-                        onClick={handleApprove}
-                        disabled={approveBlocked}
-                        style={{
-                          flex: 1, background: approveBlocked ? "#CBD5E1" : "#059669", color: "#fff", border: "none",
-                          borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700,
-                          cursor: approveBlocked ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        승인
-                      </button>
-                      <button onClick={() => setRejectOpen(v => !v)} style={{ flex: 1, background: "#fff", border: "1.5px solid #FECACA", color: "#EF4444", borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                        반려
-                      </button>
-                    </div>
+                    ) : (
+                      <>
+                        {approveBlocked && (
+                          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 14px", fontSize: 12, color: "#991B1B" }}>
+                            관계사 범위가 선택되지 않아 승인할 수 없습니다. "소속 / 대상 관계사"에서 해당 관계사를 선택해주세요.
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <button
+                            onClick={handleApprove}
+                            disabled={approveBlocked}
+                            style={{
+                              flex: 1, background: approveBlocked ? "#CBD5E1" : "#059669", color: "#fff", border: "none",
+                              borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700,
+                              cursor: approveBlocked ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            승인
+                          </button>
+                          <button onClick={() => setRejectOpen(v => !v)} style={{ flex: 1, background: "#fff", border: "1.5px solid #FECACA", color: "#EF4444", borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                            반려
+                          </button>
+                        </div>
 
-                    {rejectOpen && (
-                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수)</label>
-                        <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다."
-                          style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
-                        <button onClick={handleReject} disabled={!rejectReason.trim()} style={{
-                          background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none",
-                          borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700,
-                          cursor: rejectReason.trim() ? "pointer" : "not-allowed",
-                        }}>
-                          반려 확정
-                        </button>
-                      </div>
+                        {rejectOpen && (
+                          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수)</label>
+                            <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다."
+                              style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
+                            <button onClick={handleReject} disabled={!rejectReason.trim()} style={{
+                              background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none",
+                              borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700,
+                              cursor: rejectReason.trim() ? "pointer" : "not-allowed",
+                            }}>
+                              반려 확정
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

@@ -3,6 +3,8 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
+// ★ 신규 — 권한 판정 헬퍼 재사용 (canManageItem / isGlobalAdmin / managedCompanies)
+import { useAuth } from "../../context/useAuth";
 
 // ===== 공통 상수 (Project 전용) =====
 const STATUSES = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
@@ -132,6 +134,12 @@ type ManagedPlatformItem = {
 
 type ManagedItem = ManagedProjectItem | ManagedPlatformItem;
 const isProjectKind = (i: ManagedItem): i is ManagedProjectItem => i.kind === "project";
+
+// ★ 신규 — 권한 판정용: 항목에서 관계사 집합·전사공용 여부 도출 (AdminReview.tsx와 동일 규칙)
+const itemCompaniesOf = (item: ManagedItem): string[] =>
+  isProjectKind(item) ? item.orgEntries.map(e => e.company) : item.company;
+const itemIsCompanyWideOf = (item: ManagedItem): boolean =>
+  isProjectKind(item) ? false : item.platformScope === "company-wide";
 
 let orgEntryIdSeq = 2000;
 
@@ -265,15 +273,31 @@ const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled
   );
 };
 
-// ★ 신규 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, 이중 화살표 버그 방지 패턴: inputStyle + cursor:pointer)
-function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean }) {
+// ★ 변경 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, AdminReview.tsx와 동일한 권한 제한 패턴)
+//   allowedCodes: 토글 허용 관계사 화이트리스트(관계사관리자는 담당 관계사). undefined = 전체 허용(전사관리자).
+//   allowCompanyWide: 전사 공용 선택 허용 여부. 관계사관리자는 false(권한 밖 승격 방지).
+//   닫힌 버튼은 inputStyle + cursor:pointer (이중 화살표 버그 방지).
+function CompanyMultiSelect({ selected, onChange, disabled, allowedCodes, allowCompanyWide = true }: {
+  selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean;
+  allowedCodes?: string[]; allowCompanyWide?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const isCompanyWide = selected.length === 0;
-  const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
+
+  const baseList = allowedCodes
+    ? SELECTABLE_COMPANIES.filter(c => allowedCodes.includes(c.code))
+    : SELECTABLE_COMPANIES;
+  const filteredCompanies = baseList.filter(c =>
     search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
   );
+
+  // 선택돼 있으나 토글 불가한 관계사(담당 외 공동 소속) — 잠금 표시용
+  const lockedSelected = allowedCodes
+    ? SELECTABLE_COMPANIES.filter(c => selected.includes(c.code) && !allowedCodes.includes(c.code))
+        .filter(c => search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase()))
+    : [];
 
   const toggleCompany = (code: string) => {
     onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
@@ -306,14 +330,23 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
           maxHeight: 340, display: "flex", flexDirection: "column",
         }}>
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
-            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
-            marginBottom: 6, borderBottom: "1px solid #F1F5F9",
-          }}>
-            <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
-          </label>
+          {allowCompanyWide ? (
+            <label style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
+              borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
+              marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+            }}>
+              <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
+              <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
+            </label>
+          ) : (
+            <div style={{
+              padding: "8px 8px", marginBottom: 6, borderBottom: "1px solid #F1F5F9",
+              fontSize: 11, color: "#94A3B8",
+            }}>
+              담당 관계사만 지정할 수 있습니다. 전사 공용 전환은 전사관리자 권한입니다.
+            </div>
+          )}
 
           <input
             value={search}
@@ -323,6 +356,17 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
           />
 
           <div style={{ overflowY: "auto", flex: 1 }}>
+            {lockedSelected.map(c => (
+              <label key={c.code} style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+                borderRadius: 6, cursor: "not-allowed", background: "#F8FAFC", opacity: 0.85,
+              }}>
+                <input type="checkbox" checked disabled style={{ cursor: "not-allowed" }} />
+                <span style={{ fontSize: 12, color: "#64748B" }}>{c.name}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8", background: "#E2E8F0", padding: "1px 6px", borderRadius: 10, marginLeft: "auto" }}>담당 외</span>
+              </label>
+            ))}
+
             {filteredCompanies.map(c => (
               <label key={c.code} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
@@ -334,7 +378,8 @@ function CompanyMultiSelect({ selected, onChange, disabled }: { selected: string
                 <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
               </label>
             ))}
-            {filteredCompanies.length === 0 && (
+
+            {filteredCompanies.length === 0 && lockedSelected.length === 0 && (
               <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
             )}
           </div>
@@ -441,6 +486,9 @@ const idPrefixOf = (kind: PlatformId): string =>
   kind === "n8n" ? "N8N" : kind === "assistant" ? "AST" : "AIO";
 
 export default function AdminProjectManage() {
+  // ★ 신규 — 현재 관리자 권한 컨텍스트
+  const { isGlobalAdmin, managedCompanies, canManageItem } = useAuth();
+
   const [items, setItems] = useState<ManagedItem[]>([...INITIAL_PROJECTS, ...INITIAL_PLATFORM_ITEMS]);
   const [selected, setSelected] = useState<string>(INITIAL_PROJECTS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
@@ -456,6 +504,18 @@ export default function AdminProjectManage() {
   const [draftCompany, setDraftCompany] = useState(COMPANIES[1].code);
   const [draftParent, setDraftParent] = useState(NO_PARENT);
   const [draftDept, setDraftDept] = useState("");
+
+  // ★ 신규 — 권한 판정. 항상 "원본 항목" 기준으로 판정해 편집을 통한 우회를 차단.
+  const canManageManagedItem = (item: ManagedItem): boolean =>
+    canManageItem(itemCompaniesOf(item), itemIsCompanyWideOf(item));
+
+  // 관계사 편집 허용 범위 — 전사관리자는 전체(undefined), 관계사관리자는 담당 관계사로 제한.
+  const companyEditAllowed = isGlobalAdmin ? undefined : managedCompanies;
+
+  // orgEntry 추가용 관계사 선택지 — 관계사관리자는 담당 관계사로 제한 (코드 기준 교집합)
+  const orgCompanyChoices = isGlobalAdmin
+    ? COMPANIES
+    : COMPANIES.filter(c => managedCompanies.includes(c.code));
 
   const SOURCE_OPTIONS: { key: "전체" | "project" | PlatformId; label: string }[] = [
     { key: "전체", label: "전체" },
@@ -473,11 +533,36 @@ export default function AdminProjectManage() {
   const displayData = editMode || isNew ? editData : activeItem;
   const isEditing = editMode || isNew;
 
-  const startEdit = () => { if (activeItem) { setEditData({ ...activeItem }); setEditMode(true); setSaved(false); } };
+  // ★ 신규 — 현재 선택 항목 관리 가능 여부 (신규 등록은 항상 가능)
+  const canManageCurrent = isNew ? true : (activeItem ? canManageManagedItem(activeItem) : false);
+
+  // ★ 신규 — orgEntry 추가 시 기본 선택 관계사를 권한 범위 내로 보정
+  const ensureDraftCompanyInScope = () => {
+    if (!isGlobalAdmin && orgCompanyChoices.length > 0 && !orgCompanyChoices.some(c => c.code === draftCompany)) {
+      setDraftCompany(orgCompanyChoices[0].code);
+      setDraftParent(NO_PARENT);
+      setDraftDept("");
+    }
+  };
+
+  const startEdit = () => {
+    if (activeItem && canManageManagedItem(activeItem)) {
+      setEditData({ ...activeItem });
+      setEditMode(true);
+      setSaved(false);
+      ensureDraftCompanyInScope();
+    }
+  };
 
   const startNew = (kind: "project" | PlatformId) => {
     setNewKind(kind);
     if (kind === "project") {
+      // 관계사관리자는 담당 관계사로 draft 기본값 보정
+      if (!isGlobalAdmin && orgCompanyChoices.length > 0) {
+        setDraftCompany(orgCompanyChoices[0].code);
+        setDraftParent(NO_PARENT);
+        setDraftDept("");
+      }
       setEditData({ ...EMPTY_PROJECT, id: `PRJ-2025-0${Math.floor(Math.random() * 90 + 10)}` });
     } else {
       setEditData({ ...emptyPlatformItem(kind), id: `${idPrefixOf(kind)}-2025-0${Math.floor(Math.random() * 90 + 10)}` });
@@ -497,8 +582,9 @@ export default function AdminProjectManage() {
       return { ...p, [k]: cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v] };
     });
 
-  // ★ 신규 — 관계사 변경 핸들러. codes가 빈 배열이어도 명시적 선택(전사공용)으로 처리.
+  // ★ 변경 — 관계사 변경 핸들러. 관계사관리자는 전사 공용(빈 배열) 승격 차단.
   const setPlatformCompanies = (codes: string[]) => {
+    if (!isGlobalAdmin && codes.length === 0) return;
     setEditData(p => {
       if (!p || isProjectKind(p)) return p;
       return { ...p, company: codes, platformScope: codes.length === 0 ? "company-wide" : "specific" };
@@ -507,6 +593,8 @@ export default function AdminProjectManage() {
 
   const addOrgEntry = () => {
     if (!editData || !isProjectKind(editData)) return;
+    // 관계사관리자는 담당 관계사만 orgEntry로 추가 가능
+    if (!isGlobalAdmin && !managedCompanies.includes(draftCompany)) return;
     const newEntry: OrgEntry = {
       id: orgEntryIdSeq++,
       company: draftCompany,
@@ -562,6 +650,10 @@ export default function AdminProjectManage() {
 
   const handleSave = () => {
     if (!editData) return;
+    // ★ 신규 — 신규 등록이 아닌 기존 항목 수정은 권한 범위 내에서만 저장 (이중 안전장치)
+    if (!isNew && !canManageManagedItem(editData)) return;
+    // 관계사관리자가 플랫폼 항목을 전사 공용으로 저장하려는 경우 차단
+    if (!isGlobalAdmin && !isProjectKind(editData) && editData.platformScope === "company-wide") return;
     // TODO: 실제 연동 시
     //   kind === "project" → isNew: POST /api/v1/admin/projects, 아니면 PUT /api/v1/admin/projects/:id
     //   그 외 → isNew: POST /api/v1/admin/platform-items, 아니면 PUT /api/v1/admin/platform-items/:id (body에 company, platformScope 포함)
@@ -576,6 +668,9 @@ export default function AdminProjectManage() {
   };
 
   const handleDelete = (id: string) => {
+    // ★ 신규 — 삭제도 권한 범위 내에서만 (이중 안전장치)
+    const target = items.find(i => i.id === id);
+    if (target && !canManageManagedItem(target)) { setDeleteConfirm(null); return; }
     setItems(p => p.filter(i => i.id !== id));
     setDeleteConfirm(null);
     const remaining = items.filter(i => i.id !== id);
@@ -614,6 +709,13 @@ export default function AdminProjectManage() {
                 </div>
               </div>
 
+              {/* ★ 신규 — 관계사관리자 안내 배너 */}
+              {!isGlobalAdmin && (
+                <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 10px", marginBottom: 8, fontSize: 10.5, color: "#1E40AF", lineHeight: 1.5 }}>
+                  담당 관계사 항목만 수정·삭제할 수 있습니다. 범위 밖 항목은 열람만 가능합니다.
+                </div>
+              )}
+
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="항목명, 부서 검색" style={{ ...inputStyle, padding: "7px 12px", fontSize: 12, marginBottom: 8 }} />
 
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
@@ -650,8 +752,10 @@ export default function AdminProjectManage() {
               )}
               {filtered.map(item => {
                 const style = SOURCE_STYLE[item.kind === "project" ? "project" : item.kind];
-                // ★ 신규 — platformScope가 unset인 항목은 경고 배지 표시
+                // platformScope가 unset인 항목은 경고 배지 표시
                 const needsAttention = !isProjectKind(item) && item.platformScope === "unset";
+                // ★ 신규 — 담당 범위 밖 항목은 "권한 범위 외" 배지
+                const outOfScopeItem = !canManageManagedItem(item);
                 return (
                   <div
                     key={item.id}
@@ -668,8 +772,11 @@ export default function AdminProjectManage() {
                       {needsAttention && (
                         <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>
                       )}
+                      {outOfScopeItem && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", background: "#E2E8F0", padding: "2px 7px", borderRadius: 10 }}>권한 범위 외</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: outOfScopeItem ? 0.55 : 1 }}>{item.title}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>{item.dept} · {item.updatedAt}</div>
                   </div>
                 );
@@ -712,10 +819,13 @@ export default function AdminProjectManage() {
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     {!isEditing ? (
-                      <>
-                        <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
-                        <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
-                      </>
+                      // ★ 변경 — 권한 범위 내에서만 수정·삭제 버튼 노출
+                      canManageCurrent ? (
+                        <>
+                          <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
+                          <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
+                        </>
+                      ) : null
                     ) : (
                       <>
                         <button onClick={cancelEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>취소</button>
@@ -724,6 +834,14 @@ export default function AdminProjectManage() {
                     )}
                   </div>
                 </div>
+
+                {/* ★ 신규 — 권한 범위 밖 항목 열람 안내 */}
+                {!isEditing && !canManageCurrent && (
+                  <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#475569", lineHeight: 1.6 }}>
+                    이 항목의 대상 관계사가 담당 관계사 범위에 포함되지 않습니다. 내용은 열람할 수 있으나 수정·삭제는 담당 관리자만 가능합니다.
+                    {activeItem && itemIsCompanyWideOf(activeItem) && " 전사 공용 항목은 전사관리자만 관리할 수 있습니다."}
+                  </div>
+                )}
 
                 {deleteConfirm === displayData.id && (
                   <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
@@ -818,22 +936,31 @@ export default function AdminProjectManage() {
 
                       {isEditing && (
                         <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
-                            <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
-                              {COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                            </select>
-                            <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
-                              <option value={NO_PARENT}>본부 없음</option>
-                              {availableParents.map(p => <option key={p}>{p}</option>)}
-                            </select>
-                            <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
-                              <option value="">부서 선택 안 함</option>
-                              {availableDepts.map(d => <option key={d}>{d}</option>)}
-                            </select>
-                          </div>
-                          <button onClick={addOrgEntry} style={{ width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "6px 0", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            + 추가
-                          </button>
+                          {/* ★ 변경 — 관계사관리자는 담당 관계사만 선택 가능 */}
+                          {!isGlobalAdmin && orgCompanyChoices.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", padding: "6px 0" }}>
+                              담당 관계사가 등록되어 있지 않아 조직을 추가할 수 없습니다.
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                                <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                                  {orgCompanyChoices.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                                </select>
+                                <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px" }}>
+                                  <option value={NO_PARENT}>본부 없음</option>
+                                  {availableParents.map(p => <option key={p}>{p}</option>)}
+                                </select>
+                                <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 26px 7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
+                                  <option value="">부서 선택 안 함</option>
+                                  {availableDepts.map(d => <option key={d}>{d}</option>)}
+                                </select>
+                              </div>
+                              <button onClick={addOrgEntry} style={{ width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "6px 0", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                                + 추가
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
 
@@ -884,14 +1011,19 @@ export default function AdminProjectManage() {
                 {(displayData.kind === "n8n" || displayData.kind === "assistant") && (
                   <>
                     <SectionBlock title={`${SOURCE_STYLE[displayData.kind].label} 동작 정보`}>
-                      {/* ★ 신규 — 소속/대상 관계사 */}
+                      {/* 소속/대상 관계사 — 권한 범위 제한 적용 */}
                       <FieldRow label="소속 / 대상 관계사">
                         {isEditing
                           ? (
                             <>
-                              <CompanyMultiSelect selected={displayData.company} onChange={setPlatformCompanies} />
+                              <CompanyMultiSelect
+                                selected={displayData.company}
+                                onChange={setPlatformCompanies}
+                                allowedCodes={companyEditAllowed}
+                                allowCompanyWide={isGlobalAdmin}
+                              />
                               {displayData.platformScope === "unset" && (
-                                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>관계사 범위가 선택되지 않았습니다. 전사 공용 또는 해당 관계사를 선택해주세요.</div>
+                                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>관계사 범위가 선택되지 않았습니다. 해당 관계사를 선택해주세요.</div>
                               )}
                             </>
                           )
@@ -959,14 +1091,19 @@ export default function AdminProjectManage() {
                 {/* ===== 분기: AI Agent — 모델 사양 ===== */}
                 {displayData.kind === "ai-orchestration" && (
                   <SectionBlock title="모델 사양">
-                    {/* ★ 신규 — 소속/대상 관계사 */}
+                    {/* 소속/대상 관계사 — 권한 범위 제한 적용 */}
                     <FieldRow label="소속 / 대상 관계사">
                       {isEditing
                         ? (
                           <>
-                            <CompanyMultiSelect selected={displayData.company} onChange={setPlatformCompanies} />
+                            <CompanyMultiSelect
+                              selected={displayData.company}
+                              onChange={setPlatformCompanies}
+                              allowedCodes={companyEditAllowed}
+                              allowCompanyWide={isGlobalAdmin}
+                            />
                             {displayData.platformScope === "unset" && (
-                              <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>관계사 범위가 선택되지 않았습니다. 전사 공용 또는 해당 관계사를 선택해주세요.</div>
+                              <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>관계사 범위가 선택되지 않았습니다. 해당 관계사를 선택해주세요.</div>
                             )}
                           </>
                         )
