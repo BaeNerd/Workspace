@@ -61,36 +61,37 @@ const MOCK_PROJECTS: Project[] = [
   { id: "PRJ-2025-090", title: "친환경 원료 추적 시스템", dept: "품질관리팀", stack: ["Python", "PostgreSQL"], status: "개발 중", domain: "제조/생산", type: "데이터 파이프라인", updated: "2025.06.10", orgEntries: [{ id: 13, company: "KAF", parent: null, dept: null }], likes: 1 },
 ];
 
+// ★ company 필드 채움 — AdminOrg.tsx의 PLATFORM_ITEM_REFS와 동일 매핑(빈 배열 = 전사 공용)
 const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
-  { id: "N8N-001", platformId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", description: "", status: "운영 중", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["HR", "계정자동화", "온보딩"], specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.06.05", likes: 19 },
-  { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "", status: "운영 중", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7 },
-  { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "", status: "운영 중", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12 },
-  { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "", status: "파일럿", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3 },
-  { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "", status: "운영 중", dept: "법무팀", owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10", likes: 25 },
-  { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "", status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18 },
-  { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "", status: "개발 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19", likes: 10 },
-  { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "", status: "파일럿", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20", likes: 5 },
+  { id: "N8N-001", platformId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", description: "", status: "운영 중", dept: "IT인프라팀", company: ["KKM"], owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["HR", "계정자동화", "온보딩"], specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.06.05", likes: 19 },
+  { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "", status: "운영 중", dept: "구매팀", company: ["KKM"], owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7 },
+  { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "", status: "운영 중", dept: "재무팀", company: ["KKM", "KMG"], owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12 },
+  { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "", status: "파일럿", dept: "품질관리팀", company: ["KMW"], owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3 },
+  { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "", status: "운영 중", dept: "법무팀", company: [], owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10", likes: 25 },
+  { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "", status: "운영 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18 },
+  { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "", status: "개발 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19", likes: 10 },
+  { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "", status: "파일럿", dept: "메이크업연구소", company: ["KKM"], owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20", likes: 5 },
   {
     id: "AIO-001", platformId: "ai-orchestration", title: "GPT-4 (범용)", summary: "범용 작업에 적합한 OpenAI GPT-4 모델", description: "",
-    status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
+    status: "운영 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
     tags: ["범용", "코드생성", "문서작성"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4", updatedAt: "2025.06.10", likes: 31,
     modelMeta: { provider: "OpenAI", contextWindow: "128K", strengths: ["범용성", "코드 생성", "빠른 응답"], costTier: "보통" },
   },
   {
     id: "AIO-002", platformId: "ai-orchestration", title: "Claude (문서 분석 특화)", summary: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델", description: "",
-    status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
+    status: "운영 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
     tags: ["문서분석", "긴컨텍스트", "법무"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude", updatedAt: "2025.06.12", likes: 27,
     modelMeta: { provider: "Anthropic", contextWindow: "200K", strengths: ["긴 컨텍스트", "정밀 추론", "안전성"], costTier: "보통" },
   },
   {
     id: "AIO-003", platformId: "ai-orchestration", title: "콜마 파인튜닝 모델 (사내 전용 용어 특화)", summary: "콜마 사내 용어와 제품 데이터로 파인튜닝된 전용 모델", description: "",
-    status: "파일럿", dept: "IT개발팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
+    status: "파일럿", dept: "IT개발팀", company: ["KKM", "KBH", "KMG"], owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
     tags: ["사내전용", "화장품용어", "원료데이터"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/kolmar-ft", updatedAt: "2025.06.18", likes: 8,
     modelMeta: { provider: "사내 파인튜닝", contextWindow: "32K", strengths: ["콜마 전용 용어", "원료 데이터 이해"], costTier: "낮음" },
   },
   {
     id: "AIO-004", platformId: "ai-orchestration", title: "Gemini (멀티모달)", summary: "이미지·문서를 함께 분석할 수 있는 Google Gemini 모델", description: "",
-    status: "운영 중", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
+    status: "운영 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
     tags: ["멀티모달", "이미지분석", "도면검토"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gemini", updatedAt: "2025.06.15", likes: 14,
     modelMeta: { provider: "Google", contextWindow: "1M", strengths: ["멀티모달", "이미지 분석"], costTier: "보통" },
   },
@@ -99,7 +100,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
 const DOMAINS = ["전체", "재무/회계", "고객 서비스", "제조/생산", "HR/인사", "IT 인프라", "영업/CRM", "마케팅"];
 const STATUSES = ["전체", "운영 중", "개발 중", "파일럿", "종료", "보류"];
 const TYPES = ["전체", "웹 애플리케이션", "ML/AI 모델", "데이터 파이프라인", "API/서비스", "내부 도구"];
-const SORT_OPTIONS = ["최신순", "이름순", "부서순"] as const;
+const SORT_OPTIONS = ["최신순", "인기순", "이름순", "부서순"] as const;
 
 const SOURCE_OPTIONS: { key: "전체" | "project" | PlatformId; label: string }[] = [
   { key: "전체", label: "전체" },
@@ -126,6 +127,31 @@ const HeartIcon = ({ color = "#94A3B8" }: { color?: string }) => (
   </svg>
 );
 
+// ★ 모듈 레벨로 이동 — 컴포넌트 내부 정의 시 매 렌더 재생성되어 포커스/스크롤 버그 유발
+const FilterSection = ({ label, options, value, onChange, disabled }: { label: string; options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean }) => (
+  <div style={{ marginBottom: 20, opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
+      {label}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {options.map(opt => (
+        <div key={opt} onClick={() => !disabled && onChange(opt)} style={{
+          padding: "6px 10px", borderRadius: 6, cursor: disabled ? "default" : "pointer",
+          fontSize: 13, fontWeight: value === opt ? 600 : 400,
+          color: value === opt ? "#2563EB" : "#475569",
+          background: value === opt ? "#EFF6FF" : "transparent",
+          transition: "all 0.1s",
+        }}
+          onMouseEnter={e => { if (!disabled && value !== opt) e.currentTarget.style.background = "#F8FAFC"; }}
+          onMouseLeave={e => { if (!disabled && value !== opt) e.currentTarget.style.background = "transparent"; }}
+        >
+          {opt}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function ProjectListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -137,9 +163,10 @@ export default function ProjectListPage() {
   const [status, setStatus] = useState("전체");
   const [type, setType] = useState("전체");
   const [company, setCompany] = useState<string>(() => (isGroupViewer ? "전체" : (user?.company ?? "전체")));
+  const [companySearch, setCompanySearch] = useState("");
   const [sort, setSort] = useState<typeof SORT_OPTIONS[number]>("최신순");
   const [hovered, setHovered] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // ★ 기본 닫힘
 
   const projects = MOCK_PROJECTS;
   const platformItems = MOCK_PLATFORM_ITEMS;
@@ -154,8 +181,32 @@ export default function ProjectListPage() {
     else setSearchParams({});
   }, [search]);
 
-  const projectOnlyFiltersDisabled = source !== "전체" && source !== "project";
-  const platformConceptFilterActive = !projectOnlyFiltersDisabled && (company !== "전체" || domain !== "전체" || type !== "전체");
+  // 출처 변경 — 플랫폼 출처 선택 시 프로젝트 전용 필터(도메인·유형) 자동 초기화
+  const handleSourceChange = (key: "전체" | "project" | PlatformId) => {
+    setSource(key);
+    if (key !== "전체" && key !== "project") {
+      setDomain("전체");
+      setType("전체");
+    }
+  };
+
+  const resetFilters = () => {
+    setSource("전체"); setDomain("전체"); setStatus("전체"); setType("전체");
+    setCompany(isGroupViewer ? "전체" : (user?.company ?? "전체"));
+  };
+
+  // 도메인·시스템 유형은 프로젝트 전용 개념 → 출처가 전체/프로젝트일 때만 노출
+  const projectFiltersVisible = source === "전체" || source === "project";
+  // 도메인/유형이 적용되면 해당 개념이 없는 플랫폼 항목은 목록에서 제외
+  const projectOnlyFilterActive = projectFiltersVisible && (domain !== "전체" || type !== "전체");
+
+  const activeFilterCount = [
+    source !== "전체",
+    company !== "전체",
+    status !== "전체",
+    domain !== "전체",
+    type !== "전체",
+  ].filter(Boolean).length;
 
   const filtered = useMemo(() => {
     const includeProjects = source === "전체" || source === "project";
@@ -176,17 +227,27 @@ export default function ProjectListPage() {
         (type === "전체" || p.type === type);
     });
 
-    const filteredPlatformItems = platformConceptFilterActive
-      ? []
-      : platformItems.filter(item =>
-          includePlatform(item.platformId) &&
-          (status === "전체" || item.status === status) &&
-          (search === "" ||
-            item.title.includes(search) ||
-            item.summary.includes(search) ||
-            item.tags.some(t => t.includes(search)) ||
-            item.dept.includes(search))
-        );
+    const filteredPlatformItems = projectOnlyFilterActive ? [] : platformItems.filter(item => {
+      if (!includePlatform(item.platformId)) return false;
+
+      const itemCompanies = item.company ?? [];
+      const isCompanyWide = itemCompanies.length === 0; // 빈 배열 = 전사 공용
+
+      // 접근 제어 — 전사 공용은 항상 노출, 특정 관계사 지정 항목은 비노출 관계사 포함 시 그룹 전체보기 권한자만
+      const hasNonVisible = itemCompanies.some(code => !COMPANIES.find(c => c.code === code)?.visible);
+      if (!isCompanyWide && hasNonVisible && !isGroupViewer) return false;
+
+      // 관계사 필터 — 전사 공용 항목은 특정 관계사 선택 시에도 노출(모든 관계사에 해당)
+      if (company !== "전체" && !isCompanyWide && !itemCompanies.includes(company)) return false;
+
+      if (!(status === "전체" || item.status === status)) return false;
+
+      return search === "" ||
+        item.title.includes(search) ||
+        item.summary.includes(search) ||
+        item.tags.some(t => t.includes(search)) ||
+        item.dept.includes(search);
+    });
 
     const combined: CombinedCard[] = [
       ...filteredProjects.map(p => ({ kind: "project" as const, data: p })),
@@ -200,37 +261,13 @@ export default function ProjectListPage() {
       const bDept = b.data.dept;
 
       if (sort === "최신순") return new Date(bDate.replace(/\./g, "-")).getTime() - new Date(aDate.replace(/\./g, "-")).getTime();
+      if (sort === "인기순") return b.data.likes - a.data.likes;
       if (sort === "이름순") return a.data.title.localeCompare(b.data.title, "ko");
       if (sort === "부서순") return aDept.localeCompare(bDept, "ko");
       return 0;
     });
-  }, [projects, platformItems, search, domain, status, type, sort, company, source, isGroupViewer, platformConceptFilterActive]);
+  }, [projects, platformItems, search, domain, status, type, sort, company, source, isGroupViewer, projectOnlyFilterActive]);
 
-  const FilterSection = ({ label, options, value, onChange, disabled }: { label: string; options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean }) => (
-    <div style={{ marginBottom: 20, opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
-        {label}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {options.map(opt => (
-          <div key={opt} onClick={() => !disabled && onChange(opt)} style={{
-            padding: "6px 10px", borderRadius: 6, cursor: disabled ? "default" : "pointer",
-            fontSize: 13, fontWeight: value === opt ? 600 : 400,
-            color: value === opt ? "#2563EB" : "#475569",
-            background: value === opt ? "#EFF6FF" : "transparent",
-            transition: "all 0.1s",
-          }}
-            onMouseEnter={e => { if (!disabled && value !== opt) e.currentTarget.style.background = "#F8FAFC"; }}
-            onMouseLeave={e => { if (!disabled && value !== opt) e.currentTarget.style.background = "transparent"; }}
-          >
-            {opt}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const [companySearch, setCompanySearch] = useState("");
   const filteredCompanyOptions = availableCompanies.filter(c => companySearch === "" || c.name.includes(companySearch));
 
   const detailPathOf = (card: CombinedCard) => {
@@ -294,12 +331,13 @@ export default function ProjectListPage() {
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>필터</span>
-                <span onClick={() => { setSource("전체"); setDomain("전체"); setStatus("전체"); setType("전체"); setCompany(isGroupViewer ? "전체" : (user?.company ?? "전체")); }}
+                <span onClick={resetFilters}
                   style={{ fontSize: 11, color: "#94A3B8", cursor: "pointer", fontWeight: 500 }}>
                   초기화
                 </span>
               </div>
 
+              {/* 출처 */}
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
                   출처
@@ -308,7 +346,7 @@ export default function ProjectListPage() {
                   {SOURCE_OPTIONS.map(opt => {
                     const style = opt.key === "전체" ? null : SOURCE_STYLE[opt.key];
                     return (
-                      <div key={opt.key} onClick={() => setSource(opt.key)} style={{
+                      <div key={opt.key} onClick={() => handleSourceChange(opt.key)} style={{
                         padding: "6px 10px", borderRadius: 6, cursor: "pointer",
                         fontSize: 13, fontWeight: source === opt.key ? 600 : 400,
                         color: source === opt.key ? "#2563EB" : "#475569",
@@ -323,13 +361,11 @@ export default function ProjectListPage() {
                 </div>
               </div>
 
-              {platformConceptFilterActive && (
-                <div style={{ marginBottom: 16, padding: "8px 10px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, fontSize: 11, color: "#9A3412", lineHeight: 1.5 }}>
-                  관계사·도메인·시스템 유형 필터는 일반 프로젝트에만 적용됩니다.
-                </div>
-              )}
+              {/* 상태 — 프로젝트·플랫폼 공통 */}
+              <FilterSection label="상태" options={STATUSES} value={status} onChange={setStatus} />
 
-              <div style={{ marginBottom: 20, opacity: projectOnlyFiltersDisabled ? 0.4 : 1, pointerEvents: projectOnlyFiltersDisabled ? "none" : "auto" }}>
+              {/* 관계사 — 항상 노출, 프로젝트·플랫폼 공통 적용 */}
+              <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 8 }}>
                   관계사
                 </div>
@@ -337,7 +373,6 @@ export default function ProjectListPage() {
                   value={companySearch}
                   onChange={e => setCompanySearch(e.target.value)}
                   placeholder="관계사 검색"
-                  disabled={projectOnlyFiltersDisabled}
                   style={{
                     width: "100%", boxSizing: "border-box", padding: "6px 10px", fontSize: 12,
                     border: "1.5px solid #E2E8F0", borderRadius: 6, outline: "none", marginBottom: 6,
@@ -363,11 +398,23 @@ export default function ProjectListPage() {
                     </div>
                   ))}
                 </div>
+                <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 6, lineHeight: 1.5 }}>
+                  전사 공용 플랫폼 항목은 관계사를 선택해도 항상 함께 표시됩니다.
+                </div>
               </div>
 
-              <FilterSection label="비즈니스 도메인" options={DOMAINS} value={domain} onChange={setDomain} disabled={projectOnlyFiltersDisabled} />
-              <FilterSection label="프로젝트 상태" options={STATUSES} value={status} onChange={setStatus} />
-              <FilterSection label="시스템 유형" options={TYPES} value={type} onChange={setType} disabled={projectOnlyFiltersDisabled} />
+              {/* 도메인·시스템 유형 — 프로젝트 전용, 출처가 전체/프로젝트일 때만 노출 */}
+              {projectFiltersVisible && (
+                <>
+                  {projectOnlyFilterActive && (
+                    <div style={{ marginBottom: 16, padding: "8px 10px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, fontSize: 11, color: "#9A3412", lineHeight: 1.5 }}>
+                      도메인·시스템 유형은 일반 프로젝트 전용 조건입니다. 선택 시 플랫폼 항목은 제외됩니다.
+                    </div>
+                  )}
+                  <FilterSection label="비즈니스 도메인" options={DOMAINS} value={domain} onChange={setDomain} />
+                  <FilterSection label="시스템 유형" options={TYPES} value={type} onChange={setType} />
+                </>
+              )}
             </div>
           </div>
         )}
@@ -385,6 +432,11 @@ export default function ProjectListPage() {
                   <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
                 {sidebarOpen ? "필터 닫기" : "필터 열기"}
+                {!sidebarOpen && activeFilterCount > 0 && (
+                  <span style={{ fontSize: 10, fontWeight: 800, background: "#2563EB", color: "#fff", padding: "1px 7px", borderRadius: 20 }}>
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
               <span style={{ fontSize: 13, color: "#64748B" }}>
                 <strong style={{ color: "#0F172A" }}>{filtered.length}</strong>개 항목
@@ -393,7 +445,8 @@ export default function ProjectListPage() {
             <div style={{ display: "flex", gap: 4 }}>
               {SORT_OPTIONS.map(opt => (
                 <button key={opt} onClick={() => setSort(opt)} style={{
-                  padding: "5px 12px", borderRadius: 6, border: "1.5px solid",
+                  padding: "5px 12px", borderRadius: 6,
+                  borderWidth: 1.5, borderStyle: "solid",
                   borderColor: sort === opt ? "#2563EB" : "#E2E8F0",
                   background: sort === opt ? "#EFF6FF" : "#fff",
                   color: sort === opt ? "#2563EB" : "#475569",

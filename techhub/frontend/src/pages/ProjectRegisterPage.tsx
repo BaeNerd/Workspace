@@ -150,6 +150,9 @@ const inputStyle: React.CSSProperties = {
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", appearance: "none" as const };
 
+// 행 삭제 버튼 자리 — 첫 행(삭제 버튼 없음)에도 동일 폭을 차지시켜 입력칸 폭을 모든 행과 일치
+const rowActionWidth = 24;
+
 // ===== 공용 컴포넌트 (모듈 레벨) =====
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -181,6 +184,19 @@ function Tag({ label, selected, onClick }: { label: string; selected: boolean; o
       color: selected ? "#2563EB" : "#475569",
       cursor: "pointer", userSelect: "none",
     }}>{label}</span>
+  );
+}
+
+// 행 삭제 버튼 (모듈 레벨). first=true면 버튼 대신 동일 폭 플레이스홀더를 렌더해 열 구조를 일치시킴
+function RowRemoveButton({ first, onClick }: { first: boolean; onClick: () => void }) {
+  if (first) {
+    return <span aria-hidden style={{ width: rowActionWidth, display: "inline-block", flexShrink: 0 }} />;
+  }
+  return (
+    <button onClick={onClick} style={{
+      width: rowActionWidth, background: "none", border: "none", color: "#94A3B8",
+      cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0,
+    }}>×</button>
   );
 }
 
@@ -763,7 +779,7 @@ export default function ProjectRegisterPage() {
           <>
             <Section title="담당자">
               {form.contacts.map((c, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 8, marginBottom: 10, alignItems: "center" }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: `1fr 1fr 1fr 1fr ${rowActionWidth}px`, gap: 8, marginBottom: 10, alignItems: "center" }}>
                   <input value={c.name} onChange={e => setContact(i, "name", e.target.value)} placeholder="이름" style={inputStyle} />
                   <input value={c.dept} onChange={e => setContact(i, "dept", e.target.value)} placeholder="부서" style={inputStyle} />
                   <input value={c.email} onChange={e => setContact(i, "email", e.target.value)} placeholder="이메일" style={inputStyle} />
@@ -771,9 +787,7 @@ export default function ProjectRegisterPage() {
                     <option value="주담당자">주담당자</option>
                     <option value="공동담당자">공동담당자</option>
                   </select>
-                  {i > 0 && (
-                    <button onClick={() => removeContact(i)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18 }}>×</button>
-                  )}
+                  <RowRemoveButton first={i === 0} onClick={() => removeContact(i)} />
                 </div>
               ))}
               <button onClick={addContact} style={{
@@ -786,12 +800,10 @@ export default function ProjectRegisterPage() {
 
             <Section title="문서 및 외부 링크">
               {form.links.map((l, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, marginBottom: 10 }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: `1fr 2fr ${rowActionWidth}px`, gap: 8, marginBottom: 10, alignItems: "center" }}>
                   <input value={l.label} onChange={e => setLink(i, "label", e.target.value)} placeholder="라벨 (예: GitHub)" style={inputStyle} />
                   <input value={l.url} onChange={e => setLink(i, "url", e.target.value)} placeholder="URL" style={inputStyle} />
-                  {i > 0 && (
-                    <button onClick={() => removeLink(i)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 18 }}>×</button>
-                  )}
+                  <RowRemoveButton first={i === 0} onClick={() => removeLink(i)} />
                 </div>
               ))}
               <button onClick={addLink} style={{
