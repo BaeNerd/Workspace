@@ -23,6 +23,7 @@ import AdminTaxonomy from "./pages/admin/AdminTaxonomy";
 import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
+import AdminPlatforms from "./pages/admin/AdminPlatforms";
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/admin/org" element={<ProtectedRoute requireAdmin><AdminOrg /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
           <Route path="/admin/statistics" element={<ProtectedRoute requireAdmin><AdminStatistics /></ProtectedRoute>} />
+          <Route path="/admin/platforms" element={<ProtectedRoute requireAdmin><AdminPlatforms /></ProtectedRoute>} />
 
         </Routes>
       </BrowserRouter>
