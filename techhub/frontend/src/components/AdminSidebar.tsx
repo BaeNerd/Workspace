@@ -8,6 +8,7 @@ const ADMIN_NAV = [
   { label: "부서/조직 관리", path: "/admin/org" },
   { label: "사용자 관리", path: "/admin/users" },
   { label: "통계", path: "/admin/statistics" },
+  { label: "자동화·AI 도구 관리", path: "/admin/platforms" },
 ];
 
 type Props = { pendingCount?: number };

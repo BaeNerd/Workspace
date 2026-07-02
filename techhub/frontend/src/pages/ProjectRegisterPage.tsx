@@ -14,6 +14,21 @@ const STACK_OPTIONS = ["Python", "TypeScript", "React", "FastAPI", "Node.js", "P
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
 
+// 예상 절감 시간 — 수치 + 주기 조합으로 입력받아 표준 문자열로 직렬화한다.
+// 주기별 연간 환산 계수는 AdminStatistics의 parseTimeSaved / PERIOD_MULTIPLIER와 동일하게 유지.
+type SavedPeriod = "일" | "주" | "월" | "년";
+const SAVED_PERIODS: SavedPeriod[] = ["일", "주", "월", "년"];
+const PERIOD_ANNUAL_FACTOR: Record<SavedPeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
+const PERIOD_FULL_LABEL: Record<SavedPeriod, string> = { "일": "매일", "주": "주당", "월": "월당", "년": "연간" };
+
+// 저장용 직렬화 — parseTimeSaved(AdminStatistics)가 파싱 가능한 "<주기> N시간" 형식
+const serializeTimeSaved = (value: number | "", period: SavedPeriod): string =>
+  value === "" || value <= 0 ? "" : `${period} ${value}시간`;
+
+// 연간 환산 시간 계산
+const annualHours = (value: number | "", period: SavedPeriod): number =>
+  value === "" || value <= 0 ? 0 : Number(value) * PERIOD_ANNUAL_FACTOR[period];
+
 // n8n 실제 노드 카테고리 참고 — 자유 입력 시 자동완성 힌트로 제공
 const NODE_SUGGESTIONS = [
   "Manual Trigger", "Schedule Trigger", "Form Trigger", "Chat Trigger", "Webhook",
@@ -82,7 +97,7 @@ const orgEntryDisplay = (e: OrgEntry) => {
   return `${companyName} > ${e.parent} > ${e.dept}`;
 };
 
-// ★ 신규 — PlatformItem.company 표시용 헬퍼 (요약 텍스트, 닫힌 드롭다운 상태 표시에도 사용)
+// PlatformItem.company 표시용 헬퍼 (요약 텍스트, 닫힌 드롭다운 상태 표시에도 사용)
 const platformCompanyDisplay = (codes: string[]): string => {
   if (codes.length === 0) return "전사 공용";
   const names = codes.map(c => COMPANIES.find(co => co.code === c)?.name ?? c);
@@ -95,7 +110,7 @@ type LinkItem = { label: string; url: string };
 
 type RegisterKind = "project" | PlatformId;
 
-// ★ 라벨/설명 변경: AI Orchestration → AI Agent, 나만의 비서 → HK GPT 개인화 설명
+// 라벨/설명: AI Orchestration → AI Agent, 나만의 비서 → HK GPT 개인화 설명
 const KIND_OPTIONS: { key: RegisterKind; label: string; desc: string; color: string; bg: string }[] = [
   { key: "project", label: "일반 프로젝트", desc: "관계사·부서 단위로 개발·운영되는 사내 IT 프로젝트", color: "#475569", bg: "#F1F5F9" },
   ...PLATFORMS.map(p => {
@@ -123,12 +138,14 @@ type FormState = {
   specificUrl: string;
   nodes: string[];            // 노드명 칩
   connectedApps: string[];    // 연동 앱 칩
-  expectedTimeSaved: string;  // 예상 절감 시간
+  // 예상 절감 시간 — 수치 + 주기. 저장 시 "<주기> N시간"으로 직렬화
+  timeSavedValue: number | "";
+  timeSavedPeriod: SavedPeriod;
   difficulty: typeof DIFFICULTY_LEVELS[number]; // 난이도
   // AI 모델 전용
   provider: string; contextWindow: string; strengths: string;
   costTier: typeof COST_TIERS[number];
-  // ★ 플랫폼 항목(n8n/나만의비서/AI Agent) 공용: 소속·대상 관계사 (복수 선택, 빈 배열 = 전사 공용)
+  // 플랫폼 항목(n8n/나만의비서/AI Agent) 공용: 소속·대상 관계사 (복수 선택, 빈 배열 = 전사 공용)
   platformCompanies: string[];
   contacts: Contact[];
   links: LinkItem[];
@@ -200,7 +217,80 @@ function RowRemoveButton({ first, onClick }: { first: boolean; onClick: () => vo
   );
 }
 
-// ★ 신규 — 플랫폼 항목 공용: 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨)
+// 예상 절감 시간 입력 (모듈 레벨) — 수치 + 주기 선택 + 연간 환산 안내
+// value/period를 상위 form 상태에서 제어. 통계 집계 기준(연간 환산)을 근거와 함께 명시.
+function TimeSavedInput({
+  value, period, onValueChange, onPeriodChange,
+}: {
+  value: number | ""; period: SavedPeriod;
+  onValueChange: (v: number | "") => void; onPeriodChange: (p: SavedPeriod) => void;
+}) {
+  const annual = annualHours(value, period);
+  const hasValue = value !== "" && Number(value) > 0;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {/* 주기 선택 */}
+        <div style={{ display: "flex", gap: 4 }}>
+          {SAVED_PERIODS.map(p => (
+            <span
+              key={p}
+              onClick={() => onPeriodChange(p)}
+              style={{
+                fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 8,
+                border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
+                background: period === p ? "#EFF6FF" : "#fff",
+                color: period === p ? "#2563EB" : "#475569",
+                cursor: "pointer", userSelect: "none",
+              }}
+            >
+              {p}
+            </span>
+          ))}
+        </div>
+
+        {/* 수치 입력 */}
+        <input
+          type="number"
+          min={0}
+          step={0.5}
+          inputMode="decimal"
+          value={value}
+          onChange={e => {
+            const raw = e.target.value;
+            if (raw === "") { onValueChange(""); return; }
+            const n = Number(raw);
+            if (Number.isNaN(n) || n < 0) return;
+            onValueChange(n);
+          }}
+          placeholder="예: 3"
+          style={{ ...inputStyle, maxWidth: 120 }}
+          onFocus={e => (e.target.style.borderColor = "#2563EB")}
+          onBlur={e => (e.target.style.borderColor = "#E2E8F0")}
+        />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>시간</span>
+      </div>
+
+      {/* 환산 안내 — 계산 근거를 함께 표기 */}
+      {hasValue && (
+        <div style={{
+          marginTop: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8,
+          padding: "10px 14px", fontSize: 12, color: "#065F46", lineHeight: 1.6,
+        }}>
+          <strong style={{ fontWeight: 700 }}>{PERIOD_FULL_LABEL[period]} {value}시간</strong> 절감
+          {" → "}
+          연간 약 <strong style={{ fontWeight: 700 }}>{annual.toLocaleString()}시간</strong>
+          <span style={{ color: "#059669", marginLeft: 4 }}>
+            ({value}시간 × {PERIOD_ANNUAL_FACTOR[period].toLocaleString()}{period === "년" ? "" : period})
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 플랫폼 항목 공용: 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨)
 // 맨 위 "전사 공용" 체크가 관계사 개별 체크와 상호배타 관계
 function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChange: (codes: string[]) => void }) {
   const [open, setOpen] = useState(false);
@@ -351,14 +441,14 @@ export default function ProjectRegisterPage() {
     orgEntries: [], stack: [], freeTags: "",
     integrations: "",
     triggerAction: "", itemTags: "", specificUrl: "",
-    nodes: [], connectedApps: [], expectedTimeSaved: "", difficulty: "보통",
+    nodes: [], connectedApps: [], timeSavedValue: "", timeSavedPeriod: "주", difficulty: "보통",
     provider: "", contextWindow: "", strengths: "", costTier: "보통",
     platformCompanies: [],
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
 
-  // ★ 신규 — 관계사 범위 상태. "unset"이면 등록자가 아직 드롭다운을 열어
+  // 관계사 범위 상태. "unset"이면 등록자가 아직 드롭다운을 열어
   // 명시적으로 선택하지 않은 것으로 간주 → 다음 단계 진행 차단
   const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">("unset");
 
@@ -372,7 +462,7 @@ export default function ProjectRegisterPage() {
   const toggle = (k: "domains" | "audiences" | "stack", v: string) =>
     setForm(p => ({ ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] }));
 
-  // ★ 신규 — 관계사 선택 변경 핸들러. 드롭다운이 호출할 단일 진입점.
+  // 관계사 선택 변경 핸들러. 드롭다운이 호출할 단일 진입점.
   // codes가 빈 배열이면 "전사 공용"으로 명시적 선택된 것으로 처리.
   const handlePlatformCompaniesChange = (codes: string[]) => {
     setForm(p => ({ ...p, platformCompanies: codes }));
@@ -445,7 +535,9 @@ export default function ProjectRegisterPage() {
     setSaving(true);
     // TODO: 실제 연동 시 kind === "project" → POST /api/v1/projects
     //       그 외 → POST /api/v1/platform-items (body에 platformId: kind, nodes, connectedApps,
-    //       expectedTimeSaved, difficulty, company: platformCompanies 포함)
+    //       expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod), difficulty,
+    //       company: platformCompanies 포함)
+    //       expectedTimeSaved는 "<주기> N시간" 표준 문자열로 직렬화되어 AdminStatistics 집계와 정합.
     await new Promise(r => setTimeout(r, 600));
     setSaving(false);
     setSaved(true);
@@ -456,6 +548,9 @@ export default function ProjectRegisterPage() {
   };
 
   const selectedKindMeta = kind ? KIND_OPTIONS.find(k => k.key === kind)! : null;
+
+  // 요약 표시용 — 직렬화된 절감 시간 문자열
+  const timeSavedDisplay = serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod) || "—";
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -703,11 +798,16 @@ export default function ProjectRegisterPage() {
             </Section>
 
             <Section title="예상 효과">
-              <Field label="예상 절감 시간">
-                <input value={form.expectedTimeSaved} onChange={e => set("expectedTimeSaved", e.target.value)}
-                  placeholder="예: 주 1시간" style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+              <Field
+                label="예상 절감 시간"
+                hint="이 도구를 사용해 절감되는 업무 시간을 입력하세요. 체감하기 쉬운 주기(일/주/월/년)를 고른 뒤 시간을 입력하면, 통계용 연간 환산값이 자동으로 계산됩니다."
+              >
+                <TimeSavedInput
+                  value={form.timeSavedValue}
+                  period={form.timeSavedPeriod}
+                  onValueChange={v => set("timeSavedValue", v)}
+                  onPeriodChange={p => set("timeSavedPeriod", p)}
+                />
               </Field>
               <Field label="구성 난이도">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -846,7 +946,7 @@ export default function ProjectRegisterPage() {
                 { label: "트리거·동작 설명", value: form.triggerAction || "—" },
                 { label: "사용된 노드", value: form.nodes.join(" → ") || "—" },
                 { label: "연동 앱·서비스", value: form.connectedApps.join(", ") || "—" },
-                { label: "예상 절감 시간", value: form.expectedTimeSaved || "—" },
+                { label: "예상 절감 시간", value: timeSavedDisplay },
                 { label: "구성 난이도", value: form.difficulty },
                 { label: "실행 URL", value: form.specificUrl || "—" },
                 { label: "태그", value: form.itemTags || "—" },

@@ -90,9 +90,9 @@ export default function AdminDashboard() {
   const scopeBadge = scopeBadgeText(isGlobalAdmin, agg.companies);
 
   const KPIS = [
-    { label: "전체 등록물", value: String(totalRegistrations), sub: `프로젝트 ${sourceTotal.project} · 플랫폼 ${platformTotal}`, subColor: "#059669" },
+    { label: "전체 등록물", value: String(totalRegistrations), sub: `프로젝트 ${sourceTotal.project} · 자동화·AI 도구 ${platformTotal}`, subColor: "#059669" },
     { label: "승인 대기", value: String(pending.length), sub: "즉시 검토 필요", subColor: "#D97706" },
-    { label: "이번 달 신규", value: String(thisMonthTotal), sub: "프로젝트 + 플랫폼 합산", subColor: "#2563EB" },
+    { label: "이번 달 신규", value: String(thisMonthTotal), sub: "프로젝트 + 자동화·AI 도구 합산", subColor: "#2563EB" },
     { label: "운영 중 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
   ];
 
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>대시보드</h1>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>프로젝트와 플랫폼 항목(n8n · 나만의비서 · AI Agent) 통합 현황 · 2025년 6월 기준</p>
+            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>프로젝트와 자동화·AI 도구(n8n · 나만의비서 · AI Agent) 통합 현황 · 2025년 6월 기준</p>
           </div>
 
           {/* 집계 범위 배지 */}

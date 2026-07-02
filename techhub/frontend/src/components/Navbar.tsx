@@ -8,7 +8,7 @@ const NAV_LINKS = [
   { label: "프로젝트 등록", path: "/projects/new" },
 ];
 
-// 외부 플랫폼 바로가기 (새 탭으로 열림).
+// 외부 자동화·AI 도구 바로가기 (새 탭으로 열림).
 // TODO: 나만의 비서 / AI Agent 실제 접속 주소가 정해지면 url만 채우면 활성화됩니다.
 const EXTERNAL_PLATFORMS: { label: string; url: string | null; color: string }[] = [
   { label: "n8n", url: "http://172.17.20.203:3001/n8n", color: "#DB2777" },
@@ -52,7 +52,7 @@ export default function Navbar() {
             </span>
           ))}
 
-          {/* 외부 플랫폼 바로가기 드롭다운 */}
+          {/* 외부 자동화·AI 도구 바로가기 드롭다운 */}
           <div style={{ position: "relative" }}>
             <span
               onClick={() => setPlatformOpen(v => !v)}
@@ -61,7 +61,7 @@ export default function Navbar() {
                 display: "flex", alignItems: "center", gap: 5,
               }}
             >
-              플랫폼 바로가기
+              자동화·AI 도구 바로가기
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
                 style={{ transform: platformOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
                 <polyline points="6 9 12 15 18 9" />

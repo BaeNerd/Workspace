@@ -366,7 +366,7 @@ export default function AdminTaxonomy() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>분류체계 관리</h1>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>프로젝트 및 플랫폼 항목(n8n·나만의 비서·AI Agent)의 표준 분류를 관리합니다.</p>
+              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>프로젝트 및 자동화·AI 도구 항목의 표준 분류를 관리합니다.</p>
             </div>
             {savedMsg && (
               <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#065F46" }}>
@@ -427,7 +427,7 @@ export default function AdminTaxonomy() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{cat.label}</div>
                       {isPlatform && (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: "#F3E8FF", color: "#7E22CE", padding: "2px 8px", borderRadius: 20 }}>플랫폼 항목 전용</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: "#F3E8FF", color: "#7E22CE", padding: "2px 8px", borderRadius: 20 }}>자동화·AI 도구 항목 전용</span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: "#64748B" }}>{cat.desc}</div>
@@ -579,7 +579,7 @@ export default function AdminTaxonomy() {
 
               <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
                 <strong>운영 유의사항</strong><br />
-                고정 분류 항목을 삭제하면 기존에 태깅된 프로젝트·플랫폼 항목의 해당 분류가 공란으로 처리될 수 있습니다.
+                고정 분류 항목을 삭제하면 기존에 태깅된 프로젝트·자동화·AI 도구 항목의 해당 분류가 공란으로 처리될 수 있습니다.
                 노드·연동앱 힌트는 단순 추천용이므로 삭제해도 기존 항목의 실제 노드 구성에는 영향이 없습니다.
               </div>
             </div>

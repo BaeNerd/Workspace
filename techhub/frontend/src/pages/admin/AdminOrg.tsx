@@ -133,7 +133,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
   );
 }
 
-// 체크박스 목록 각 행에 "플랫폼 N" 카운트 배지 — 닫힌 드롭다운 버튼은 inputStyle+cursor 사용(이중 화살표 방지)
+// 체크박스 목록 각 행에 "자동화·AI 도구 N" 카운트 배지 — 닫힌 드롭다운 버튼은 inputStyle+cursor 사용(이중 화살표 방지)
 function CompanyVisibilityDropdown({ companies, onToggle }: { companies: Company[]; onToggle: (code: string) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -201,7 +201,7 @@ function CompanyVisibilityDropdown({ companies, onToggle }: { companies: Company
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {itemCount > 0 && (
                       <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#F5F3FF", padding: "1px 6px", borderRadius: 20 }}>
-                        플랫폼 {itemCount}
+                        자동화·AI 도구 {itemCount}
                       </span>
                     )}
                     <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace" }}>{c.code}</span>
@@ -502,14 +502,14 @@ export default function AdminOrg() {
                 노출 {visibleCount} / 전체 {companies.length}
               </span>
               <span style={{ fontSize: 11, fontWeight: 700, background: "#F5F3FF", color: "#6D28D9", padding: "2px 9px", borderRadius: 20 }}>
-                전사 공용 플랫폼 항목 {companyWidePlatformItemCount}건 (모든 관계사 영향)
+                전사 공용 자동화·AI 도구 항목 {companyWidePlatformItemCount}건 (모든 관계사 영향)
               </span>
             </div>
 
             <div style={{ marginLeft: 28, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#1E40AF", lineHeight: 1.6 }}>
               비노출 처리된 관계사는 해당 관계사 소속이 아닌 일반 사용자에게 Tech Hub 목록·필터·통계에서 보이지 않습니다.
               단, <strong>"그룹 전체보기" 권한</strong>을 가진 사용자(AD-06에서 부여)는 비노출 관계사도 모두 조회·필터링할 수 있습니다.
-              목록의 <strong>플랫폼 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Agent 항목 수입니다(전사 공용 항목 포함).
+              목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Agent 항목 수입니다(전사 공용 항목 포함).
             </div>
 
             <div style={{ maxWidth: 420, marginLeft: 28 }}>
@@ -563,7 +563,7 @@ export default function AdminOrg() {
               </div>
 
               <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
-                각 부서의 "프로젝트 N건" 카운트는 일반 프로젝트만 집계합니다. n8n·나만의 비서·AI Agent는 부서가 아닌 관계사 단위로 집계되며, 위 <strong>섹션 1</strong>의 "플랫폼 N" 배지에서 확인할 수 있습니다.
+                각 부서의 "프로젝트 N건" 카운트는 일반 프로젝트만 집계합니다. n8n·나만의 비서·AI Agent는 부서가 아닌 관계사 단위로 집계되며, 위 <strong>섹션 1</strong>의 "자동화·AI 도구 N" 배지에서 확인할 수 있습니다.
               </div>
 
               {companiesWithDepts.length === 0 ? (
@@ -666,7 +666,7 @@ export default function AdminOrg() {
                         { label: "동기화 주기", value: autoSync ? apiConfig.syncInterval : "수동" },
                         { label: "Teams 연동 부서", value: `${teamsLinkedCount}개` },
                         { label: "관계사 노출 현황", value: `${visibleCount} / ${companies.length}개 노출` },
-                        { label: "플랫폼 항목 총 개수", value: `${PLATFORM_ITEM_REFS.length}건 (전사 공용 ${companyWidePlatformItemCount}건 포함)` },
+                        { label: "자동화·AI 도구 항목 총 개수", value: `${PLATFORM_ITEM_REFS.length}건 (전사 공용 ${companyWidePlatformItemCount}건 포함)` },
                       ].map((r, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #F8FAFC", fontSize: 12 }}>
                           <span style={{ color: "#94A3B8", fontWeight: 600 }}>{r.label}</span>
@@ -771,7 +771,7 @@ export default function AdminOrg() {
 
           <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", marginTop: 20, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
             <strong>운영 유의사항</strong><br />
-            관계사를 비노출로 전환해도 기존에 등록된 프로젝트·플랫폼 항목 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
+            관계사를 비노출로 전환해도 기존에 등록된 프로젝트·자동화·AI 도구 항목 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
             부서 삭제 시 해당 부서에 태깅된 프로젝트가 있다면 영향 범위를 사전에 확인하세요.
           </div>
         </main>

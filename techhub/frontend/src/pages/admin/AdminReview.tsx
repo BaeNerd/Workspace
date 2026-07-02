@@ -3,8 +3,7 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
-// ★ 신규 — 권한 판정 헬퍼 사용. canManageItem / isGlobalAdmin / managedCompanies 재사용.
-// 주의: useAuth 경로는 프로젝트 구조에 맞게 확인 필요(아래 맨 마지막 질문 참고).
+// 권한 판정 헬퍼 사용. canManageItem / isGlobalAdmin / managedCompanies 재사용.
 import { useAuth } from "../../context/useAuth";
 
 const STATUSES = ["개발 중", "운영 중", "파일럿", "종료", "보류"];
@@ -25,8 +24,55 @@ const APP_SUGGESTIONS = [
   "HTTP Request", "Spreadsheet File", "Respond To Webhook",
 ];
 
-// ★ 변경 — 조직 계층 등록용(orgEntries, Project 전용)은 29개 전체가 아닌 기존 10개 약식 유지.
-// 이 파일에서는 Project의 orgEntries에는 손대지 않고, PlatformItem.company만 29개 전체 노출 대상.
+// 예상 절감 시간 — 수치 + 주기 조합으로 입력받아 표준 문자열로 직렬화한다.
+// 주기별 연간 환산 계수는 AdminStatistics의 parseTimeSaved / PERIOD_MULTIPLIER와 동일하게 유지.
+// ProjectRegisterPage와 동일한 규격을 사용해 전 구간 정합을 맞춘다.
+type SavedPeriod = "일" | "주" | "월" | "년";
+const SAVED_PERIODS: SavedPeriod[] = ["일", "주", "월", "년"];
+const PERIOD_ANNUAL_FACTOR: Record<SavedPeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
+const PERIOD_FULL_LABEL: Record<SavedPeriod, string> = { "일": "매일", "주": "주당", "월": "월당", "년": "연간" };
+
+// 저장용 직렬화 — parseTimeSaved(AdminStatistics)가 파싱 가능한 "<주기> N시간" 형식
+const serializeTimeSaved = (value: number | "", period: SavedPeriod): string =>
+  value === "" || value <= 0 ? "" : `${period} ${value}시간`;
+
+// 기존 문자열 → 수치·주기 역직렬화. 파싱 불가 시 value는 ""로 두어 관리자가 새로 입력하게 한다.
+// 지원 패턴: "주 3시간", "월 4시간", "하루 30분", "연 40시간" 등
+const deserializeTimeSaved = (raw: string | undefined | null): { value: number | ""; period: SavedPeriod } => {
+  if (!raw) return { value: "", period: "주" };
+  const text = raw.trim();
+  if (!text) return { value: "", period: "주" };
+
+  // 주기 토큰 매핑 (하루→일, 개월→월, 연→년, 주일→주)
+  const periodMatch = text.match(/(일|하루|주일|주|개월|월|년|연)/);
+  const hourMatch = text.match(/(\d+(?:\.\d+)?)\s*시간/);
+  const minMatch = text.match(/(\d+(?:\.\d+)?)\s*분/);
+
+  let period: SavedPeriod = "주";
+  if (periodMatch) {
+    const token = periodMatch[1];
+    if (token === "일" || token === "하루") period = "일";
+    else if (token === "주" || token === "주일") period = "주";
+    else if (token === "월" || token === "개월") period = "월";
+    else if (token === "년" || token === "연") period = "년";
+  }
+
+  if (hourMatch) {
+    const n = parseFloat(hourMatch[1]);
+    if (!Number.isNaN(n)) return { value: n, period };
+  }
+  if (minMatch) {
+    const n = parseFloat(minMatch[1]);
+    if (!Number.isNaN(n)) return { value: Math.round((n / 60) * 100) / 100, period };
+  }
+  // 파싱 불가 (예: "측정 어려움", "미정")
+  return { value: "", period };
+};
+
+// 연간 환산 시간 계산
+const annualHours = (value: number | "", period: SavedPeriod): number =>
+  value === "" || value <= 0 ? 0 : Number(value) * PERIOD_ANNUAL_FACTOR[period];
+
 const COMPANIES = [
   { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
   { code: "KBH", name: "콜마비앤에이치" }, { code: "HC", name: "콜마생활건강" },
@@ -47,7 +93,7 @@ const DEPTS_BY_PARENT: Record<string, string[]> = {
   "IT본부": ["IT인프라팀", "IT개발팀"],
 };
 
-// ★ 신규 — PlatformItem.company 선택용 29개 전체 관계사 (AdminOrg.tsx, ProjectRegisterPage.tsx와 동일 소스)
+// PlatformItem.company 선택용 29개 전체 관계사 (AdminOrg.tsx, ProjectRegisterPage.tsx와 동일 소스)
 // TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
 const FULL_COMPANIES = [
   { code: "KMH", name: "콜마홀딩스", visible: true },
@@ -123,7 +169,7 @@ type ReviewPlatformItem = {
   expectedTimeSaved?: string; difficulty?: string; specificUrl?: string; itemTags?: string;
   // 모델형 (ai-orchestration)
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
-  // ★ 신규 — 소속/대상 관계사 (복수선택, 빈배열=전사공용) + 선택 여부 추적
+  // 소속/대상 관계사 (복수선택, 빈배열=전사공용) + 선택 여부 추적
   company: string[];
   platformScope: "unset" | "company-wide" | "specific";
   contacts: Contact[]; links: LinkItem[]; approval: Approval; rejectionReason?: string;
@@ -132,7 +178,7 @@ type ReviewPlatformItem = {
 type ReviewItem = ReviewProjectItem | ReviewPlatformItem;
 const isProjectKind = (i: ReviewItem): i is ReviewProjectItem => i.kind === "project";
 
-// ★ 신규 — 권한 판정용: 항목이 속한 관계사 코드 집합과 전사공용 여부를 도출.
+// 권한 판정용: 항목이 속한 관계사 코드 집합과 전사공용 여부를 도출.
 //   프로젝트는 orgEntries의 company, 플랫폼은 company 필드. canManageItem(useAuth)이 이 값을 소비.
 const itemCompaniesOf = (item: ReviewItem): string[] =>
   isProjectKind(item) ? item.orgEntries.map(e => e.company) : item.company;
@@ -202,6 +248,76 @@ const SingleSelectTag = ({ options, value, onChange, disabled }: { options: stri
   </div>
 );
 
+// 예상 절감 시간 입력 (모듈 레벨) — 수치 + 주기 선택 + 연간 환산 안내.
+// ProjectRegisterPage의 TimeSavedInput과 동일 규격. disabled 시 값만 표시.
+const TimeSavedInput = ({
+  value, period, onValueChange, onPeriodChange, disabled,
+}: {
+  value: number | ""; period: SavedPeriod;
+  onValueChange: (v: number | "") => void; onPeriodChange: (p: SavedPeriod) => void;
+  disabled?: boolean;
+}) => {
+  const annual = annualHours(value, period);
+  const hasValue = value !== "" && Number(value) > 0;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4 }}>
+          {SAVED_PERIODS.map(p => (
+            <span
+              key={p}
+              onClick={() => !disabled && onPeriodChange(p)}
+              style={{
+                fontSize: 12, fontWeight: 600, padding: "7px 13px", borderRadius: 7,
+                border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
+                background: period === p ? "#EFF6FF" : "#fff",
+                color: period === p ? "#2563EB" : "#475569",
+                cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
+                opacity: disabled ? 0.6 : 1,
+              }}
+            >
+              {p}
+            </span>
+          ))}
+        </div>
+        <input
+          type="number"
+          min={0}
+          step={0.5}
+          inputMode="decimal"
+          value={value}
+          disabled={disabled}
+          onChange={e => {
+            const raw = e.target.value;
+            if (raw === "") { onValueChange(""); return; }
+            const n = Number(raw);
+            if (Number.isNaN(n) || n < 0) return;
+            onValueChange(n);
+          }}
+          placeholder="예: 3"
+          style={{ ...inputStyle, maxWidth: 110, opacity: disabled ? 0.6 : 1 }}
+        />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>시간</span>
+      </div>
+
+      {hasValue && (
+        <div style={{
+          marginTop: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8,
+          padding: "9px 13px", fontSize: 12, color: "#065F46", lineHeight: 1.6,
+        }}>
+          <strong style={{ fontWeight: 700 }}>{PERIOD_FULL_LABEL[period]} {value}시간</strong> 절감
+          {" → "}
+          연간 약 <strong style={{ fontWeight: 700 }}>{annual.toLocaleString()}시간</strong>
+          <span style={{ color: "#059669", marginLeft: 4 }}>
+            ({value}시간 × {PERIOD_ANNUAL_FACTOR[period].toLocaleString()}{period === "년" ? "" : period})
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled }: {
   items: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void;
   suggestions: string[]; placeholder: string; disabled?: boolean;
@@ -252,7 +368,7 @@ const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled
   );
 };
 
-// ★ 변경 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, ProjectRegisterPage.tsx와 동일 패턴)
+// 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, ProjectRegisterPage.tsx와 동일 패턴)
 //   권한체계 enforcement 반영:
 //   - allowedCodes: 토글 가능한 관계사 코드 화이트리스트. 관계사관리자는 담당 관계사만 전달.
 //                   미지정(undefined) 시 전체(SELECTABLE_COMPANIES) 허용 = 전사관리자.
@@ -433,7 +549,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     contacts: [{ name: "정유진", dept: "품질관리팀", role: "주담당자", email: "yujin.jung@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — n8n 등록 신청 (관계사 미지정 상태 시뮬레이션: platformScope "unset")
+  // n8n 등록 신청 (관계사 미지정 상태 시뮬레이션: platformScope "unset")
   {
     kind: "n8n",
     id: "N8N-014", title: "협력사 정산서 자동 검증",
@@ -449,7 +565,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — 나만의 비서 등록 신청 (특정 관계사 한정)
+  // 나만의 비서 등록 신청 (특정 관계사 한정)
   {
     kind: "assistant",
     id: "AST-011", title: "해외법인 계약서 1차 검토 비서",
@@ -457,13 +573,16 @@ const INITIAL_ITEMS: ReviewItem[] = [
     description: "미국콜마·북경콜마 등 해외법인에서 체결하는 영문 계약서의 주요 조항을 1차로 스크리닝하여 법무팀 검토 시간을 단축합니다.",
     dept: "법무팀", submittedBy: "강현우", submittedAt: "2025.06.22",
     status: "파일럿",
+    triggerAction: "Chat Trigger → 계약서 업로드 → 조항 추출 → 리스크 스크리닝 → 요약 리포트",
+    nodes: ["Chat Trigger", "AI Agent"], connectedApps: ["Microsoft One Drive"],
+    expectedTimeSaved: "주 5시간", difficulty: "어려움",
     specificUrl: "https://assistant.kolmar.co.kr/agents/global-contract-review",
     itemTags: "계약서, 법무, 해외법인",
     company: ["KUS", "KMB"], platformScope: "specific",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
     links: [], approval: "대기",
   },
-  // ★ 신규 — AI Agent 등록 신청 (전사 공용)
+  // AI Agent 등록 신청 (전사 공용)
   {
     kind: "ai-orchestration",
     id: "AIO-006", title: "GPT-4o (범용 업무 보조)",
@@ -481,7 +600,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
 ];
 
 export default function AdminReview() {
-  // ★ 신규 — 현재 관리자 권한 컨텍스트
+  // 현재 관리자 권한 컨텍스트
   const { isGlobalAdmin, managedCompanies, canManageItem } = useAuth();
 
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_ITEMS);
@@ -502,7 +621,7 @@ export default function AdminReview() {
   const merged = activeItem ? ({ ...activeItem, ...edit } as ReviewItem) : null;
   const isDisabled = done.includes(selected);
 
-  // ★ 신규 — 권한 판정. 항상 "원본 항목" 기준으로 판정해 편집을 통한 권한 우회를 차단.
+  // 권한 판정. 항상 "원본 항목" 기준으로 판정해 편집을 통한 권한 우회를 차단.
   const canManageReviewItem = (item: ReviewItem): boolean =>
     canManageItem(itemCompaniesOf(item), itemIsCompanyWideOf(item));
 
@@ -518,12 +637,34 @@ export default function AdminReview() {
     setEdit(k as any, cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
   };
 
-  // ★ 변경 — 관계사 변경 핸들러.
+  // 관계사 변경 핸들러.
   //   관계사관리자는 전사 공용(빈 배열)으로 승격할 수 없음(권한 범위 밖으로 이동 방지).
   const setPlatformCompanies = (codes: string[]) => {
     if (!isGlobalAdmin && codes.length === 0) return;
     setEdit("company" as any, codes);
     setEdit("platformScope" as any, codes.length === 0 ? "company-wide" : "specific");
+  };
+
+  // 예상 절감 시간 — 원본 문자열을 역직렬화한 값을 기준으로, 편집분(edits)을 덮어쓴다.
+  // edits에는 수치(timeSavedValue)와 주기(timeSavedPeriod)를 임시 보관하고,
+  // 저장 시 serializeTimeSaved로 expectedTimeSaved 문자열로 합성한다.
+  const baseTimeSaved = merged && !isProjectKind(merged)
+    ? deserializeTimeSaved((merged as ReviewPlatformItem).expectedTimeSaved)
+    : { value: "" as number | "", period: "주" as SavedPeriod };
+  const currentTimeSavedValue = ((edit as any).timeSavedValue !== undefined
+    ? (edit as any).timeSavedValue
+    : baseTimeSaved.value) as number | "";
+  const currentTimeSavedPeriod = ((edit as any).timeSavedPeriod !== undefined
+    ? (edit as any).timeSavedPeriod
+    : baseTimeSaved.period) as SavedPeriod;
+
+  const setTimeSavedValue = (v: number | "") => {
+    setEdit("timeSavedValue" as any, v);
+    setEdit("expectedTimeSaved" as any, serializeTimeSaved(v, currentTimeSavedPeriod));
+  };
+  const setTimeSavedPeriod = (p: SavedPeriod) => {
+    setEdit("timeSavedPeriod" as any, p);
+    setEdit("expectedTimeSaved" as any, serializeTimeSaved(currentTimeSavedValue, p));
   };
 
   const currentOrgEntries = (((edit as any).orgEntries ?? (merged && isProjectKind(merged) ? merged.orgEntries : [])) ?? []) as OrgEntry[];
@@ -556,17 +697,22 @@ export default function AdminReview() {
 
   const handleApprove = () => {
     if (!activeItem) return;
-    // ★ 신규 — 권한 범위 밖 항목은 승인 차단(원본 기준)
+    // 권한 범위 밖 항목은 승인 차단(원본 기준)
     if (!canManageReviewItem(activeItem)) return;
     // PlatformItem이고 platformScope가 "unset"이면 승인 차단(등록자가 미선택으로 둔 채 신청이 들어온 예외 상황 방지)
     if (merged && !isProjectKind(merged)) {
       const scope = (edit as any).platformScope ?? merged.platformScope;
       if (scope === "unset") return;
     }
+    // 저장 시 임시 편집키(timeSavedValue/timeSavedPeriod)는 제거하고 expectedTimeSaved만 반영.
     // TODO: 실제 연동 시
     //   kind === "project" → PATCH /api/v1/admin/projects/:id/approve
-    //   그 외 → PATCH /api/v1/admin/platform-items/:id/approve (body에 company, platformScope 포함)
-    setItems(p => p.map(i => i.id === selected ? ({ ...i, ...edit, approval: "승인" } as ReviewItem) : i));
+    //   그 외 → PATCH /api/v1/admin/platform-items/:id/approve (body에 company, platformScope, expectedTimeSaved 포함)
+    setItems(p => p.map(i => {
+      if (i.id !== selected) return i;
+      const { timeSavedValue, timeSavedPeriod, ...cleanEdit } = edit as any;
+      return { ...i, ...cleanEdit, approval: "승인" } as ReviewItem;
+    }));
     setDone(p => [...p, selected]);
     const remaining = items.filter(i => !done.includes(i.id) && i.id !== selected);
     if (remaining.length > 0) setSelected(remaining[0].id);
@@ -574,7 +720,7 @@ export default function AdminReview() {
 
   const handleReject = () => {
     if (!activeItem) return;
-    // ★ 신규 — 권한 범위 밖 항목은 반려도 차단(원본 기준)
+    // 권한 범위 밖 항목은 반려도 차단(원본 기준)
     if (!canManageReviewItem(activeItem)) return;
     if (!rejectReason.trim()) return;
     // TODO: 실제 연동 시 kind에 따라 /admin/projects/:id/reject 또는 /admin/platform-items/:id/reject
@@ -598,7 +744,7 @@ export default function AdminReview() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
-  // ★ 변경 — 승인/반려 차단 조건 계산
+  // 승인/반려 차단 조건 계산
   //   outOfScope: 담당 관계사 범위 밖(전사공용은 global만) → 승인·반려 모두 불가
   //   unsetScope: PlatformItem 관계사 미지정 → 승인 불가(반려는 가능)
   const outOfScope = !!activeItem && !canManageReviewItem(activeItem);
@@ -621,7 +767,7 @@ export default function AdminReview() {
             <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 10 }}>등록 신청 목록</div>
 
-              {/* ★ 신규 — 관계사관리자 안내 배너 */}
+              {/* 관계사관리자 안내 배너 */}
               {!isGlobalAdmin && (
                 <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 10px", marginBottom: 8, fontSize: 10.5, color: "#1E40AF", lineHeight: 1.5 }}>
                   담당 관계사 신청 건만 승인·반려할 수 있습니다. 범위 밖 항목은 열람만 가능합니다.
@@ -651,7 +797,7 @@ export default function AdminReview() {
                 const sourceStyle = SOURCE_STYLE[item.kind];
                 // platformScope가 unset인 신청 건은 목록에서 경고 배지 표시
                 const needsAttention = !isProjectKind(item) && item.platformScope === "unset" && !isDone;
-                // ★ 신규 — 담당 범위 밖 신청 건은 "권한 범위 외" 배지
+                // 담당 범위 밖 신청 건은 "권한 범위 외" 배지
                 const outOfScopeItem = !isDone && !canManageReviewItem(item);
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
@@ -714,7 +860,7 @@ export default function AdminReview() {
                   </div>
                 )}
 
-                {/* ★ 신규 — 권한 범위 밖 항목 열람 안내 (처리 전이지만 담당 아님) */}
+                {/* 권한 범위 밖 항목 열람 안내 (처리 전이지만 담당 아님) */}
                 {!isDisabled && outOfScope && (
                   <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#475569" }}>
                     이 신청 건의 대상 관계사가 담당 관계사 범위에 포함되지 않습니다. 내용은 열람할 수 있으나 승인·반려 처리는 담당 관리자만 가능합니다.
@@ -881,7 +1027,13 @@ export default function AdminReview() {
 
                     <SectionBlock title="예상 효과">
                       <FieldRow label="예상 절감 시간">
-                        <input value={(edit as any).expectedTimeSaved ?? (merged as ReviewPlatformItem).expectedTimeSaved ?? ""} onChange={e => setEdit("expectedTimeSaved" as any, e.target.value)} disabled={isDisabled} style={{ ...inputStyle, opacity: isDisabled ? 0.6 : 1 }} placeholder="예: 주 1시간" />
+                        <TimeSavedInput
+                          value={currentTimeSavedValue}
+                          period={currentTimeSavedPeriod}
+                          onValueChange={setTimeSavedValue}
+                          onPeriodChange={setTimeSavedPeriod}
+                          disabled={isDisabled}
+                        />
                       </FieldRow>
                       <FieldRow label="구성 난이도">
                         <SingleSelectTag options={DIFFICULTY_LEVELS} value={(edit as any).difficulty ?? (merged as ReviewPlatformItem).difficulty ?? "보통"} onChange={v => setEdit("difficulty" as any, v)} disabled={isDisabled} />
@@ -992,7 +1144,7 @@ export default function AdminReview() {
                 {!isDisabled && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {outOfScope ? (
-                      // ★ 신규 — 권한 범위 밖: 처리 버튼 미노출, 안내만
+                      // 권한 범위 밖: 처리 버튼 미노출, 안내만
                       <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, padding: "11px 14px", fontSize: 12, color: "#475569", lineHeight: 1.6 }}>
                         이 신청 건은 담당 관계사 범위에 속하지 않아 승인·반려할 수 없습니다.
                         {itemIsCompanyWideOf(activeItem!) && " 전사 공용 항목은 전사관리자만 처리할 수 있습니다."}

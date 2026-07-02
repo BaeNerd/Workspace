@@ -153,3 +153,4 @@ export const scopeBadgeText = (isGlobalAdmin: boolean, companies: StatCompany[])
   const head = names.slice(0, 3).join(", ");
   return `담당 관계사 ${companies.length}곳: ${head}${names.length > 3 ? ` 외 ${names.length - 3}곳` : ""}`;
 };
+
