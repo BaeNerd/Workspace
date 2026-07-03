@@ -3,8 +3,9 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
-// ★ 신규 — 권한 판정 헬퍼 재사용 (canManageItem / isGlobalAdmin / managedCompanies)
 import { useAuth } from "../../context/useAuth";
+import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
+import type { WorkflowInput } from "../../components/WorkflowDiagram";
 
 // ===== 공통 상수 (Project 전용) =====
 const STATUSES = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
@@ -174,6 +175,7 @@ type ManagedPlatformItem = {
   // n8n / 나만의 비서 전용
   nodes?: string[]; connectedApps?: string[];
   expectedTimeSaved?: string; difficulty?: string;
+  workflowInput?: WorkflowInput;
   // AI Agent 전용
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
 };
@@ -458,7 +460,7 @@ function CompanyMultiSelect({ selected, onChange, disabled, allowedCodes, allowC
               }}>
                 <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
                 <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
-                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>{c.code}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
               </label>
             ))}
 
@@ -513,16 +515,24 @@ const INITIAL_PROJECTS: ManagedProjectItem[] = [
 const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   {
     kind: "n8n",
-    id: "N8N-001", title: "신규 입사자 계정 자동 생성", dept: "IT인프라팀", status: "운영 중",
-    summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성",
-    description: "HR 시스템에 신규 입사자가 등록되면 Active Directory 계정, Teams 채널 초대, 사내 이메일 계정을 자동으로 생성하고 담당 부서에 알림을 발송합니다.",
+    id: "N8N-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀", status: "운영 중",
+    summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달",
+    description: "Outlook에서 메일을 수신하면 제목에 '긴급' 키워드 포함 여부를 자동으로 판별합니다.\n\n긴급 메일로 확인될 경우 팀장님 메일 주소로 즉시 전달하여 빠른 의사결정이 가능하도록 지원합니다.",
     contacts: [{ name: "이서현", dept: "IT인프라팀", role: "주담당자", email: "seohyun.lee@kolmar.co.kr" }],
-    links: [], updatedAt: "2025.06.05",
+    links: [], updatedAt: "2025.07.03",
     createdByEmail: "seohyun.lee@kolmar.co.kr",
-    tags: "HR, 계정자동화, 온보딩", specificUrl: "https://n8n.kolmar.co.kr/workflow/001",
+    tags: "Outlook, 긴급메일, 자동전달", specificUrl: "https://n8n.kolmar.co.kr/workflow/001",
     company: ["KKM"], platformScope: "specific",
-    nodes: ["Webhook", "Set (Edit Fields)", "Microsoft Teams"], connectedApps: ["Microsoft Teams", "Microsoft Outlook"],
-    expectedTimeSaved: "주 3시간", difficulty: "보통",
+    nodes: ["Outlook Trigger", "IF", "Microsoft Outlook"], connectedApps: ["Microsoft Outlook"],
+    expectedTimeSaved: "주 2시간", difficulty: "쉬움",
+    workflowInput: {
+      status: "Stable",
+      nodes: [
+        { label: "Outlook Trigger", type: "trigger" },
+        { label: "긴급 포함 여부 확인", type: "condition" },
+        { label: "팀장님께 메일 전달", type: "output" },
+      ],
+    },
   },
   {
     kind: "ai-orchestration",
@@ -802,7 +812,7 @@ export default function AdminProjectManage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
 
       <div style={{ display: "flex" }}>
@@ -1193,6 +1203,21 @@ export default function AdminProjectManage() {
                               ))}
                             </div>}
                       </FieldRow>
+                      {displayData.kind === "n8n" && (
+                        <FieldRow label="워크플로우 다이어그램">
+                          {isEditing
+                            ? <WorkflowEditor
+                                value={displayData.workflowInput ?? { status: "Stable", nodes: [] }}
+                                onChange={v => setF("workflowInput", v)}
+                              />
+                            : (() => {
+                                const wf = toWorkflowDef(displayData.workflowInput ?? { status: "Stable", nodes: [] });
+                                return wf
+                                  ? <WorkflowDiagram wf={wf} />
+                                  : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>;
+                              })()}
+                        </FieldRow>
+                      )}
                     </SectionBlock>
 
                     <SectionBlock title="예상 효과">

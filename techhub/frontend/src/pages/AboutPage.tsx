@@ -311,15 +311,13 @@ export default function AboutPage() {
         <div style={{ marginBottom: 48 }}>
           <SectionLabel>어떻게 작동하는가</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, position: "relative" }}>
+            <div style={{ position: "absolute", top: 26, left: "12.5%", right: "12.5%", height: 2, background: "#E2E8F0", zIndex: 0 }} />
             {FLOW_STEPS.map((f, i) => (
               <div key={i} style={{ position: "relative", padding: "0 14px" }}>
-                {i < FLOW_STEPS.length - 1 && (
-                  <div style={{ position: "absolute", top: 22, left: "calc(50% + 30px)", right: -14, height: 2, background: "#E2E8F0" }} />
-                )}
                 <div style={{
-                  width: 44, height: 44, borderRadius: "50%", background: "#2563EB", color: "#fff",
+                  width: 52, height: 52, borderRadius: "50%", background: "#2563EB", color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 800, margin: "0 auto 16px", position: "relative", zIndex: 1,
+                  fontSize: 14, fontWeight: 800, margin: "0 auto 16px", position: "relative", zIndex: 1,
                 }}>
                   {f.step}
                 </div>

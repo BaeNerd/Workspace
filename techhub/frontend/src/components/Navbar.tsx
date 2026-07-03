@@ -11,7 +11,7 @@ const NAV_LINKS = [
 // 외부 자동화·AI 도구 바로가기 (새 탭으로 열림).
 // TODO: 나만의 비서 / AI Agent 실제 접속 주소가 정해지면 url만 채우면 활성화됩니다.
 const EXTERNAL_PLATFORMS: { label: string; url: string | null; color: string }[] = [
-  { label: "n8n", url: "http://172.17.20.203:3001/n8n", color: "#DB2777" },
+  { label: "n8n ABCD", url: "http://172.17.20.203:3001/n8n", color: "#DB2777" },
   { label: "나만의 비서", url: null, color: "#059669" },
   { label: "AI Agent", url: null, color: "#7C3AED" },
 ];

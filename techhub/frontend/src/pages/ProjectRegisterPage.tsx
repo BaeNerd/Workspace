@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
+import { WorkflowEditor, toWorkflowDef } from "../components/WorkflowDiagram";
+import type { WorkflowInput } from "../components/WorkflowDiagram";
 
 // ===== 공통 상수 =====
 const STATUSES = ["운영 중", "개발 중", "파일럿", "보류"];
@@ -147,6 +149,8 @@ type FormState = {
   costTier: typeof COST_TIERS[number];
   // 플랫폼 항목(n8n/나만의비서/AI Agent) 공용: 소속·대상 관계사 (복수 선택, 빈 배열 = 전사 공용)
   platformCompanies: string[];
+  // n8n 전용 — 워크플로우 다이어그램 입력
+  workflowInput: WorkflowInput;
   contacts: Contact[];
   links: LinkItem[];
 };
@@ -444,6 +448,7 @@ export default function ProjectRegisterPage() {
     nodes: [], connectedApps: [], timeSavedValue: "", timeSavedPeriod: "주", difficulty: "보통",
     provider: "", contextWindow: "", strengths: "", costTier: "보통",
     platformCompanies: [],
+    workflowInput: { status: "Stable", nodes: [] },
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
@@ -533,11 +538,17 @@ export default function ProjectRegisterPage() {
 
   const handleSubmit = async () => {
     setSaving(true);
-    // TODO: 실제 연동 시 kind === "project" → POST /api/v1/projects
-    //       그 외 → POST /api/v1/platform-items (body에 platformId: kind, nodes, connectedApps,
-    //       expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod), difficulty,
-    //       company: platformCompanies 포함)
-    //       expectedTimeSaved는 "<주기> N시간" 표준 문자열로 직렬화되어 AdminStatistics 집계와 정합.
+    // TODO: 실제 연동 시 아래 payload를 POST /api/v1/projects 또는 /api/v1/platform-items 로 전송
+    const _payload = kind === "project" ? {
+      ...form,
+      expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
+    } : {
+      platformId: kind,
+      ...form,
+      expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
+      workflowDef: kind === "n8n" ? toWorkflowDef(form.workflowInput) : undefined,
+    };
+    void _payload;
     await new Promise(r => setTimeout(r, 600));
     setSaving(false);
     setSaved(true);
@@ -795,6 +806,14 @@ export default function ProjectRegisterPage() {
               <Field label="연동 앱·서비스">
                 <ChipInput items={form.connectedApps} onAdd={addApp} onRemove={removeApp} draft={draftApp} onDraftChange={setDraftApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
               </Field>
+              {kind === "n8n" && (
+                <Field label="워크플로우 다이어그램" hint="노드를 순서대로 추가하면 연결선이 자동으로 생성됩니다. 등록 후 상세 페이지에서 다이어그램으로 표시됩니다.">
+                  <WorkflowEditor
+                    value={form.workflowInput}
+                    onChange={v => setForm(p => ({ ...p, workflowInput: v }))}
+                  />
+                </Field>
+              )}
             </Section>
 
             <Section title="예상 효과">

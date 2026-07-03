@@ -53,37 +53,99 @@ type ProjectDetail = {
   orgEntries: OrgEntry[]; // ★ 추가 — MK-01에서 줄인 조직 계층 정보를 여기서 복원
 };
 
-const MOCK_PROJECT: ProjectDetail = {
-  id: "PRJ-2025-041",
-  title: "조색 예측 ML 모델",
-  status: "개발 중",
-  domain: "제조/생산",
-  type: "ML/AI 모델",
-  updatedAt: "2025.06.01",
-  createdAt: "2025.02.14",
-  summary: "원료 배합 데이터를 기반으로 최종 제품의 색상을 사전 예측하는 ML 모델. 조색 실험 횟수 감소 및 연구 효율 향상을 목표로 합니다.",
-  description: `기존 조색 프로세스는 연구원이 수작업으로 원료를 배합하고 색상을 측정하는 반복 실험에 의존하고 있었습니다. 이 프로젝트는 과거 조색 실험 데이터를 학습하여 원료 구성과 배합 비율을 입력하면 예상 색상값(Lab 좌표)을 자동으로 예측하는 ML 모델을 개발합니다.
+const MOCK_PROJECTS: ProjectDetail[] = [
+  {
+    id: "PRJ-2025-038",
+    title: "통합 정산 자동화 시스템",
+    status: "운영 중",
+    domain: "재무/회계",
+    type: "데이터 파이프라인",
+    updatedAt: "2025.05.12",
+    createdAt: "2024.11.03",
+    summary: "재무팀 월말 정산 업무를 자동화하는 데이터 파이프라인. ERP·카드사·은행 API를 통합해 정산 오류를 줄이고 결산 소요 시간을 단축합니다.",
+    description: `기존 월말 정산은 ERP 데이터 수기 추출 → 카드사·은행 명세 대조 → 엑셀 취합의 반복 작업으로 평균 3일이 소요됐습니다.
+
+이 프로젝트는 Airflow DAG으로 각 소스 데이터를 자동 수집·정합하고, 불일치 항목을 Slack으로 알림·보고하는 파이프라인을 구축했습니다. 도입 후 결산 소요 시간이 3일 → 반나절로 단축됐습니다.`,
+    departments: ["재무팀", "IT개발팀"],
+    audience: ["특정 부서 (재무팀)"],
+    stack: ["Python", "Airflow", "PostgreSQL", "AWS RDS", "Slack API"],
+    freeTags: ["정산자동화", "ERP연동", "월말결산", "데이터파이프라인"],
+    integrations: ["ERP (SAP)", "카드사 API", "기업인터넷뱅킹 API", "Slack"],
+    contacts: [
+      { name: "박지현", dept: "재무팀", role: "주담당자", email: "jihyun.park@kolmar.co.kr", teams: "jihyun.park" },
+      { name: "김민준", dept: "IT개발팀", role: "공동담당자", email: "minjun.kim@kolmar.co.kr", teams: "minjun.kim" },
+    ],
+    links: [
+      { label: "GitHub 레포지토리", url: "https://github.com/kolmar-internal/finance-reconcile" },
+      { label: "프로젝트 노션 문서", url: "https://notion.so/kolmar/finance-reconcile" },
+    ],
+    orgEntries: [
+      { id: 1, company: "KMH", parent: "재무본부", dept: "재무팀" },
+      { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+  },
+  {
+    id: "PRJ-2025-070",
+    title: "고객 문의 분류 ML 모델",
+    status: "개발 중",
+    domain: "고객 서비스",
+    type: "ML/AI 모델",
+    updatedAt: "2025.05.28",
+    createdAt: "2025.03.10",
+    summary: "고객센터로 유입되는 문의를 자동 분류해 담당 팀에 라우팅하는 ML 모델. 분류 정확도 향상으로 응대 속도 개선을 목표로 합니다.",
+    description: `고객센터 문의는 하루 평균 500건 이상이며, 상담사가 수동으로 유형을 분류하고 담당 팀에 전달하는 데 평균 4분이 소요됩니다.
+
+이 프로젝트는 과거 문의 데이터(텍스트)를 Fine-tuning해 문의 유형(반품·AS·결제·기타)을 자동 분류하고, FastAPI 서버를 통해 CRM에 실시간 연동합니다. 현재 Fine-tuning 데이터 정제 단계이며 7월 내부 파일럿을 목표로 합니다.`,
+    departments: ["고객서비스팀", "IT개발팀"],
+    audience: ["전사"],
+    stack: ["Python", "FastAPI", "AWS SageMaker", "HuggingFace", "PostgreSQL"],
+    freeTags: ["텍스트분류", "고객문의", "NLP", "CRM연동"],
+    integrations: ["CRM (Salesforce)", "AWS SageMaker"],
+    contacts: [
+      { name: "최유진", dept: "고객서비스팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr", teams: "yujin.choi" },
+      { name: "한동훈", dept: "IT개발팀", role: "공동담당자", email: "donghoon.han@kolmar.co.kr", teams: "donghoon.han" },
+    ],
+    links: [
+      { label: "GitHub 레포지토리", url: "https://github.com/kolmar-internal/cs-classify" },
+      { label: "프로젝트 노션 문서", url: "https://notion.so/kolmar/cs-classify" },
+    ],
+    orgEntries: [
+      { id: 1, company: "KKM", parent: "영업본부", dept: "고객서비스팀" },
+      { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+  },
+  {
+    id: "PRJ-2025-041",
+    title: "조색 예측 ML 모델",
+    status: "개발 중",
+    domain: "제조/생산",
+    type: "ML/AI 모델",
+    updatedAt: "2025.06.01",
+    createdAt: "2025.02.14",
+    summary: "원료 배합 데이터를 기반으로 최종 제품의 색상을 사전 예측하는 ML 모델. 조색 실험 횟수 감소 및 연구 효율 향상을 목표로 합니다.",
+    description: `기존 조색 프로세스는 연구원이 수작업으로 원료를 배합하고 색상을 측정하는 반복 실험에 의존하고 있었습니다. 이 프로젝트는 과거 조색 실험 데이터를 학습하여 원료 구성과 배합 비율을 입력하면 예상 색상값(Lab 좌표)을 자동으로 예측하는 ML 모델을 개발합니다.
 
 현재 학습 데이터 전처리 및 초기 모델 검증 단계이며, 2차에서는 실시간 추론 API 서버 구축과 연구원용 UI 연동을 진행할 예정입니다.`,
-  departments: ["메이크업연구소", "IT개발팀"],
-  audience: ["특정 부서 (메이크업연구소)"],
-  stack: ["Python", "TensorFlow", "FastAPI", "AWS SageMaker", "PostgreSQL"],
-  freeTags: ["Lab색공간", "조색", "배합예측", "연구자동화"],
-  integrations: ["ERP (원료 데이터 연동)", "LIMS"],
-  contacts: [
-    { name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr", teams: "suyeon.lee" },
-    { name: "정태영", dept: "IT개발팀", role: "공동담당자", email: "taeyoung.jung@kolmar.co.kr", teams: "taeyoung.jung" },
-  ],
-  links: [
-    { label: "GitHub 레포지토리", url: "https://github.com/kolmar-internal/color-predict" },
-    { label: "프로젝트 노션 문서", url: "https://notion.so/kolmar/color-predict" },
-    { label: "I/F 정의서", url: "https://confluence.kolmar.co.kr/color-predict-if" },
-  ],
-  orgEntries: [
-    { id: 1, company: "KKM", parent: "연구개발본부", dept: "메이크업연구소" },
-    { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
-  ],
-};
+    departments: ["메이크업연구소", "IT개발팀"],
+    audience: ["특정 부서 (메이크업연구소)"],
+    stack: ["Python", "TensorFlow", "FastAPI", "AWS SageMaker", "PostgreSQL"],
+    freeTags: ["Lab색공간", "조색", "배합예측", "연구자동화"],
+    integrations: ["ERP (원료 데이터 연동)", "LIMS"],
+    contacts: [
+      { name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr", teams: "suyeon.lee" },
+      { name: "정태영", dept: "IT개발팀", role: "공동담당자", email: "taeyoung.jung@kolmar.co.kr", teams: "taeyoung.jung" },
+    ],
+    links: [
+      { label: "GitHub 레포지토리", url: "https://github.com/kolmar-internal/color-predict" },
+      { label: "프로젝트 노션 문서", url: "https://notion.so/kolmar/color-predict" },
+      { label: "I/F 정의서", url: "https://confluence.kolmar.co.kr/color-predict-if" },
+    ],
+    orgEntries: [
+      { id: 1, company: "KKM", parent: "연구개발본부", dept: "메이크업연구소" },
+      { id: 2, company: "KKM", parent: "IT본부", dept: "IT개발팀" },
+    ],
+  },
+];
 
 const MOCK_COMMENTS: Comment[] = [
   { author: "이수연", dept: "메이크업연구소", date: "2025.05.20", text: "1차 모델 학습 완료. 현재 색상 예측 정확도 Delta E 기준 평균 2.3 수준으로, 목표치(2.0 이하) 달성을 위해 추가 데이터 수집 진행 중입니다.", isPinned: true },
@@ -100,7 +162,7 @@ export default function ProjectDetailPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   // TODO: 실제 연동 시 id로 프로젝트 상세 조회
-  const project = MOCK_PROJECT;
+  const project = MOCK_PROJECTS.find(p => p.id === id) ?? MOCK_PROJECTS[0];
 
   const handleComment = () => {
     if (!comment.trim()) return;

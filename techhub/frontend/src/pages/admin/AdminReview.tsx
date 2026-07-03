@@ -5,6 +5,8 @@ import { PLATFORMS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
 // 권한 판정 헬퍼 사용. canManageItem / isGlobalAdmin / managedCompanies 재사용.
 import { useAuth } from "../../context/useAuth";
+import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
+import type { WorkflowInput } from "../../components/WorkflowDiagram";
 
 const STATUSES = ["개발 중", "운영 중", "파일럿", "종료", "보류"];
 const SYSTEM_TYPES = ["웹 애플리케이션", "API/서비스", "ML/AI 모델", "데이터 파이프라인", "내부 도구", "기타"];
@@ -167,6 +169,7 @@ type ReviewPlatformItem = {
   // 워크플로우/에이전트형 (n8n, assistant)
   triggerAction?: string; nodes?: string[]; connectedApps?: string[];
   expectedTimeSaved?: string; difficulty?: string; specificUrl?: string; itemTags?: string;
+  workflowInput?: WorkflowInput;
   // 모델형 (ai-orchestration)
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
   // 소속/대상 관계사 (복수선택, 빈배열=전사공용) + 선택 여부 추적
@@ -561,6 +564,16 @@ const INITIAL_ITEMS: ReviewItem[] = [
     nodes: ["Schedule Trigger", "HTTP Request", "Code", "IF"], connectedApps: ["Microsoft Teams"],
     expectedTimeSaved: "월 4시간", difficulty: "보통", specificUrl: "https://n8n.kolmar.co.kr/workflow/014",
     itemTags: "정산, 구매자동화",
+    workflowInput: {
+      status: "Active",
+      nodes: [
+        { label: "Schedule Trigger", type: "trigger" },
+        { label: "ERP API 조회", type: "action" },
+        { label: "정산서 파싱", type: "action" },
+        { label: "불일치 항목 확인", type: "condition" },
+        { label: "Teams 알림 발송", type: "output" },
+      ],
+    },
     company: [], platformScope: "unset",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     links: [], approval: "대기",
@@ -1023,6 +1036,25 @@ export default function AdminReview() {
                       <FieldRow label="연동 앱·서비스">
                         <ChipEditor items={currentApps} onAdd={addApp} onRemove={removeApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" disabled={isDisabled} />
                       </FieldRow>
+                      {merged.kind === "n8n" && (() => {
+                        const currentWf: WorkflowInput = (edit as any).workflowInput
+                          ?? (merged as ReviewPlatformItem).workflowInput
+                          ?? { status: "Stable", nodes: [] };
+                        const preview = toWorkflowDef(currentWf);
+                        return (
+                          <FieldRow label="워크플로우 다이어그램">
+                            {isDisabled
+                              ? (preview
+                                  ? <WorkflowDiagram wf={preview} />
+                                  : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>)
+                              : <WorkflowEditor
+                                  value={currentWf}
+                                  onChange={v => setEdit("workflowInput" as any, v)}
+                                />
+                            }
+                          </FieldRow>
+                        );
+                      })()}
                     </SectionBlock>
 
                     <SectionBlock title="예상 효과">

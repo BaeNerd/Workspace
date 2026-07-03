@@ -38,6 +38,13 @@ export type PlatformItem = {
   // 비워두거나 생략하면 "전사 공용"으로 간주
   company?: string[];
 
+  // n8n 워크플로우 시각화 정의
+  workflowDef?: {
+    status: "Stable" | "Active" | "Error";
+    nodes: { id: string; label: string; type: "trigger" | "condition" | "action" | "output" }[];
+    edges: { from: string; to: string }[];
+  };
+
   // n8n / 나만의 비서(HK GPT 커스텀) 전용 — 노드 구성·연동 앱·예상 효과
   nodes?: string[];
   connectedApps?: string[];
