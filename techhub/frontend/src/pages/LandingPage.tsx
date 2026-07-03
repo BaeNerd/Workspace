@@ -144,10 +144,10 @@ export default function LandingPage() {
 
       <Navbar />
 
-      {/* HERO */}
+      {/* HERO — AboutPage와 동일 규격 (패딩 72/64, 그라디언트, 글로우, 배지) */}
       <section style={{
         background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
-        padding: "88px 32px 80px",
+        padding: "72px 32px 64px",
         textAlign: "center",
         position: "relative", overflow: "hidden",
       }}>
@@ -170,15 +170,17 @@ export default function LandingPage() {
           }}>
             Kolmar Group · AX Platform
           </div>
+
+          {/* 메인 타이틀 — AboutPage와 동일하게 화이트 위계 적용 */}
           <h1 style={{
-            fontSize: 40, fontWeight: 800, color: "#BFDBFE",
-            lineHeight: 1.3, letterSpacing: "-0.03em", marginBottom: 20,
+            fontSize: 40, fontWeight: 800, color: "#F8FAFC",
+            lineHeight: 1.5, letterSpacing: "-0.03em", marginBottom: 18,
           }}>
             콜마의 기술 자산을<br />한곳에서 연결하세요
           </h1>
           <p style={{
-            fontSize: 16, color: "#94A3B8", lineHeight: 1.7,
-            marginBottom: 36, fontWeight: 400,
+            fontSize: 15, color: "#94A3B8", lineHeight: 1.7,
+            marginBottom: 32, fontWeight: 400,
           }}>
             진행 중인 IT 프로젝트부터 n8n 워크플로우, AI 에이전트, AI 모델까지<br />
             한 곳에서 검색하고 연결하세요. 중복 개발을 줄이고 협업 기회를 발굴합니다.
@@ -196,6 +198,7 @@ export default function LandingPage() {
                 fontSize: 14, color: "#0F172A",
                 background: "#fff", border: "none",
                 borderRadius: 8, outline: "none",
+                boxShadow: "0 10px 30px rgba(2, 6, 23, 0.35)",
               }}
             />
             <button type="submit" style={{
@@ -243,10 +246,10 @@ export default function LandingPage() {
       </section>
 
       {/* RECENT — Project + PlatformItem 통합 */}
-      <section style={{ padding: "32px 32px 72px", maxWidth: 1100, margin: "0 auto" }}>
+      <section style={{ padding: "48px 32px 72px", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
               최근 등록
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>
@@ -271,6 +274,7 @@ export default function LandingPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
           {RECENT_ITEMS.map((item, i) => {
             const sourceStyle = SOURCE_STYLE[item.kind];
+            const sideColor = hovered === i ? sourceStyle.color : "#E2E8F0";
 
             return (
               <div
@@ -280,8 +284,11 @@ export default function LandingPage() {
                 onMouseLeave={() => setHovered(null)}
                 style={{
                   background: "#fff",
-                  border: `1.5px solid ${hovered === i ? sourceStyle.color : "#E2E8F0"}`,
+                  // border 축약형 + borderTop 동시 지정 시 React 스타일 경고가 발생하므로 4면을 분해해 지정
                   borderTop: `3px solid ${sourceStyle.color}`,
+                  borderRight: `1.5px solid ${sideColor}`,
+                  borderBottom: `1.5px solid ${sideColor}`,
+                  borderLeft: `1.5px solid ${sideColor}`,
                   borderRadius: 10, padding: "15px 17px",
                   cursor: "pointer",
                   transition: "border-color 0.15s, box-shadow 0.15s, transform 0.1s",
