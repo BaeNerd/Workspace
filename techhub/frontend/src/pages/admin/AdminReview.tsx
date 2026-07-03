@@ -170,6 +170,7 @@ type ReviewPlatformItem = {
   triggerAction?: string; nodes?: string[]; connectedApps?: string[];
   expectedTimeSaved?: string; difficulty?: string; specificUrl?: string; itemTags?: string;
   workflowInput?: WorkflowInput;
+  workflowJson?: string;
   // 모델형 (ai-orchestration)
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
   // 소속/대상 관계사 (복수선택, 빈배열=전사공용) + 선택 여부 추적
@@ -1041,12 +1042,37 @@ export default function AdminReview() {
                           ?? (merged as ReviewPlatformItem).workflowInput
                           ?? { status: "Stable", nodes: [] };
                         const preview = toWorkflowDef(currentWf);
+                        const wfJson = (merged as ReviewPlatformItem).workflowJson;
                         return (
                           <FieldRow label="워크플로우 다이어그램">
                             {isDisabled
-                              ? (preview
-                                  ? <WorkflowDiagram wf={preview} />
-                                  : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>)
+                              ? (<div>
+                                  {preview
+                                    ? <WorkflowDiagram wf={preview} />
+                                    : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>}
+                                  {(wfJson || preview) && (
+                                    <button
+                                      onClick={() => {
+                                        const content = wfJson ?? JSON.stringify(preview ?? {}, null, 2);
+                                        const blob = new Blob([content], { type: "application/json" });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement("a");
+                                        a.href = url; a.download = `${merged.id.toLowerCase()}-workflow.json`; a.click();
+                                        URL.revokeObjectURL(url);
+                                      }}
+                                      style={{
+                                        display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
+                                        background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6,
+                                        padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
+                                      }}
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                      </svg>
+                                      JSON 다운로드
+                                    </button>
+                                  )}
+                                </div>)
                               : <WorkflowEditor
                                   value={currentWf}
                                   onChange={v => setEdit("workflowInput" as any, v)}

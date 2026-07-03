@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
@@ -22,6 +22,18 @@ export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [platformOpen, setPlatformOpen] = useState(false);
+  const platformRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!platformOpen) return;
+    const close = (e: MouseEvent) => {
+      if (platformRef.current && !platformRef.current.contains(e.target as Node)) {
+        setPlatformOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [platformOpen]);
 
   const openExternal = (url: string | null) => {
     if (!url) return;
@@ -43,7 +55,13 @@ export default function Navbar() {
         </div>
         <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
           {NAV_LINKS.map(l => (
-            <span key={l.label} onClick={() => navigate(l.path)} style={{
+            <span key={l.label} onClick={() => {
+              if (location.pathname === l.path) {
+                navigate(l.path, { replace: true, state: { _resetAt: Date.now() } });
+              } else {
+                navigate(l.path);
+              }
+            }} style={{
               fontSize: 13, cursor: "pointer",
               fontWeight: location.pathname === l.path ? 600 : 500,
               color: location.pathname === l.path ? "#2563EB" : "#475569",
@@ -53,7 +71,7 @@ export default function Navbar() {
           ))}
 
           {/* 외부 자동화·AI 도구 바로가기 드롭다운 */}
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative" }} ref={platformRef}>
             <span
               onClick={() => setPlatformOpen(v => !v)}
               style={{
@@ -69,14 +87,11 @@ export default function Navbar() {
             </span>
 
             {platformOpen && (
-              <>
-                {/* 바깥 클릭 시 닫힘 */}
-                <div onClick={() => setPlatformOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                <div style={{
-                  position: "absolute", top: 30, left: 0, background: "#fff",
-                  border: "1.5px solid #E2E8F0", borderRadius: 10, padding: 6,
-                  width: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.08)", zIndex: 50,
-                }}>
+              <div style={{
+                position: "absolute", top: 30, left: 0, background: "#fff",
+                border: "1.5px solid #E2E8F0", borderRadius: 10, padding: 6,
+                width: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.08)", zIndex: 50,
+              }}>
                   {EXTERNAL_PLATFORMS.map(p => {
                     const disabled = !p.url;
                     return (
@@ -106,7 +121,6 @@ export default function Navbar() {
                     );
                   })}
                 </div>
-              </>
             )}
           </div>
 

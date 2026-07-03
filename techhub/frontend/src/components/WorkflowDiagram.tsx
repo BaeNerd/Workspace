@@ -6,7 +6,7 @@ export type WFNode = WorkflowDef["nodes"][number];
 // Simplified editor-friendly shape (linear order, auto-generates edges)
 export type WorkflowInput = {
   status: "Stable" | "Active" | "Error";
-  nodes: { label: string; type: WFNode["type"] }[];
+  nodes: { label: string; type: WFNode["type"]; n8nType?: string }[];
 };
 
 export const WF_STATUS_OPTIONS = ["Stable", "Active", "Error"] as const;
@@ -23,7 +23,7 @@ export function toWorkflowDef(input: WorkflowInput): WorkflowDef | undefined {
   if (filled.length === 0) return undefined;
   return {
     status: input.status,
-    nodes: filled.map((n, i) => ({ id: String(i + 1), label: n.label.trim(), type: n.type })),
+    nodes: filled.map((n, i) => ({ id: String(i + 1), label: n.label.trim(), type: n.type, n8nType: n.n8nType })),
     edges: filled.slice(0, -1).map((_, i) => ({ from: String(i + 1), to: String(i + 2) })),
   };
 }
@@ -32,11 +32,58 @@ export function fromWorkflowDef(wf: WorkflowDef | undefined): WorkflowInput {
   if (!wf) return { status: "Stable", nodes: [] };
   return {
     status: wf.status,
-    nodes: wf.nodes.map(n => ({ label: n.label, type: n.type })),
+    nodes: wf.nodes.map(n => ({ label: n.label, type: n.type, n8nType: n.n8nType })),
   };
 }
 
-/* ── 다이어그램 표시 컴포넌트 ───────────────────────────────── */
+/* ── n8n JSON 파싱 유틸리티 ────────────────────────────────────── */
+
+const EXCLUDED_N8N_TYPES = new Set([
+  "n8n-nodes-base.stickyNote",
+  "n8n-nodes-base.noOp",
+]);
+
+function n8nTypeToWFType(t: string): WFNode["type"] {
+  const base = t.split(".").pop()?.toLowerCase() ?? "";
+  if (base.endsWith("trigger") || base === "webhook") return "trigger";
+  if (base === "if" || base === "switch" || base === "filter") return "condition";
+  return "action";
+}
+
+export type ParsedN8nWorkflow = {
+  workflowInput: WorkflowInput;
+  rawJson: string;
+  name: string;
+};
+
+export function parseN8nJson(jsonStr: string): ParsedN8nWorkflow | null {
+  try {
+    const data = JSON.parse(jsonStr) as {
+      name?: string;
+      nodes?: Array<{ type: string; name: string; position?: [number, number] }>;
+    };
+    if (!Array.isArray(data.nodes)) return null;
+    const active = data.nodes
+      .filter(n => !EXCLUDED_N8N_TYPES.has(n.type))
+      .sort((a, b) => (a.position?.[0] ?? 0) - (b.position?.[0] ?? 0));
+    return {
+      workflowInput: {
+        status: "Stable",
+        nodes: active.map(n => ({
+          label: n.name,
+          type: n8nTypeToWFType(n.type),
+          n8nType: n.type,
+        })),
+      },
+      rawJson: jsonStr,
+      name: data.name ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ── NodeIcon — n8n 노드 유형별 아이콘 ─────────────────────────── */
 
 const STATUS_COLOR: Record<string, string> = {
   Stable: "#16A34A",
@@ -44,34 +91,186 @@ const STATUS_COLOR: Record<string, string> = {
   Error:  "#DC2626",
 };
 
-function NodeIcon({ type }: { type: WFNode["type"] }) {
-  if (type === "trigger" || type === "output") {
-    return (
-      <svg width="38" height="38" viewBox="0 0 38 38">
-        <rect width="38" height="38" rx="8" fill="#0078D4" />
-        <rect x="8" y="11" width="22" height="16" rx="2" fill="white" opacity="0.95" />
-        <polyline points="8,11 19,20 30,11" fill="none" stroke="#0078D4" strokeWidth="1.8" />
-      </svg>
-    );
-  }
-  if (type === "condition") {
-    return (
-      <svg width="38" height="38" viewBox="0 0 38 38">
-        <rect width="38" height="38" rx="8" fill="#F1F5F9" />
-        <path d="M10 28 L10 17 L21 17" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M17 12 L22 17 L17 22" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M22 17 L28 17 L28 28" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    );
-  }
+type IconCfg = { bg: string; path: string; viewBox?: string; fill?: string; stroke?: string };
+
+const N8N_ICON_MAP: Record<string, IconCfg> = {
+  scheduletrigger: {
+    bg: "#16A34A",
+    path: "M12 3a9 9 0 100 18A9 9 0 0012 3zM12 7v5l3.5 3.5",
+    stroke: "white", fill: "none",
+  },
+  webhook: {
+    bg: "#EA580C",
+    path: "M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3",
+    stroke: "white", fill: "none",
+  },
+  formtrigger: {
+    bg: "#EA580C",
+    path: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4",
+    stroke: "white", fill: "none",
+  },
+  chattrigger: {
+    bg: "#7C3AED",
+    path: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+    stroke: "white", fill: "none",
+  },
+  manualtrigger: {
+    bg: "#16A34A",
+    path: "M5 3l14 9-14 9V3z",
+    fill: "white", stroke: "none",
+  },
+  if: {
+    bg: "#D97706",
+    path: "M12 3v5M12 8l-4 5M12 8l4 5M8 13v5M16 13v5",
+    stroke: "white", fill: "none",
+  },
+  switch: {
+    bg: "#D97706",
+    path: "M4 12h16M12 4l-4 8h8L12 4zM8 16l-4 4M12 16v4M16 16l4 4",
+    stroke: "white", fill: "none",
+  },
+  filter: {
+    bg: "#D97706",
+    path: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+    stroke: "white", fill: "none",
+  },
+  code: {
+    bg: "#4F46E5",
+    path: "M16 18l6-6-6-6M8 6l-6 6 6 6",
+    stroke: "white", fill: "none",
+  },
+  splitinbatches: {
+    bg: "#059669",
+    path: "M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3",
+    stroke: "white", fill: "none",
+  },
+  splitout: {
+    bg: "#0D9488",
+    path: "M12 3v8M8 7l4 4 4-4M5 19h14M9 19v-4h6v4",
+    stroke: "white", fill: "none",
+  },
+  merge: {
+    bg: "#0D9488",
+    path: "M8 5v6l4 3 4-3V5M12 14v6M5 19h14",
+    stroke: "white", fill: "none",
+  },
+  aggregate: {
+    bg: "#0D9488",
+    path: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+    stroke: "white", fill: "none",
+  },
+  sort: {
+    bg: "#0D9488",
+    path: "M3 6h18M6 12h12M9 18h6",
+    stroke: "white", fill: "none",
+  },
+  googlesheets: {
+    bg: "#16A34A",
+    path: "M3 3h18v18H3V3zM3 9h18M3 15h18M9 3v18M15 3v18",
+    stroke: "white", fill: "none",
+  },
+  telegram: {
+    bg: "#0088CC",
+    path: "M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z",
+    stroke: "white", fill: "none",
+  },
+  microsoftteams: {
+    bg: "#6264A7",
+    path: "M17 8a3 3 0 100-6 3 3 0 000 6zM20 10h-1a3 3 0 00-3 3v5h4V10zM3 10h11v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10zM8.5 5a3 3 0 100 6 3 3 0 000-6z",
+    stroke: "white", fill: "none",
+  },
+  microsoftoutlook: {
+    bg: "#0078D4",
+    path: "M3 7l9 6 9-6M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z",
+    stroke: "white", fill: "none",
+  },
+  slack: {
+    bg: "#4A154B",
+    path: "M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5zM20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5zM3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14zM14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5zM15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5zM8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z",
+    fill: "white", stroke: "none",
+  },
+  httprequest: {
+    bg: "#2563EB",
+    path: "M12 2a10 10 0 100 20A10 10 0 0012 2zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20",
+    stroke: "white", fill: "none",
+  },
+  airtop: {
+    bg: "#0D9488",
+    path: "M2 4a2 2 0 012-2h16a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V4zM2 8h20M8 20v-8M6 12h4",
+    stroke: "white", fill: "none",
+  },
+  respondtowebhook: {
+    bg: "#EA580C",
+    path: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+    fill: "white", stroke: "none",
+  },
+  set: {
+    bg: "#64748B",
+    path: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
+    stroke: "white", fill: "none",
+  },
+  editfields: {
+    bg: "#64748B",
+    path: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
+    stroke: "white", fill: "none",
+  },
+  openai: {
+    bg: "#10A37F",
+    path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8 12l2-2 2 2 4-4",
+    stroke: "white", fill: "none",
+  },
+  agent: {
+    bg: "#7C3AED",
+    path: "M12 2a5 5 0 015 5 5 5 0 01-5 5 5 5 0 01-5-5 5 5 0 015-5zM3 21v-1a9 9 0 0118 0v1",
+    stroke: "white", fill: "none",
+  },
+  basicllmchain: {
+    bg: "#7C3AED",
+    path: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z",
+    stroke: "white", fill: "none",
+  },
+};
+
+const TYPE_ICON_MAP: Record<WFNode["type"], IconCfg> = {
+  trigger: {
+    bg: "#16A34A",
+    path: "M13 2L3 14h7l-1 8 10-12h-7l1-8z",
+    stroke: "white", fill: "none",
+  },
+  condition: {
+    bg: "#D97706",
+    path: "M4 12h16M12 4l-4 8h8L12 4z",
+    stroke: "white", fill: "none",
+  },
+  action: {
+    bg: "#7C3AED",
+    path: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
+    stroke: "white", fill: "none",
+  },
+  output: {
+    bg: "#2563EB",
+    path: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+    fill: "white", stroke: "none",
+  },
+};
+
+function NodeIcon({ type, n8nType }: { type: WFNode["type"]; n8nType?: string }) {
+  const key = n8nType?.split(".").pop()?.toLowerCase();
+  const cfg = (key && N8N_ICON_MAP[key]) || TYPE_ICON_MAP[type];
+  const strokeW = cfg.stroke ? "2" : undefined;
   return (
-    <svg width="38" height="38" viewBox="0 0 38 38">
-      <rect width="38" height="38" rx="8" fill="#7C3AED" />
-      <circle cx="19" cy="19" r="9" fill="none" stroke="white" strokeWidth="2" opacity="0.9" />
-      <path d="M19 14 L19 24 M14 19 L24 19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
+    <div style={{
+      width: 38, height: 38, borderRadius: 9, background: cfg.bg, flexShrink: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill={cfg.fill ?? "none"} stroke={cfg.stroke ?? "none"} strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round">
+        <path d={cfg.path} />
+      </svg>
+    </div>
   );
 }
+
+/* ── 다이어그램 표시 컴포넌트 ───────────────────────────────────── */
 
 export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
   const order: string[] = [];
@@ -118,7 +317,7 @@ export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
                   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                   minWidth: 110, display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                 }}>
-                  <NodeIcon type={node.type} />
+                  <NodeIcon type={node.type} n8nType={node.n8nType} />
                   <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", lineHeight: 1.4, maxWidth: 90 }}>
                     {node.label}
                   </div>
@@ -140,7 +339,7 @@ export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
   );
 }
 
-/* ── 워크플로우 에디터 컴포넌트 ─────────────────────────────── */
+/* ── 워크플로우 에디터 컴포넌트 ──────────────────────────────────── */
 
 const selectStyle: React.CSSProperties = {
   fontSize: 12, padding: "5px 8px", borderRadius: 6,
@@ -164,9 +363,7 @@ export function WorkflowEditor({
 }) {
   const addNode = () => {
     if (disabled) return;
-    const type: WFNode["type"] = value.nodes.length === 0 ? "trigger"
-      : value.nodes.length === value.nodes.length - 1 ? "output"
-      : "action";
+    const type: WFNode["type"] = value.nodes.length === 0 ? "trigger" : "action";
     onChange({ ...value, nodes: [...value.nodes, { label: "", type }] });
   };
   const removeNode = (i: number) => {
@@ -222,9 +419,12 @@ export function WorkflowEditor({
               value={node.label}
               onChange={e => setField(i, "label", e.target.value)}
               disabled={disabled}
-              placeholder="노드명 (예: Outlook Trigger)"
+              placeholder="노드명 (예: Schedule Trigger)"
               style={{ ...inputStyle, opacity: disabled ? 0.6 : 1 }}
             />
+            {node.n8nType && !disabled && (
+              <NodeIcon type={node.type} n8nType={node.n8nType} />
+            )}
             {!disabled && (
               <button
                 onClick={() => removeNode(i)}

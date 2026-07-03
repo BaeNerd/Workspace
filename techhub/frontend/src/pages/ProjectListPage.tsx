@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
@@ -167,6 +167,24 @@ export default function ProjectListPage() {
   const [sort, setSort] = useState<typeof SORT_OPTIONS[number]>("최신순");
   const [hovered, setHovered] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false); // ★ 기본 닫힘
+
+  const location = useLocation();
+  const resetAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    const _resetAt = (location.state as { _resetAt?: number } | null)?._resetAt ?? null;
+    if (_resetAt !== null && _resetAt !== resetAtRef.current) {
+      resetAtRef.current = _resetAt;
+      setSource("전체");
+      setDomain("전체");
+      setStatus("전체");
+      setType("전체");
+      setCompany(isGroupViewer ? "전체" : (user?.company ?? "전체"));
+      setSearch("");
+      setSort("최신순");
+      setSidebarOpen(false);
+      setSearchParams({});
+    }
+  }, [location.state]);
 
   const projects = MOCK_PROJECTS;
   const platformItems = MOCK_PLATFORM_ITEMS;

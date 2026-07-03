@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
-import { WorkflowEditor, toWorkflowDef } from "../components/WorkflowDiagram";
+import { WorkflowEditor, toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 
 // ===== 공통 상수 =====
@@ -151,6 +151,7 @@ type FormState = {
   platformCompanies: string[];
   // n8n 전용 — 워크플로우 다이어그램 입력
   workflowInput: WorkflowInput;
+  workflowJson: string;
   contacts: Contact[];
   links: LinkItem[];
 };
@@ -449,6 +450,7 @@ export default function ProjectRegisterPage() {
     provider: "", contextWindow: "", strengths: "", costTier: "보통",
     platformCompanies: [],
     workflowInput: { status: "Stable", nodes: [] },
+    workflowJson: "",
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
@@ -456,6 +458,24 @@ export default function ProjectRegisterPage() {
   // 관계사 범위 상태. "unset"이면 등록자가 아직 드롭다운을 열어
   // 명시적으로 선택하지 않은 것으로 간주 → 다음 단계 진행 차단
   const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">("unset");
+
+  const [n8nUploadedFile, setN8nUploadedFile] = useState<string | null>(null);
+
+  const handleN8nJsonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const parsed = parseN8nJson(text);
+      if (parsed) {
+        setForm(p => ({ ...p, workflowInput: parsed.workflowInput, workflowJson: parsed.rawJson }));
+        setN8nUploadedFile(file.name);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   const [draftCompany, setDraftCompany] = useState(SELECTABLE_COMPANIES[1]?.code ?? SELECTABLE_COMPANIES[0].code);
   const [draftParent, setDraftParent] = useState(NO_PARENT);
@@ -547,6 +567,7 @@ export default function ProjectRegisterPage() {
       ...form,
       expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
       workflowDef: kind === "n8n" ? toWorkflowDef(form.workflowInput) : undefined,
+      workflowJson: kind === "n8n" && form.workflowJson ? form.workflowJson : undefined,
     };
     void _payload;
     await new Promise(r => setTimeout(r, 600));
@@ -807,12 +828,36 @@ export default function ProjectRegisterPage() {
                 <ChipInput items={form.connectedApps} onAdd={addApp} onRemove={removeApp} draft={draftApp} onDraftChange={setDraftApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
               </Field>
               {kind === "n8n" && (
-                <Field label="워크플로우 다이어그램" hint="노드를 순서대로 추가하면 연결선이 자동으로 생성됩니다. 등록 후 상세 페이지에서 다이어그램으로 표시됩니다.">
-                  <WorkflowEditor
-                    value={form.workflowInput}
-                    onChange={v => setForm(p => ({ ...p, workflowInput: v }))}
-                  />
-                </Field>
+                <>
+                  <Field label="워크플로우 JSON 업로드" hint="n8n에서 내보낸 .json 파일을 업로드하면 노드 구성이 자동으로 채워집니다.">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <label style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        background: "#0F172A", color: "#fff", borderRadius: 7,
+                        padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0,
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                        </svg>
+                        JSON 파일 선택
+                        <input type="file" accept=".json" onChange={handleN8nJsonUpload} style={{ display: "none" }} />
+                      </label>
+                      {n8nUploadedFile ? (
+                        <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>
+                          ✓ {n8nUploadedFile}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "#94A3B8" }}>선택된 파일 없음</span>
+                      )}
+                    </div>
+                  </Field>
+                  <Field label="워크플로우 다이어그램" hint="JSON 파일 업로드 시 자동으로 채워집니다. 직접 노드를 추가하거나 수정할 수도 있습니다.">
+                    <WorkflowEditor
+                      value={form.workflowInput}
+                      onChange={v => setForm(p => ({ ...p, workflowInput: v }))}
+                    />
+                  </Field>
+                </>
               )}
             </Section>
 

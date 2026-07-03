@@ -41,9 +41,12 @@ export type PlatformItem = {
   // n8n 워크플로우 시각화 정의
   workflowDef?: {
     status: "Stable" | "Active" | "Error";
-    nodes: { id: string; label: string; type: "trigger" | "condition" | "action" | "output" }[];
+    nodes: { id: string; label: string; type: "trigger" | "condition" | "action" | "output"; n8nType?: string }[];
     edges: { from: string; to: string }[];
   };
+
+  // n8n 워크플로우 원본 JSON (업로드된 파일 내용)
+  workflowJson?: string;
 
   // n8n / 나만의 비서(HK GPT 커스텀) 전용 — 노드 구성·연동 앱·예상 효과
   nodes?: string[];

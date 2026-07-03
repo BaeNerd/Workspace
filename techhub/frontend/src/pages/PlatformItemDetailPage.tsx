@@ -252,6 +252,17 @@ export default function PlatformItemDetailPage() {
     ));
   };
 
+  const downloadWorkflow = () => {
+    const content = item.workflowJson ?? JSON.stringify(item.workflowDef ?? {}, null, 2);
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${item.id.toLowerCase()}-workflow.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handlePost = () => {
     if (!postText.trim()) return;
     setPosts(prev => [{
@@ -472,7 +483,21 @@ export default function PlatformItemDetailPage() {
               </div>
             ) : (
               <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>상세 동작</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>상세 동작</div>
+                  {item.platformId === "n8n" && (item.workflowJson || item.workflowDef) && (
+                    <button onClick={downloadWorkflow} style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6,
+                      padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                      JSON 다운로드
+                    </button>
+                  )}
+                </div>
                 {item.workflowDef && <WorkflowDiagram wf={item.workflowDef} />}
                 <div style={{
                   fontSize: 13, color: "#475569", lineHeight: 1.9, whiteSpace: "pre-line",

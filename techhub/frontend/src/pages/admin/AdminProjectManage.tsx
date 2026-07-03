@@ -176,6 +176,7 @@ type ManagedPlatformItem = {
   nodes?: string[]; connectedApps?: string[];
   expectedTimeSaved?: string; difficulty?: string;
   workflowInput?: WorkflowInput;
+  workflowJson?: string;
   // AI Agent 전용
   provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
 };
@@ -1212,9 +1213,35 @@ export default function AdminProjectManage() {
                               />
                             : (() => {
                                 const wf = toWorkflowDef(displayData.workflowInput ?? { status: "Stable", nodes: [] });
-                                return wf
-                                  ? <WorkflowDiagram wf={wf} />
-                                  : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>;
+                                return (
+                                  <div>
+                                    {wf
+                                      ? <WorkflowDiagram wf={wf} />
+                                      : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>}
+                                    {(displayData.workflowJson || wf) && (
+                                      <button
+                                        onClick={() => {
+                                          const content = displayData.workflowJson ?? JSON.stringify(wf ?? {}, null, 2);
+                                          const blob = new Blob([content], { type: "application/json" });
+                                          const url = URL.createObjectURL(blob);
+                                          const a = document.createElement("a");
+                                          a.href = url; a.download = `${displayData.id.toLowerCase()}-workflow.json`; a.click();
+                                          URL.revokeObjectURL(url);
+                                        }}
+                                        style={{
+                                          display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
+                                          background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6,
+                                          padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
+                                        }}
+                                      >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                        </svg>
+                                        JSON 다운로드
+                                      </button>
+                                    )}
+                                  </div>
+                                );
                               })()}
                         </FieldRow>
                       )}
