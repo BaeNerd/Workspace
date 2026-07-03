@@ -247,7 +247,7 @@ export default function AboutPage() {
 
       <Navbar />
 
-      {/* HERO — deck 워딩 반영: KOLMAR GROUP · AX PLATFORM / Kolmar Tech Hub */}
+      {/* HERO — KOLMAR GROUP · AX PLATFORM / Kolmar Tech Hub */}
       <section style={{
         background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
         padding: "72px 32px 64px", textAlign: "center",

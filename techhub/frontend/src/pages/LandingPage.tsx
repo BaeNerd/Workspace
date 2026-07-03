@@ -165,7 +165,7 @@ export default function LandingPage() {
             fontSize: 11, fontWeight: 700, letterSpacing: "0.18em",
             color: "#93C5FD", background: "rgba(147, 197, 253, 0.12)",
             border: "1px solid rgba(147, 197, 253, 0.25)",
-            borderRadius: 20, padding: "5px 16px", marginBottom: 22,
+            borderRadius: 20, padding: "5px 16px",
             textTransform: "uppercase",
           }}>
             Kolmar Group · AX Platform
