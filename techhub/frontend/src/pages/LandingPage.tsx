@@ -149,21 +149,30 @@ export default function LandingPage() {
         background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
         padding: "88px 32px 80px",
         textAlign: "center",
+        position: "relative", overflow: "hidden",
       }}>
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        {/* 배경 장식 — 은은한 방사형 글로우 (AboutPage 동일) */}
+        <div style={{
+          position: "absolute", top: -120, left: "50%", transform: "translateX(-50%)",
+          width: 640, height: 640, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, rgba(37, 99, 235, 0) 65%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{ maxWidth: 680, margin: "0 auto", position: "relative" }}>
           <div style={{
             display: "inline-block",
-            fontSize: 11, fontWeight: 700, letterSpacing: "0.1em",
-            color: "#93C5FD", background: "rgba(147,197,253,0.12)",
-            border: "1px solid rgba(147,197,253,0.25)",
-            borderRadius: 20, padding: "4px 14px", marginBottom: 24,
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.18em",
+            color: "#93C5FD", background: "rgba(147, 197, 253, 0.12)",
+            border: "1px solid rgba(147, 197, 253, 0.25)",
+            borderRadius: 20, padding: "5px 16px", marginBottom: 22,
             textTransform: "uppercase",
           }}>
-            Kolmar Project Platform
+            Kolmar Group · AX Platform
           </div>
           <h1 style={{
-            fontSize: 40, fontWeight: 800, color: "#F8FAFC",
-            lineHeight: 1.2, letterSpacing: "-0.03em", marginBottom: 20,
+            fontSize: 40, fontWeight: 800, color: "#BFDBFE",
+            lineHeight: 1.3, letterSpacing: "-0.03em", marginBottom: 20,
           }}>
             콜마의 기술 자산을<br />한곳에서 연결하세요
           </h1>
