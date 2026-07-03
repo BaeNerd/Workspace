@@ -24,6 +24,7 @@ import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
 import AdminPlatforms from "./pages/admin/AdminPlatforms";
+import PresentationDeck from "./pages/PresentationDeck";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/deck" element={<PresentationDeck />} />
 
           {/* ===== 로그인 필요 ===== */}
           <Route path="/projects" element={<ProtectedRoute><ProjectListPage /></ProtectedRoute>} />

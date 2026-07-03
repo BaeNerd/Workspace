@@ -66,7 +66,8 @@ techhub/
 ├── AdminTaxonomy.tsx
 ├── AdminOrg.tsx
 ├── AdminUsers.tsx
-└── AdminStatistics.tsx
+├── AdminStatistics.tsx
+└── AdminPlatforms.tsx          # 자동화·AI 도구(플랫폼) 메타데이터 관리 (AD-09)
 
 ---
 
@@ -79,6 +80,7 @@ techhub/
 - **주요 state**
   - `hovered: number | null` — 프로젝트 카드 hover 인덱스
   - `search: string` — Hero 검색 입력값
+- **집계 규칙**: 랜딩 페이지 통계 카드는 관계사 노출(`visible`) 필터를 적용하지 않는 전수(full-count) 기준으로 산출한다.
 
 #### `LoginPage.tsx` — `/login`
 - **역할**: Microsoft SSO 로그인 화면. `?redirect=` 쿼리로 로그인 후 복귀 경로 수신. 데모 단계에서는 SSO 버튼이 전사관리자 계정으로 로그인하고, 그 아래 접이식 데모 계정 전환 UI로 권한 범위별 계정을 선택할 수 있다.
@@ -128,7 +130,7 @@ techhub/
 
 #### `ProjectRegisterPage.tsx` — `/projects/new`
 - **역할**: 신규 프로젝트·플랫폼 항목 등록 신청. 4단계 스텝 폼 (기본정보 → 분류·태그 → 담당자·링크 → 최종확인).
-- **내부 컴포넌트** (모듈 레벨): `RowRemoveButton`(담당자·링크 행 정렬용), `CompanyMultiSelect`(관계사 닫힌 멀티셀렉트)
+- **내부 컴포넌트** (모듈 레벨): `RowRemoveButton`(담당자·링크 행 정렬용), `CompanyMultiSelect`(관계사 닫힌 멀티셀렉트), `TimeSavedInput`(예상 절감 시간 수치+주기 입력)
 - **주요 state**
   - `step: 0–3` — 현재 스텝
   - `form: FormState` — 전체 폼 데이터
@@ -136,10 +138,11 @@ techhub/
     - `status, systemType, domains[], audiences[], departments[], stack[]` — 분류
     - `freeTags, integrations` — 태그
     - `company: string[]`, `platformScope: "unset" | "company-wide" | "specific"` — 소속/대상 관계사 (플랫폼 항목). "전사 공용" 체크박스와 관계사 선택은 상호 배타. `platformScope`가 `unset`이면 다음 스텝 진행 차단.
+    - `timeSavedValue: string`, `timeSavedPeriod: "일" | "주" | "월" | "년"` — 예상 절감 시간 입력 상태(n8n/나만의 비서 항목). 제출 시 `serializeTimeSaved`로 `expectedTimeSaved` 표준 문자열 생성.
     - `contacts: Contact[]` — 담당자 목록
     - `links: LinkItem[]` — 외부 링크 목록
   - `saving / saved: boolean` — 제출 진행·완료 여부
-- **후속 작업**: "예상 절감 시간" 필드 정규화(자유 텍스트 → 수치 입력 + 고정 단위 "시간/주"). AdminStatistics 집계 연동 예정.
+- **예상 절감 시간**: 자유 텍스트가 아닌 "수치 + 주기(일/주/월/년)" 입력으로 정규화 완료. 입력값은 연간 환산값과 계산 근거를 함께 표기하고, 저장 시 `"<주기> N시간"` 표준 문자열로 직렬화하여 AdminStatistics 집계와 정합.
 
 #### `MyStatusPage.tsx` — `/my-status`
 - **역할**: 내가 등록 신청한 프로젝트 목록. 승인/대기/반려 탭 필터. 승인 항목은 상태(개발 중/운영 중 등) 직접 변경 가능. 반려 항목은 재제출 또는 삭제 가능.
@@ -188,18 +191,19 @@ techhub/
   - `ReviewProjectItem` (`kind: "project"`) — 조직 계층(`orgEntries`), 도메인, 기술 스택 포함
   - `ReviewPlatformItem` (`kind: PlatformId`) — 플랫폼 전용 필드(n8n/assistant의 `nodes`·`connectedApps`·`triggerAction`·`expectedTimeSaved`·`difficulty`, ai-orchestration의 `provider`·`contextWindow`·`strengths`·`costTier`) + `company: string[]` + `platformScope: "unset" | "company-wide" | "specific"`
   - `ReviewItem` = 위 두 타입의 유니온, `isProjectKind()` 타입 가드로 분기
-- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`
+- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`, `TimeSavedInput`
   - `CompanyMultiSelect`는 `allowedCodes`(토글 허용 관계사 화이트리스트)와 `allowCompanyWide`(전사 공용 선택 허용 여부) prop으로 권한 범위 제한을 수용. 담당 외 공동 소속 관계사는 "담당 외" 잠금 표시(해제 불가).
 - **주요 state**
   - `items: ReviewItem[]` — 전체 검토 목록 (초기값 `INITIAL_ITEMS`)
   - `selected: string` — 현재 선택된 항목 ID
   - `done: string[]` — 처리 완료(승인/반려)된 항목 ID 목록
-  - `edits: Record<string, Partial<ReviewItem>>` — 관리자가 수정한 내용 누적 맵
+  - `edits: Record<string, Partial<ReviewItem>>` — 관리자가 수정한 내용 누적 맵. 예상 절감 시간은 `timeSavedValue`·`timeSavedPeriod`를 임시 키로 함께 보관하고, `handleApprove`에서 구조분해로 임시 키를 제거한 뒤 `expectedTimeSaved`만 직렬화하여 저장.
   - `filter: "전체" | "대기" | "처리완료"` — 목록 필터
   - `sourceFilter: "전체" | "project" | PlatformId` — 출처별 필터
   - `rejectOpen: boolean` — 반려 사유 입력 영역 표시 여부
   - `rejectReason: string` — 반려 사유 입력값
   - `draftCompany / draftParent / draftDept: string` — 프로젝트 조직 항목 추가용 드래프트
+- **예상 절감 시간**: n8n/나만의 비서 항목 편집 시 `TimeSavedInput`으로 수치+주기 입력. 편집 진입 시 `deserializeTimeSaved`로 기존 값을 역직렬화하고, 승인 저장 시 `serializeTimeSaved`로 `"<주기> N시간"` 표준 문자열만 반영.
 - **권한 판정** (`useAuth()` 사용)
   - `isGlobalAdmin`: 전사관리자 여부 (미지정 시 전사관리자로 간주 — 레거시 호환)
   - `managedCompanies`: 관계사관리자 담당 관계사 코드 목록
@@ -216,14 +220,16 @@ techhub/
 #### `AdminProjectManage.tsx` — `/admin/projects`
 - **역할**: 승인된 프로젝트·플랫폼 항목 전체 관리. 검색·필터링, 인라인 편집, 상태 변경, 삭제, 관리자 직접 등록. 관계사 관리자 권한 범위(B안 enforcement) 적용 — 완료.
 - **내부 타입**: `ManagedProjectItem`(`kind: "project"`) | `ManagedPlatformItem`(`kind: PlatformId`, `company`·`platformScope` 포함) 유니온. `isProjectKind()` 타입 가드로 분기.
-- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`(`allowedCodes`·`allowCompanyWide` 확장)
+- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`(`allowedCodes`·`allowCompanyWide` 확장), `TimeSavedInput`
 - **주요 state**
   - `items: ManagedItem[]` — 전체 관리 대상 목록(프로젝트 + 플랫폼 항목)
   - `selected: string` — 현재 선택 항목 ID
   - `editMode / isNew: boolean`, `editData: ManagedItem | null` — 편집·신규 등록 상태
+  - `timeSavedValue: string`, `timeSavedPeriod: "일" | "주" | "월" | "년"` — 예상 절감 시간 편집 상태. `editData` 단일 객체와 분리 보관하여, 편집 진입 시 `deserializeTimeSaved`로 채우고 저장 시 `serializeTimeSaved`로 `editData.expectedTimeSaved`에 반영.
   - `deleteConfirm: string | null` — 삭제 확인 대상
   - `search / filterStatus / sourceFilter` — 검색·필터
   - `draftCompany / draftParent / draftDept` — 프로젝트 조직 항목 추가용 드래프트
+- **예상 절감 시간**: n8n/나만의 비서 항목의 "예상 효과" 섹션에서 `TimeSavedInput`(수치+주기)로 입력. `editData` 단일 객체 편집 모델에 맞춰, 편집 진입(`startEdit`)·신규 등록(`startNew`)·취소(`cancelEdit`)·저장(`handleSave`) 각 시점에 상태 초기화·직렬화를 일관 처리. 열람 시 `주당 N시간 · 연간 약 M시간 (N시간 × K주)` 형태로 계산 근거 함께 표기.
 - **권한 판정** (`useAuth()` 사용, AdminReview와 동일 규칙 재사용)
   - `itemCompaniesOf()` / `itemIsCompanyWideOf()` / `canManageManagedItem()` — 항상 원본 항목 기준 판정
   - `canManageCurrent`: 현재 선택 항목 관리 가능 여부(신규 등록은 항상 true) → 수정·삭제 버튼 조건 노출, 범위 밖은 열람 안내
@@ -231,6 +237,7 @@ techhub/
   - `orgCompanyChoices`: 신규 프로젝트 `orgEntries` 추가용 관계사 선택지를 담당 관계사로 제한, `addOrgEntry`에서 재검증
   - `CompanyMultiSelect`에 `allowedCodes={companyEditAllowed}`·`allowCompanyWide={isGlobalAdmin}` 적용
 - **목록 배지**: `platformScope === "unset"` → "관계사 미지정", 담당 범위 밖 → "권한 범위 외"
+- **`useAuth` import 경로**: `../../context/useAuth`
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy`
 - **역할**: 분류체계 관리. 탭(비즈니스 도메인·시스템 유형·상태·사용 대상·기술 스택·자유 태그)별 항목 추가/삭제/편집. 자유 태그 → 공식 분류 편입.
@@ -273,10 +280,22 @@ techhub/
   - 공용 데이터·헬퍼는 `mocks/statsMockData.ts`에서 import(`STAT_COMPANIES`, `COMPANY_NAME`, `scopedCompanies`, `aggregateMonthly`, `aggregateSourceTotal`, `aggregateDomain`, `monthTotal`, `scopeBadgeText`)
   - 화면 고유 데이터: 상태·스택·부서·시스템유형·난이도·비용·키워드·절감시간의 관계사 차원 더미와 전용 헬퍼(`aggregateIndexed`, `aggregateDept`, `aggregateKeyword`, `aggregateTimeSaved`, `parseTimeSaved`)
   - 집계 범위 배지, 담당 관계사 없음 빈 상태, 0 나눗셈 방지(`|| 1`) 처리
-- **절감 효과 요약**: `parseTimeSaved()` + `PERIOD_MULTIPLIER`로 자유 입력 텍스트를 연간 환산 시간(시간/년)으로 정규화. 매칭 실패 건은 "추정 불가"로 별도 집계.
+- **절감 효과 요약**: `parseTimeSaved()` + `PERIOD_MULTIPLIER`로 절감 시간 입력을 연간 환산 시간(시간/년)으로 정규화. `PERIOD_MULTIPLIER`는 예상 절감 시간 정규화 규격의 `PERIOD_ANNUAL_FACTOR`(일:365, 주:52, 월:12, 년:1)와 동일 계수. 등록 화면이 표준 문자열(`"<주기> N시간"`)로 저장하므로 정규 케이스는 항상 파싱 성공하며, 레거시 자유 텍스트 잔존분은 종전과 같이 "추정 불가"로 별도 집계.
 - **주요 state**
   - `periodMode: "preset" | "month"`, `period`, `pickYear`, `pickMonth` — 조회 기간·월 지정
 - **타입 주의**: `MonthPoint`·`SourceKey`·`StatCompany`는 공용 모듈에서 `import type`으로 분리 import
+
+#### `AdminPlatforms.tsx` — `/admin/platforms` (AD-09)
+- **역할**: 자동화·AI 도구(플랫폼) 메타데이터 관리. `PLATFORMS`(n8n·나만의 비서·AI Agent) 항목의 이름·설명·경로·색상·아이콘 등 메타 정보를 CRUD. 편집은 전사관리자에게만 허용, 관계사관리자는 열람만 가능.
+- **내부 타입**: `ManagedPlatform = Platform & { active: boolean }` — `PLATFORMS` 메타에 활성/비활성 플래그를 확장.
+- **내부 컴포넌트** (모듈 레벨): `PlatformIcon`, `FieldRow`, `SectionBlock`
+- **내부 상수**: `ICON_OPTIONS`(아이콘 선택지), `COLOR_PRESETS`(색상 프리셋)
+- **주요 동작·제약**
+  - 기존 `id` 필드는 읽기 전용(변경 불가), 신규 등록 시에만 입력 가능하며 중복·형식 검증 수행.
+  - 신규 `id` 추가 시 라우팅(App.tsx)·타입 정의(platformTypes.ts) 반영이 별도로 필요하다는 경고 표시.
+  - 삭제보다 비활성화(`active: false`) 권장.
+  - 편집 결과는 실제 연동 시 `PUT /api/v1/admin/platforms`로 위임하며, 데모에서는 로컬 상태로만 관리.
+- **`useAuth` import 경로**: `../../context/useAuth`
 
 ---
 
@@ -286,7 +305,7 @@ techhub/
 |------|------|
 | `Navbar.tsx` | 일반 페이지 상단 고정 네비게이션. `useLocation`으로 활성 링크 감지. "플랫폼 바로가기" 드롭다운(`EXTERNAL_PLATFORMS` 상수 기반): n8n은 새 탭 링크, 나만의비서·AI Agent는 "준비 중" 비활성. 로그인 시 아바타 클릭 → 드롭다운 메뉴(내 현황·관리자 이동·로그아웃). 관리자에게만 별 아이콘 링크 노출. |
 | `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. 로고 + 관리자 뱃지 + 사용자 이니셜 + 로그아웃. |
-| `AdminSidebar.tsx` | 관리자 좌측 사이드바. `useLocation`으로 현재 경로 자동 감지 → 활성 메뉴 강조. `pendingCount` prop으로 검토 대기 뱃지 표시. |
+| `AdminSidebar.tsx` | 관리자 좌측 사이드바. `useLocation`으로 현재 경로 자동 감지 → 활성 메뉴 강조. `pendingCount` prop으로 검토 대기 뱃지 표시. `ADMIN_NAV`에 "자동화·AI 도구 관리"(`/admin/platforms`) 항목을 통계 아래에 포함. |
 | `Footer.tsx` | 공통 푸터. |
 | `ProtectedRoute.tsx` | 라우트 가드. `requireAdmin` prop 없으면 미인증 시 `/login?redirect=<pathname>`으로 이동. `requireAdmin` 있으면 비관리자 시 `/projects`로 이동. |
 
@@ -335,6 +354,7 @@ useAuth() (context/useAuth.ts)
   | AdminReview | 담당 관계사 기준 승인·반려 가드(원본 기준 판정), 전사 공용은 global만, escalation 방지 | 완료 |
   | AdminProjectManage | 담당 관계사 기준 관리·상태 변경·삭제 가드, orgEntries 범위 제한, 이중 가드 | 완료 |
   | AdminStatistics / AdminDashboard | 관계사관리자는 집계를 담당 관계사로 한정, global은 전체. 범위 배지·빈 상태 | 완료 |
+  | AdminPlatforms | 플랫폼 메타 편집은 전사관리자 전용, 관계사관리자는 열람만 | 완료 |
   | LoginPage (데모 계정) | 관계사관리자 프리셋으로 enforcement 실동작 검증 수단 제공 | 완료 |
 
 - **판정 원칙**: 승인·수정·삭제 등 모든 권한 판정은 **편집 중 상태가 아닌 원본 항목** 기준으로 수행하여, 관계사 필드를 편집해 권한을 우회하는 것을 차단.
@@ -349,9 +369,9 @@ useAuth() (context/useAuth.ts)
 | `PlatformId` | `"n8n" \| "assistant" \| "ai-orchestration"` |
 | `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
 | `PlatformItemStatus` | `"운영 중" \| "개발 중" \| "파일럿" \| "보류" \| "종료"` |
-| `PlatformItem` | 플랫폼 항목 타입. `company: string[]` — 소속 관계사 코드 배열 (비어있으면 전사 공용). `platformScope: "unset" \| "company-wide" \| "specific"`. n8n/assistant 전용 필드(nodes, connectedApps 등)와 AI Agent 전용 필드(modelMeta) 포함. |
+| `PlatformItem` | 플랫폼 항목 타입. `company: string[]` — 소속 관계사 코드 배열 (비어있으면 전사 공용). `platformScope: "unset" \| "company-wide" \| "specific"`. `expectedTimeSaved?: string` — 예상 절감 시간(옵셔널). `"<주기> N시간"`(예: `"주 3시간"`) 표준 문자열로 저장하여 AdminStatistics `parseTimeSaved` 파싱과 정합(타입은 `string` 유지). n8n/assistant 전용 필드(nodes, connectedApps 등)와 AI Agent 전용 필드(modelMeta) 포함. |
 | `PLATFORMS` | n8n·나만의 비서·AI Agent 플랫폼 메타 배열. 출처 색상·경로의 단일 기준(source of truth). |
-| `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 |
+| `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (3키) |
 
 ---
 
@@ -388,10 +408,19 @@ Kolmar Tech Hub는 단순 등록·탐색 도구를 넘어, 그룹 전체 AX(AI �
 - **해커톤 연계 흐름**: 해커톤 등 확산 이벤트의 산출물이 자연스럽게 플랫폼으로 유입되도록 설계.
 - **확산 메시지 포지셔닝**: 중복 개발 감소와 그룹 차원의 도구 재사용을 핵심 메시지로 전달.
 
-### 예상 절감 시간 데이터 모델 (`expected_time_saved`)
+### 예상 절감 시간 데이터 모델 (`expectedTimeSaved`)
 
-- **입력 정규화 규칙(예정)**: 자유 텍스트 입력을 수치 + 고정 단위 "시간/주"(주당 시간 기준)로 정규화. ProjectRegisterPage 입력을 AdminStatistics 집계에 연결.
-- **현재 집계 방식**: AdminStatistics의 `parseTimeSaved()`가 "주 1시간", "월 4시간", "하루 30분" 등 자유 텍스트를 연간 환산 시간(시간/년)으로 파싱. 매칭 실패 건은 "추정 불가"로 별도 집계.
+- **입력 정규화 규격(확정·적용 완료)**: 자유 텍스트 입력을 폐기하고 "수치 + 주기(일/주/월/년)" 입력으로 정규화. 등록·검토·관리 화면 전반에서 동일 규격을 사용한다.
+  - **연간 환산 계수**: `PERIOD_ANNUAL_FACTOR = { 일: 365, 주: 52, 월: 12, 년: 1 }`. AdminStatistics의 `parseTimeSaved` / `PERIOD_MULTIPLIER`와 동일 계수로 정합.
+  - **표기**: 입력 시 연간 환산값을 계산 근거와 함께 노출(예: "주당 3시간 절감 → 연간 약 156시간 (3시간 × 52주)").
+  - **직렬화**: `serializeTimeSaved(value, period)`로 `"<주기> N시간"` 표준 문자열 생성(예: `"주 3시간"`). `PlatformItem.expectedTimeSaved`는 `string` 타입을 유지하여 통계 파싱과 정합.
+  - **역직렬화**: `deserializeTimeSaved(raw)`로 기존 문자열을 수치·주기로 복원하여 위젯에 채움. 표준 형식을 우선 인식하고, 이전 자유 텍스트도 최대한 수치·주기를 추출하며, 파싱 불가 값은 수치를 비워 재입력을 유도.
+  - **입력 위젯**: `TimeSavedInput`(모듈 레벨 컴포넌트)로 주기 선택 + 수치 입력 + 연간 환산 안내를 제공.
+- **적용 현황 (완료)**
+  - `ProjectRegisterPage` — `timeSavedValue`·`timeSavedPeriod` 폼 상태로 입력, 제출 시 직렬화.
+  - `AdminReview` — `edits`에 `timeSavedValue`·`timeSavedPeriod`를 임시 보관, `handleApprove`에서 구조분해로 임시 키 제거 후 `expectedTimeSaved`만 저장.
+  - `AdminProjectManage` — `editData` 단일 객체와 분리한 `timeSavedValue`·`timeSavedPeriod` 상태로 편집. 편집 진입 시 역직렬화, 저장 시 직렬화, 신규·취소 시 초기화.
+- **현재 집계 방식**: AdminStatistics의 `parseTimeSaved()`가 표준 문자열을 연간 환산 시간(시간/년)으로 파싱. 정규 케이스는 항상 파싱 성공하며, 레거시 자유 텍스트 잔존분만 "추정 불가"로 별도 집계.
 - **표기 철학**
   - 랜딩 페이지: 주당 환산값으로 "현재 실효 가치"를 정직하게 표현.
   - AdminStatistics: 연간 환산값으로 "운영 성과 리포트" 관점 제공.
@@ -421,19 +450,22 @@ api.delete<T>(path)
 | `POST` | `/api/v1/projects` | ProjectRegisterPage |
 | `POST` | `/api/v1/projects/:id/edit-requests` | EditRequestPage |
 | `GET` | `/api/v1/platforms/:platformId/items/:itemId` | PlatformItemDetailPage |
-| `POST` | `/api/v1/platforms/:platformId/items` | ProjectRegisterPage (플랫폼 항목 등록) |
+| `POST` | `/api/v1/platforms/:platformId/items` | ProjectRegisterPage (플랫폼 항목 등록, body에 expectedTimeSaved 표준 문자열 포함) |
 | `GET` | `/api/v1/my/projects` | MyStatusPage |
 | `PATCH` | `/api/v1/projects/:id/status` | MyStatusPage (상태 변경) |
 | `GET` | `/api/v1/admin/review-queue` | AdminReview |
 | `PATCH` | `/api/v1/admin/projects/:id/approve` | AdminReview |
 | `PATCH` | `/api/v1/admin/projects/:id/reject` | AdminReview |
-| `PATCH` | `/api/v1/admin/platform-items/:id/approve` | AdminReview (플랫폼 항목, body에 company·platformScope 포함) |
+| `PATCH` | `/api/v1/admin/platform-items/:id/approve` | AdminReview (플랫폼 항목, body에 company·platformScope·expectedTimeSaved 포함) |
 | `PATCH` | `/api/v1/admin/platform-items/:id/reject` | AdminReview (플랫폼 항목) |
 | `GET` | `/api/v1/admin/projects` | AdminProjectManage |
+| `PUT` | `/api/v1/admin/platform-items/:id` | AdminProjectManage (플랫폼 항목 수정, body에 company·platformScope·expectedTimeSaved 포함) |
 | `GET` | `/api/v1/admin/taxonomy` | AdminTaxonomy |
 | `GET` | `/api/v1/admin/departments` | AdminOrg |
 | `GET` | `/api/v1/admin/companies?visible=true` | AdminOrg, AdminReview, AdminProjectManage, ProjectRegisterPage (관계사 목록) |
 | `GET` | `/api/v1/admin/users` | AdminUsers |
+| `GET` | `/api/v1/admin/platforms` | AdminPlatforms (플랫폼 메타 조회) |
+| `PUT` | `/api/v1/admin/platforms` | AdminPlatforms (플랫폼 메타 수정, 전사관리자 전용) |
 | `GET` | `/api/v1/admin/pending?company=:codes` | AdminDashboard (승인 대기, 관계사 범위 필터) |
 | `GET` | `/api/v1/admin/recent-approved?company=:codes` | AdminDashboard (최근 승인, 관계사 범위 필터) |
 | `GET` | `/api/v1/admin/stats/*?company=:codes` | AdminStatistics, AdminDashboard (관계사 범위 집계. `company` 미지정 시 전사) |
