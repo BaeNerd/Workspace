@@ -121,7 +121,7 @@ function ManagedCompanySelect({ selected, onChange }: { selected: string[]; onCh
               <label key={c.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 6, cursor: "pointer", background: selected.includes(c.code) ? "#EFF6FF" : "transparent" }}>
                 <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggle(c.code)} style={{ cursor: "pointer" }} />
                 <span style={{ fontSize: 12, color: "#334155", flex: 1 }}>{c.name}</span>
-                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace" }}>{c.code}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{c.code}</span>
               </label>
             ))}
             {filtered.length === 0 && <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>}
@@ -243,7 +243,7 @@ export default function AdminUsers() {
   const canConfirmGrant = grantScope === "global" || grantCompanies.length > 0;
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
 
       <div style={{ display: "flex" }}>
@@ -608,7 +608,7 @@ export default function AdminUsers() {
                   const srcStyle = log.source ? LOG_SOURCE_STYLE[log.source] : null;
                   return (
                     <div key={log.id} style={{ display: "grid", gridTemplateColumns: "140px 80px 100px 1fr", padding: "11px 18px", borderBottom: "1px solid #F8FAFC", alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                      <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace" }}>{log.datetime}</div>
+                      <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{log.datetime}</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{log.actor}</div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>{log.action}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

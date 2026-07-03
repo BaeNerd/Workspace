@@ -204,7 +204,7 @@ function CompanyVisibilityDropdown({ companies, onToggle }: { companies: Company
                         자동화·AI 도구 {itemCount}
                       </span>
                     )}
-                    <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace" }}>{c.code}</span>
+                    <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{c.code}</span>
                   </span>
                 </label>
               );
@@ -322,7 +322,7 @@ function CompanyAccordion({
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{company.name}</span>
-        <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace" }}>{company.code}</span>
+        <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{company.code}</span>
         {!company.visible && (
           <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: "#FEE2E2", color: "#991B1B" }}>비노출</span>
         )}
@@ -472,7 +472,7 @@ export default function AdminOrg() {
   const teamsLinkedCount = depts.filter(d => d.source === "teams" || d.source === "merged").length;
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
 
       <div style={{ display: "flex" }}>

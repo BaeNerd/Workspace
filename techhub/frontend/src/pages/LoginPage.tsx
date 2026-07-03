@@ -94,7 +94,7 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      fontFamily: "'Inter', -apple-system, sans-serif",
+      fontFamily: "var(--font-ui)",
       minHeight: "100vh",
       background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",

@@ -475,7 +475,7 @@ function CompanyMultiSelect({ selected, onChange, disabled, allowedCodes, allowC
               }}>
                 <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
                 <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
-                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "monospace", marginLeft: "auto" }}>{c.code}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>{c.code}</span>
               </label>
             ))}
 
@@ -752,7 +752,7 @@ export default function AdminReview() {
   const approveBlocked = unsetScope;
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
 
       <AdminNavbar />
 

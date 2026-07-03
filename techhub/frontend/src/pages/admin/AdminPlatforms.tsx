@@ -201,7 +201,7 @@ export default function AdminPlatforms() {
   };
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
 
       <div style={{ display: "flex" }}>
@@ -253,7 +253,7 @@ export default function AdminPlatforms() {
                           <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "1px 6px", borderRadius: 10, flexShrink: 0 }}>비활성</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 10.5, color: "#94A3B8", fontFamily: "monospace" }}>{p.id}</div>
+                      <div style={{ fontSize: 10.5, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{p.id}</div>
                     </div>
                   </div>
                 );
@@ -285,7 +285,7 @@ export default function AdminPlatforms() {
                       <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {displayData.name || "(이름 없음)"}
                       </h2>
-                      <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace", marginTop: 2 }}>{displayData.id || "(신규)"}</div>
+                      <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-mono)", marginTop: 2 }}>{displayData.id || "(신규)"}</div>
                     </div>
                   </div>
 
@@ -341,9 +341,9 @@ export default function AdminPlatforms() {
                 <SectionBlock title="기본 정보">
                   <FieldRow label="식별자 (ID)" hint={isNew ? "소문자·숫자·하이픈, 저장 후 변경 불가" : "변경 불가"}>
                     {isNew ? (
-                      <input value={displayData.id} onChange={e => setF("id", e.target.value as PlatformId)} placeholder="예: my-tool" style={{ ...inputStyle, fontFamily: "monospace" }} />
+                      <input value={displayData.id} onChange={e => setF("id", e.target.value as PlatformId)} placeholder="예: my-tool" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
                     ) : (
-                      <div style={{ ...inputStyle, background: "#F8FAFC", color: "#64748B", fontFamily: "monospace" }}>{displayData.id}</div>
+                      <div style={{ ...inputStyle, background: "#F8FAFC", color: "#64748B", fontFamily: "var(--font-mono)" }}>{displayData.id}</div>
                     )}
                   </FieldRow>
 
@@ -364,8 +364,8 @@ export default function AdminPlatforms() {
                 <SectionBlock title="경로 · 연결">
                   <FieldRow label="라우트 경로" hint="'/'로 시작. 항목 상세 페이지 경로의 접두사로 사용">
                     {isEditing
-                      ? <input value={displayData.path} onChange={e => setF("path", e.target.value)} placeholder="예: /n8n" style={{ ...inputStyle, fontFamily: "monospace" }} />
-                      : <div style={{ fontSize: 13, color: "#334155", fontFamily: "monospace" }}>{displayData.path}</div>}
+                      ? <input value={displayData.path} onChange={e => setF("path", e.target.value)} placeholder="예: /n8n" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
+                      : <div style={{ fontSize: 13, color: "#334155", fontFamily: "var(--font-mono)" }}>{displayData.path}</div>}
                   </FieldRow>
 
                   <FieldRow label="접속 URL" hint="외부 도구로 이동하는 실제 주소">
@@ -438,14 +438,14 @@ export default function AdminPlatforms() {
                             <label style={labelStyle}>전경색 (color)</label>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.color, border: "1px solid #E2E8F0", flexShrink: 0 }} />
-                              <input value={displayData.color} onChange={e => setF("color", e.target.value)} placeholder="#EA580C" style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }} />
+                              <input value={displayData.color} onChange={e => setF("color", e.target.value)} placeholder="#EA580C" style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 12 }} />
                             </div>
                           </div>
                           <div>
                             <label style={labelStyle}>배경색 (bg)</label>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.bg, border: "1px solid #E2E8F0", flexShrink: 0 }} />
-                              <input value={displayData.bg} onChange={e => setF("bg", e.target.value)} placeholder="#FFF7ED" style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12 }} />
+                              <input value={displayData.bg} onChange={e => setF("bg", e.target.value)} placeholder="#FFF7ED" style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 12 }} />
                             </div>
                           </div>
                         </div>
@@ -456,7 +456,7 @@ export default function AdminPlatforms() {
                           <span style={{ width: 10, height: 10, borderRadius: "50%", background: displayData.color }} />
                           {displayData.name}
                         </span>
-                        <span style={{ fontSize: 11, color: "#94A3B8", fontFamily: "monospace" }}>{displayData.color} / {displayData.bg}</span>
+                        <span style={{ fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{displayData.color} / {displayData.bg}</span>
                       </div>
                     )}
                   </FieldRow>

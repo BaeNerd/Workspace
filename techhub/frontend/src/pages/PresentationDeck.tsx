@@ -9,7 +9,7 @@ import { useState } from "react";
 // - 모든 서브컴포넌트·스타일·데이터는 모듈 레벨 정의
 // ============================================================
 
-const FONT = "'Inter', 'Pretendard', -apple-system, sans-serif";
+const FONT = "var(--font-ui)";
 
 // 출처 색상 — platformTypes.ts의 PLATFORMS 계열과 동일 톤
 const C = {

@@ -136,7 +136,7 @@ export default function MyStatusPage() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <Navbar />
 
       <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "20px 32px" }}>
@@ -192,7 +192,7 @@ export default function MyStatusPage() {
                       onClick={() => item.approval === "승인" && navigate(`/projects/${item.id}`)}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", color: "#94A3B8" }}>{item.id}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "#94A3B8" }}>{item.id}</span>
 
                         {/* ★ 승인된 항목만 상태 변경 드롭다운, 그 외는 읽기 전용 배지 */}
                         {item.approval === "승인" ? (
