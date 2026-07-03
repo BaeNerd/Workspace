@@ -4,7 +4,7 @@ import AdminSidebar from "../../components/AdminSidebar";
 import { useAuth } from "../../context/useAuth";
 // ★ 변경 — 관계사 차원 공용 mock·헬퍼는 공용 모듈에서 가져온다 (AdminDashboard와 정합).
 import {
-  STAT_COMPANIES, COMPANY_NAME,
+  STAT_COMPANIES,
   scopedCompanies, aggregateMonthly, aggregateSourceTotal, aggregateDomain,
   monthTotal, scopeBadgeText,
 } from "../../mocks/statsMockData";

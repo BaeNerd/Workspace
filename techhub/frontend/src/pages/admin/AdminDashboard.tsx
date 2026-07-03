@@ -9,7 +9,7 @@ import {
   scopedCompanies, aggregateSourceTotal, aggregateMonthly, aggregateDomain,
   monthTotal, scopeBadgeText,
 } from "../../mocks/statsMockData";
-import type { SourceKey, MonthPoint, StatCompany } from "../../mocks/statsMockData";
+import type { SourceKey, StatCompany } from "../../mocks/statsMockData";
 
 // 출처 표시용 정의 (라벨/색만 보유). 상세 경로는 PLATFORMS의 path를 단일 기준으로 사용 → detailPathOf 참고.
 const SOURCES: { key: SourceKey; label: string; color: string }[] = [

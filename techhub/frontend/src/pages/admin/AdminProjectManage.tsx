@@ -32,6 +32,52 @@ const APP_SUGGESTIONS = [
   "HTTP Request", "Spreadsheet File", "Respond To Webhook",
 ];
 
+// ===== ★ 신규 — 예상 절감 시간 정규화 규격 =====
+// 자유 텍스트 대신 "수치 + 주기(일/주/월/년)"로 입력받고, 연간 환산값을 계산 근거와 함께 표기한다.
+// 주기별 연간환산 계수는 AdminStatistics의 parseTimeSaved / PERIOD_MULTIPLIER와 동일하게 유지한다.
+// 저장 표준 문자열은 "<주기> N시간" (예: "주 3시간") — PlatformItem.expectedTimeSaved(string) 타입 유지, 통계 파싱 정합.
+const TIME_PERIODS = ["일", "주", "월", "년"] as const;
+type TimePeriod = typeof TIME_PERIODS[number];
+const PERIOD_ANNUAL_FACTOR: Record<TimePeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
+
+// 저장용 직렬화 — 수치가 비어있거나 숫자가 아니면 빈 문자열(미입력)로 처리
+const serializeTimeSaved = (value: string, period: TimePeriod): string => {
+  const n = value.trim();
+  if (n === "" || Number.isNaN(Number(n))) return "";
+  return `${period} ${n}시간`;
+};
+
+// 기존 문자열 → { value, period } 역직렬화.
+// 표준 형식("주 3시간")을 우선 인식하고, 이전 자유 텍스트("주당 3시간", "주 1시간" 등)도 최대한 수치·주기를 추출한다.
+// 파싱 불가 시 수치를 비워 재입력을 유도한다.
+const deserializeTimeSaved = (raw: string | undefined): { value: string; period: TimePeriod } => {
+  if (!raw) return { value: "", period: "주" };
+  const standard = raw.match(/^\s*(일|주|월|년)\s*([0-9]+(?:\.[0-9]+)?)\s*시간\s*$/);
+  if (standard) return { value: standard[2], period: standard[1] as TimePeriod };
+  const numMatch = raw.match(/([0-9]+(?:\.[0-9]+)?)/);
+  const periodMatch = raw.match(/(일|주|월|년)/);
+  if (numMatch) return { value: numMatch[1], period: (periodMatch?.[1] as TimePeriod) ?? "주" };
+  return { value: "", period: "주" };
+};
+
+// 연간 환산 표기 — 예: "연간 약 156시간 (3시간 × 52주)". 파싱 불가 시 null.
+const annualHoursText = (value: string, period: TimePeriod): string | null => {
+  const n = Number(value);
+  if (value.trim() === "" || Number.isNaN(n)) return null;
+  const factor = PERIOD_ANNUAL_FACTOR[period];
+  const annual = Math.round(n * factor * 10) / 10;
+  return `연간 약 ${annual}시간 (${n}시간 × ${factor}${period})`;
+};
+
+// 열람 화면 표시용 — "주당 3시간 · 연간 약 156시간 (3시간 × 52주)"
+const timeSavedDisplay = (raw: string | undefined): string => {
+  if (!raw) return "—";
+  const { value, period } = deserializeTimeSaved(raw);
+  if (!value) return raw;
+  const annual = annualHoursText(value, period);
+  return annual ? `${period}당 ${value}시간 · ${annual}` : `${period}당 ${value}시간`;
+};
+
 // TODO: 실제 연동 시 GET /api/v1/admin/departments?company=:code 응답으로 교체 (orgEntries용, Project 전용)
 const COMPANIES = [
   { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" },
@@ -273,6 +319,43 @@ const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled
   );
 };
 
+// ★ 신규 — 예상 절감 시간 입력 위젯 (모듈 레벨)
+//   주기(일/주/월/년) 선택 + 수치 입력 → 연간 환산값을 계산 근거와 함께 안내.
+//   상위 컴포넌트가 value/period를 별도 상태로 보관하고, 저장 시 serializeTimeSaved로 직렬화한다.
+const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled }: {
+  value: string; period: TimePeriod;
+  onValueChange: (v: string) => void; onPeriodChange: (p: TimePeriod) => void;
+  disabled?: boolean;
+}) => {
+  const annual = annualHoursText(value, period);
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <select
+          value={period}
+          onChange={e => onPeriodChange(e.target.value as TimePeriod)}
+          disabled={disabled}
+          style={{ ...selectStyle, width: 96, flexShrink: 0, fontSize: 12, padding: "9px 26px 9px 10px" }}
+        >
+          {TIME_PERIODS.map(p => <option key={p} value={p}>{p}당</option>)}
+        </select>
+        <input
+          type="number" min="0" step="0.5"
+          value={value}
+          onChange={e => onValueChange(e.target.value)}
+          disabled={disabled}
+          placeholder="예: 3"
+          style={{ ...inputStyle, flex: 1 }}
+        />
+        <span style={{ fontSize: 13, color: "#64748B", flexShrink: 0 }}>시간</span>
+      </div>
+      {annual
+        ? <div style={{ fontSize: 11, fontWeight: 600, color: "#2563EB", marginTop: 6 }}>{annual}</div>
+        : <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>주기와 수치를 입력하면 연간 환산값이 표시됩니다.</div>}
+    </div>
+  );
+};
+
 // ★ 변경 — 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨, AdminReview.tsx와 동일한 권한 제한 패턴)
 //   allowedCodes: 토글 허용 관계사 화이트리스트(관계사관리자는 담당 관계사). undefined = 전체 허용(전사관리자).
 //   allowCompanyWide: 전사 공용 선택 허용 여부. 관계사관리자는 false(권한 밖 승격 방지).
@@ -426,7 +509,7 @@ const INITIAL_PROJECTS: ManagedProjectItem[] = [
   },
 ];
 
-// ★ 변경 — company/platformScope 값 채움
+// ★ 변경 — company/platformScope 값 채움. expectedTimeSaved는 표준 형식("주 3시간")으로 유지.
 const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   {
     kind: "n8n",
@@ -465,6 +548,7 @@ const EMPTY_PROJECT: ManagedProjectItem = {
 };
 
 // ★ 변경 — company/platformScope 초기값 추가 (신규 등록 시 "unset"으로 시작 → 관리자가 직접 등록할 때도 명시적 선택 유도)
+//   expectedTimeSaved는 빈 문자열로 시작하며, 저장 시 serializeTimeSaved로 채워진다.
 const emptyPlatformItem = (kind: PlatformId): ManagedPlatformItem => ({
   kind,
   id: "", title: "", summary: "", description: "", status: "개발 중", dept: "",
@@ -505,6 +589,10 @@ export default function AdminProjectManage() {
   const [draftParent, setDraftParent] = useState(NO_PARENT);
   const [draftDept, setDraftDept] = useState("");
 
+  // ★ 신규 — 예상 절감 시간 편집 상태 (editData 단일 객체와 분리 보관, 저장 시 serialize)
+  const [timeSavedValue, setTimeSavedValue] = useState("");
+  const [timeSavedPeriod, setTimeSavedPeriod] = useState<TimePeriod>("주");
+
   // ★ 신규 — 권한 판정. 항상 "원본 항목" 기준으로 판정해 편집을 통한 우회를 차단.
   const canManageManagedItem = (item: ManagedItem): boolean =>
     canManageItem(itemCompaniesOf(item), itemIsCompanyWideOf(item));
@@ -536,6 +624,10 @@ export default function AdminProjectManage() {
   // ★ 신규 — 현재 선택 항목 관리 가능 여부 (신규 등록은 항상 가능)
   const canManageCurrent = isNew ? true : (activeItem ? canManageManagedItem(activeItem) : false);
 
+  // n8n / 나만의 비서 항목 여부 — 예상 절감 시간 필드 노출 대상
+  const hasTimeSaved = (item: ManagedItem | null): item is ManagedPlatformItem =>
+    !!item && !isProjectKind(item) && (item.kind === "n8n" || item.kind === "assistant");
+
   // ★ 신규 — orgEntry 추가 시 기본 선택 관계사를 권한 범위 내로 보정
   const ensureDraftCompanyInScope = () => {
     if (!isGlobalAdmin && orgCompanyChoices.length > 0 && !orgCompanyChoices.some(c => c.code === draftCompany)) {
@@ -545,12 +637,26 @@ export default function AdminProjectManage() {
     }
   };
 
+  // ★ 신규 — 예상 절감 시간 편집 상태 초기화 유틸
+  const loadTimeSavedFrom = (item: ManagedItem) => {
+    if (hasTimeSaved(item)) {
+      const { value, period } = deserializeTimeSaved(item.expectedTimeSaved);
+      setTimeSavedValue(value);
+      setTimeSavedPeriod(period);
+    } else {
+      setTimeSavedValue("");
+      setTimeSavedPeriod("주");
+    }
+  };
+
   const startEdit = () => {
     if (activeItem && canManageManagedItem(activeItem)) {
       setEditData({ ...activeItem });
       setEditMode(true);
       setSaved(false);
       ensureDraftCompanyInScope();
+      // ★ 신규 — 편집 진입 시 기존 문자열을 수치·주기로 역직렬화
+      loadTimeSavedFrom(activeItem);
     }
   };
 
@@ -567,10 +673,18 @@ export default function AdminProjectManage() {
     } else {
       setEditData({ ...emptyPlatformItem(kind), id: `${idPrefixOf(kind)}-2025-0${Math.floor(Math.random() * 90 + 10)}` });
     }
+    // ★ 신규 — 신규 등록 시 예상 절감 시간 입력 초기화
+    setTimeSavedValue("");
+    setTimeSavedPeriod("주");
     setIsNew(true); setEditMode(false); setSaved(false);
   };
 
-  const cancelEdit = () => { setEditMode(false); setIsNew(false); setEditData(null); setSaved(false); };
+  const cancelEdit = () => {
+    setEditMode(false); setIsNew(false); setEditData(null); setSaved(false);
+    // ★ 신규 — 예상 절감 시간 편집 상태 정리
+    setTimeSavedValue("");
+    setTimeSavedPeriod("주");
+  };
 
   const setF = (k: keyof ManagedProjectItem | keyof ManagedPlatformItem, v: unknown) =>
     setEditData(p => p ? { ...p, [k]: v } as ManagedItem : p);
@@ -654,16 +768,26 @@ export default function AdminProjectManage() {
     if (!isNew && !canManageManagedItem(editData)) return;
     // 관계사관리자가 플랫폼 항목을 전사 공용으로 저장하려는 경우 차단
     if (!isGlobalAdmin && !isProjectKind(editData) && editData.platformScope === "company-wide") return;
+
+    // ★ 신규 — n8n / 나만의 비서 항목은 예상 절감 시간을 표준 문자열로 직렬화하여 저장
+    let toSave: ManagedItem = editData;
+    if (hasTimeSaved(editData)) {
+      toSave = { ...editData, expectedTimeSaved: serializeTimeSaved(timeSavedValue, timeSavedPeriod) };
+    }
+
     // TODO: 실제 연동 시
     //   kind === "project" → isNew: POST /api/v1/admin/projects, 아니면 PUT /api/v1/admin/projects/:id
-    //   그 외 → isNew: POST /api/v1/admin/platform-items, 아니면 PUT /api/v1/admin/platform-items/:id (body에 company, platformScope 포함)
+    //   그 외 → isNew: POST /api/v1/admin/platform-items, 아니면 PUT /api/v1/admin/platform-items/:id
+    //   (body에 company, platformScope 포함. expectedTimeSaved는 "<주기> N시간" 표준 문자열)
     if (isNew) {
-      setItems(p => [{ ...editData, updatedAt: "2025.06.29" }, ...p]);
-      setSelected(editData.id);
+      setItems(p => [{ ...toSave, updatedAt: "2025.06.29" }, ...p]);
+      setSelected(toSave.id);
     } else {
-      setItems(p => p.map(i => i.id === editData.id ? ({ ...editData, updatedAt: "2025.06.29" } as ManagedItem) : i));
+      setItems(p => p.map(i => i.id === toSave.id ? ({ ...toSave, updatedAt: "2025.06.29" } as ManagedItem) : i));
     }
     setEditMode(false); setIsNew(false); setEditData(null); setSaved(true);
+    setTimeSavedValue("");
+    setTimeSavedPeriod("주");
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -1073,10 +1197,16 @@ export default function AdminProjectManage() {
 
                     <SectionBlock title="예상 효과">
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        {/* ★ 변경 — 예상 절감 시간: 자유 텍스트 → 수치 + 주기 입력(연간 환산 표기) */}
                         <FieldRow label="예상 절감 시간">
                           {isEditing
-                            ? <input value={displayData.expectedTimeSaved ?? ""} onChange={e => setF("expectedTimeSaved", e.target.value)} style={inputStyle} placeholder="예: 주 1시간" />
-                            : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.expectedTimeSaved || "—"}</span>}
+                            ? <TimeSavedInput
+                                value={timeSavedValue}
+                                period={timeSavedPeriod}
+                                onValueChange={setTimeSavedValue}
+                                onPeriodChange={setTimeSavedPeriod}
+                              />
+                            : <span style={{ fontSize: 13, color: "#334155" }}>{timeSavedDisplay(displayData.expectedTimeSaved)}</span>}
                         </FieldRow>
                         <FieldRow label="구성 난이도">
                           {isEditing
