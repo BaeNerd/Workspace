@@ -9,29 +9,20 @@ import type { WorkflowInput } from "../components/WorkflowDiagram";
 
 // ===== 공통 상수 =====
 const STATUSES = ["운영 중", "개발 중", "파일럿", "보류"];
-const SYSTEM_TYPES = ["웹 애플리케이션", "API/서비스", "ML/AI 모델", "데이터 파이프라인", "내부 도구", "기타"];
-const DOMAINS = ["재무/회계", "고객 서비스", "제조/생산", "HR/인사", "IT 인프라", "영업/CRM", "마케팅", "기타"];
-const AUDIENCES = ["전사", "특정 부서", "특정 관계사", "관리자만"];
-const STACK_OPTIONS = ["Python", "TypeScript", "React", "FastAPI", "Node.js", "PostgreSQL", "AWS", "Docker", "Kubernetes"];
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
 
-// 예상 절감 시간 — 수치 + 주기 조합으로 입력받아 표준 문자열로 직렬화한다.
-// 주기별 연간 환산 계수는 AdminStatistics의 parseTimeSaved / PERIOD_MULTIPLIER와 동일하게 유지.
+// 예상 절감 시간 — 수치 + 주기 조합으로 입력받아 표준 문자열로 직렬화
 type SavedPeriod = "일" | "주" | "월" | "년";
 const SAVED_PERIODS: SavedPeriod[] = ["일", "주", "월", "년"];
 const PERIOD_ANNUAL_FACTOR: Record<SavedPeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
 const PERIOD_FULL_LABEL: Record<SavedPeriod, string> = { "일": "매일", "주": "주당", "월": "월당", "년": "연간" };
-
-// 저장용 직렬화 — parseTimeSaved(AdminStatistics)가 파싱 가능한 "<주기> N시간" 형식
 const serializeTimeSaved = (value: number | "", period: SavedPeriod): string =>
   value === "" || value <= 0 ? "" : `${period} ${value}시간`;
-
-// 연간 환산 시간 계산
 const annualHours = (value: number | "", period: SavedPeriod): number =>
   value === "" || value <= 0 ? 0 : Number(value) * PERIOD_ANNUAL_FACTOR[period];
 
-// n8n 실제 노드 카테고리 참고 — 자유 입력 시 자동완성 힌트로 제공
+// n8n 노드 자동완성 힌트
 const NODE_SUGGESTIONS = [
   "Manual Trigger", "Schedule Trigger", "Form Trigger", "Chat Trigger", "Webhook",
   "Set (Edit Fields)", "Code", "IF", "Switch", "Filter", "Merge", "Aggregate", "Sort",
@@ -42,7 +33,24 @@ const APP_SUGGESTIONS = [
   "HTTP Request", "Spreadsheet File", "Respond To Webhook",
 ];
 
-// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체 (AdminOrg와 동일 소스 공유)
+// Power Automate 커넥터 힌트
+const PA_CONNECTOR_SUGGESTIONS = [
+  "SharePoint", "Microsoft Teams", "Outlook", "Dataverse",
+  "Excel Online", "Microsoft Forms", "OneDrive", "Planner", "Approvals", "HTTP",
+];
+
+// ML 모델 유형
+const ML_TYPES = [
+  "분류 (Classification)", "회귀 (Regression)", "클러스터링", "추천 시스템",
+  "NLP", "컴퓨터 비전", "시계열 예측", "기타",
+];
+
+// Vibe Coding 도구 힌트
+const VIBE_TOOL_SUGGESTIONS = [
+  "Cursor", "GitHub Copilot", "Claude", "ChatGPT", "Codeium", "Windsurf", "Bolt.new", "v0",
+];
+
+// TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 응답으로 교체
 const COMPANIES = [
   { code: "KMH", name: "콜마홀딩스", visible: true },
   { code: "KKM", name: "한국콜마", visible: true },
@@ -75,31 +83,8 @@ const COMPANIES = [
   { code: "KBT", name: "콜마바이오텍", visible: true },
 ];
 
-// 관계사 선택 드롭다운(조직 계층 등록용)은 노출(visible) 관계사만 — 비노출 관계사는 그룹 전체보기 권한자만 보는 영역이라 일반 등록 폼에서는 제외
 const SELECTABLE_COMPANIES = COMPANIES.filter(c => c.visible);
 
-const NO_PARENT = "본부 없음 (관계사 직속)";
-const PARENTS_BY_COMPANY: Record<string, string[]> = {
-  KKM: ["경영지원본부", "영업마케팅본부", "연구개발본부", "생산본부", "IT본부"],
-  KMG: ["영업마케팅본부", "생산본부"],
-};
-const DEPTS_BY_PARENT: Record<string, string[]> = {
-  "경영지원본부": ["재무팀", "인사팀", "법무팀", "구매팀"],
-  "영업마케팅본부": ["영업팀", "마케팅팀", "고객서비스팀"],
-  "연구개발본부": ["메이크업연구소", "디자인팀"],
-  "생산본부": ["제조기술팀", "품질관리팀"],
-  "IT본부": ["IT인프라팀", "IT개발팀"],
-};
-
-type OrgEntry = { id: number; company: string; parent: string | null; dept: string | null };
-const orgEntryDisplay = (e: OrgEntry) => {
-  const companyName = COMPANIES.find(c => c.code === e.company)?.name ?? e.company;
-  if (!e.parent) return companyName;
-  if (!e.dept) return `${companyName} > ${e.parent}`;
-  return `${companyName} > ${e.parent} > ${e.dept}`;
-};
-
-// PlatformItem.company 표시용 헬퍼 (요약 텍스트, 닫힌 드롭다운 상태 표시에도 사용)
 const platformCompanyDisplay = (codes: string[]): string => {
   if (codes.length === 0) return "전사 공용";
   const names = codes.map(c => COMPANIES.find(co => co.code === c)?.name ?? c);
@@ -110,59 +95,50 @@ const platformCompanyDisplay = (codes: string[]): string => {
 type Contact = { name: string; dept: string; role: string; email: string };
 type LinkItem = { label: string; url: string };
 
-type RegisterKind = "project" | PlatformId;
+const KIND_OPTIONS: { key: PlatformId; label: string; desc: string; color: string; bg: string }[] = PLATFORMS.map(p => {
+  if (p.id === "assistant") {
+    return { key: p.id, label: p.name, desc: "HK GPT를 업무·개인 맞춤으로 커스터마이징한 에이전트", color: p.color, bg: p.bg };
+  }
+  if (p.id === "ai-orchestration") {
+    return { key: p.id, label: "AI Agent", desc: p.shortDesc, color: p.color, bg: p.bg };
+  }
+  return { key: p.id, label: p.name, desc: p.shortDesc, color: p.color, bg: p.bg };
+});
 
-// 라벨/설명: AI Orchestration → AI Agent, 나만의 비서 → HK GPT 개인화 설명
-const KIND_OPTIONS: { key: RegisterKind; label: string; desc: string; color: string; bg: string }[] = [
-  { key: "project", label: "일반 프로젝트", desc: "관계사·부서 단위로 개발·운영되는 사내 IT 프로젝트", color: "#475569", bg: "#F1F5F9" },
-  ...PLATFORMS.map(p => {
-    if (p.id === "assistant") {
-      return { key: p.id, label: p.name, desc: "HK GPT를 업무·개인 맞춤으로 커스터마이징한 에이전트", color: p.color, bg: p.bg };
-    }
-    if (p.id === "ai-orchestration") {
-      return { key: p.id, label: "AI Agent", desc: p.shortDesc, color: p.color, bg: p.bg };
-    }
-    return { key: p.id, label: p.name, desc: p.shortDesc, color: p.color, bg: p.bg };
-  }),
-];
-
-const isModelKind = (k: RegisterKind) => k === "ai-orchestration";
+const isWorkflowKind = (k: PlatformId) => k === "n8n" || k === "pa" || k === "assistant";
+const isModelKind = (k: PlatformId) => k === "ai-orchestration";
+const isMLKind = (k: PlatformId) => k === "ml";
+const isVibeKind = (k: PlatformId) => k === "vibe";
 
 type FormState = {
-  title: string; summary: string; description: string;
-  status: string; systemType: string; systemTypeOther: string;
-  domains: string[]; domainOther: string; audiences: string[];
-  orgEntries: OrgEntry[]; stack: string[]; freeTags: string;
-  integrations: string;
-  // 워크플로우/에이전트 전용
-  triggerAction: string;
-  itemTags: string;
-  specificUrl: string;
-  nodes: string[];            // 노드명 칩
-  connectedApps: string[];    // 연동 앱 칩
-  // 예상 절감 시간 — 수치 + 주기. 저장 시 "<주기> N시간"으로 직렬화
-  timeSavedValue: number | "";
-  timeSavedPeriod: SavedPeriod;
-  difficulty: typeof DIFFICULTY_LEVELS[number]; // 난이도
-  // AI 모델 전용
+  title: string; summary: string; description: string; status: string;
+  // 워크플로우/에이전트 전용 (n8n, pa, assistant)
+  triggerAction: string; itemTags: string; specificUrl: string;
+  nodes: string[]; connectedApps: string[];
+  timeSavedValue: number | ""; timeSavedPeriod: SavedPeriod;
+  difficulty: typeof DIFFICULTY_LEVELS[number];
+  // n8n 전용
+  workflowInput: WorkflowInput; workflowJson: string;
+  // ai-orchestration 전용
   provider: string; contextWindow: string; strengths: string;
   costTier: typeof COST_TIERS[number];
-  // 플랫폼 항목(n8n/나만의비서/AI Agent) 공용: 소속·대상 관계사 (복수 선택, 빈 배열 = 전사 공용)
+  // ml 전용
+  mlType: string; trainingDataDesc: string; performanceSummary: string;
+  // ml/vibe 공용
+  devTool: string; sourceRepo: string; outputType: string;
+  // 플랫폼 공용
   platformCompanies: string[];
-  // n8n 전용 — 워크플로우 다이어그램 입력
-  workflowInput: WorkflowInput;
-  workflowJson: string;
   contacts: Contact[];
   links: LinkItem[];
 };
 
-let orgEntryIdSeq = 1;
-
-const STEPS_BY_KIND = (kind: RegisterKind) => isModelKind(kind)
-  ? ["유형 선택", "기본정보", "모델 사양", "담당자·링크", "최종확인"]
-  : kind === "project"
-    ? ["유형 선택", "기본정보", "분류·태그", "담당자·링크", "최종확인"]
-    : ["유형 선택", "기본정보", "구성·효과", "담당자·링크", "최종확인"];
+const STEPS_BY_KIND = (kind: PlatformId): string[] => {
+  if (kind === "ai-orchestration") return ["유형 선택", "기본정보", "모델 사양", "담당자·링크", "최종확인"];
+  if (kind === "ml") return ["유형 선택", "기본정보", "ML 모델 정보", "담당자·링크", "최종확인"];
+  if (kind === "vibe") return ["유형 선택", "기본정보", "Vibe Coding 정보", "담당자·링크", "최종확인"];
+  if (kind === "pa") return ["유형 선택", "기본정보", "플로우 구성·효과", "담당자·링크", "최종확인"];
+  return ["유형 선택", "기본정보", "구성·효과", "담당자·링크", "최종확인"];
+};
 
 // ===== 공용 스타일 (모듈 레벨) =====
 const inputStyle: React.CSSProperties = {
@@ -171,8 +147,6 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 8, outline: "none", fontFamily: "inherit",
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", appearance: "none" as const };
-
-// 행 삭제 버튼 자리 — 첫 행(삭제 버튼 없음)에도 동일 폭을 차지시켜 입력칸 폭을 모든 행과 일치
 const rowActionWidth = 24;
 
 // ===== 공용 컴포넌트 (모듈 레벨) =====
@@ -209,7 +183,6 @@ function Tag({ label, selected, onClick }: { label: string; selected: boolean; o
   );
 }
 
-// 행 삭제 버튼 (모듈 레벨). first=true면 버튼 대신 동일 폭 플레이스홀더를 렌더해 열 구조를 일치시킴
 function RowRemoveButton({ first, onClick }: { first: boolean; onClick: () => void }) {
   if (first) {
     return <span aria-hidden style={{ width: rowActionWidth, display: "inline-block", flexShrink: 0 }} />;
@@ -222,8 +195,6 @@ function RowRemoveButton({ first, onClick }: { first: boolean; onClick: () => vo
   );
 }
 
-// 예상 절감 시간 입력 (모듈 레벨) — 수치 + 주기 선택 + 연간 환산 안내
-// value/period를 상위 form 상태에서 제어. 통계 집계 기준(연간 환산)을 근거와 함께 명시.
 function TimeSavedInput({
   value, period, onValueChange, onPeriodChange,
 }: {
@@ -236,32 +207,19 @@ function TimeSavedInput({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        {/* 주기 선택 */}
         <div style={{ display: "flex", gap: 4 }}>
           {SAVED_PERIODS.map(p => (
-            <span
-              key={p}
-              onClick={() => onPeriodChange(p)}
-              style={{
-                fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 8,
-                border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
-                background: period === p ? "#EFF6FF" : "#fff",
-                color: period === p ? "#2563EB" : "#475569",
-                cursor: "pointer", userSelect: "none",
-              }}
-            >
-              {p}
-            </span>
+            <span key={p} onClick={() => onPeriodChange(p)} style={{
+              fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 8,
+              border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
+              background: period === p ? "#EFF6FF" : "#fff",
+              color: period === p ? "#2563EB" : "#475569",
+              cursor: "pointer", userSelect: "none",
+            }}>{p}</span>
           ))}
         </div>
-
-        {/* 수치 입력 */}
         <input
-          type="number"
-          min={0}
-          step={0.5}
-          inputMode="decimal"
-          value={value}
+          type="number" min={0} step={0.5} inputMode="decimal" value={value}
           onChange={e => {
             const raw = e.target.value;
             if (raw === "") { onValueChange(""); return; }
@@ -276,8 +234,6 @@ function TimeSavedInput({
         />
         <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>시간</span>
       </div>
-
-      {/* 환산 안내 — 계산 근거를 함께 표기 */}
       {hasValue && (
         <div style={{
           marginTop: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8,
@@ -295,8 +251,6 @@ function TimeSavedInput({
   );
 }
 
-// 플랫폼 항목 공용: 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨)
-// 맨 위 "전사 공용" 체크가 관계사 개별 체크와 상호배타 관계
 function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChange: (codes: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -305,30 +259,23 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
   const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
     search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
   );
-
-  const toggleCompany = (code: string) => {
+  const toggleCompany = (code: string) =>
     onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
-  };
-
   const selectCompanyWide = () => onChange([]);
 
   return (
     <div style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen(v => !v)}
-        type="button"
-        style={{
-          ...inputStyle, textAlign: "left", width: "100%", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          color: "#0F172A", fontWeight: 600,
-        }}
-      >
+      <button onClick={() => setOpen(v => !v)} type="button" style={{
+        ...inputStyle, textAlign: "left", width: "100%", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        color: "#0F172A", fontWeight: 600,
+      }}>
         <span>{platformCompanyDisplay(selected)}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5"
+          style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 20,
@@ -336,7 +283,6 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
           maxHeight: 340, display: "flex", flexDirection: "column",
         }}>
-          {/* 전사 공용 체크박스 — 관계사 개별 체크와 상호배타 */}
           <label style={{
             display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
             borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
@@ -345,14 +291,9 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
             <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
             <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
           </label>
-
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="관계사명 또는 코드로 검색"
-            style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }}
-          />
-
+            style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }} />
           <div style={{ overflowY: "auto", flex: 1 }}>
             {filteredCompanies.map(c => (
               <label key={c.code} style={{
@@ -369,13 +310,10 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
               <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
             )}
           </div>
-
           <button onClick={() => setOpen(false)} type="button" style={{
             marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6,
             padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
-          }}>
-            완료
-          </button>
+          }}>완료</button>
         </div>
       )}
     </div>
@@ -403,30 +341,22 @@ function ChipInput({
         ))}
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={draft}
-          onChange={e => onDraftChange(e.target.value)}
+        <input value={draft} onChange={e => onDraftChange(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
-          placeholder={placeholder}
-          style={{ ...inputStyle, flex: 1 }}
+          placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
           onFocus={e => (e.target.style.borderColor = "#2563EB")}
-          onBlur={e => (e.target.style.borderColor = "#E2E8F0")}
-        />
+          onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
         <button onClick={() => onAdd()} style={{
           background: "#2563EB", color: "#fff", border: "none", borderRadius: 7,
           padding: "0 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-        }}>
-          추가
-        </button>
+        }}>추가</button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
         {suggestions.filter(s => !items.includes(s)).slice(0, 8).map(s => (
           <span key={s} onClick={() => onAdd(s)} style={{
             fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
             padding: "3px 9px", borderRadius: 20, cursor: "pointer",
-          }}>
-            + {s}
-          </span>
+          }}>+ {s}</span>
         ))}
       </div>
     </div>
@@ -436,30 +366,28 @@ function ChipInput({
 export default function ProjectRegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [kind, setKind] = useState<RegisterKind | null>(null);
+  const [kind, setKind] = useState<PlatformId | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const [form, setForm] = useState<FormState>({
-    title: "", summary: "", description: "",
-    status: "", systemType: "", systemTypeOther: "", domains: [], domainOther: "", audiences: [],
-    orgEntries: [], stack: [], freeTags: "",
-    integrations: "",
+    title: "", summary: "", description: "", status: "",
     triggerAction: "", itemTags: "", specificUrl: "",
-    nodes: [], connectedApps: [], timeSavedValue: "", timeSavedPeriod: "주", difficulty: "보통",
+    nodes: [], connectedApps: [],
+    timeSavedValue: "", timeSavedPeriod: "주", difficulty: "보통",
+    workflowInput: { status: "Stable", nodes: [] }, workflowJson: "",
     provider: "", contextWindow: "", strengths: "", costTier: "보통",
+    mlType: "", trainingDataDesc: "", performanceSummary: "",
+    devTool: "", sourceRepo: "", outputType: "",
     platformCompanies: [],
-    workflowInput: { status: "Stable", nodes: [] },
-    workflowJson: "",
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
 
-  // 관계사 범위 상태. "unset"이면 등록자가 아직 드롭다운을 열어
-  // 명시적으로 선택하지 않은 것으로 간주 → 다음 단계 진행 차단
   const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">("unset");
-
   const [n8nUploadedFile, setN8nUploadedFile] = useState<string | null>(null);
+  const [draftNode, setDraftNode] = useState("");
+  const [draftApp, setDraftApp] = useState("");
 
   const handleN8nJsonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -477,41 +405,13 @@ export default function ProjectRegisterPage() {
     e.target.value = "";
   };
 
-  const [draftCompany, setDraftCompany] = useState(SELECTABLE_COMPANIES[1]?.code ?? SELECTABLE_COMPANIES[0].code);
-  const [draftParent, setDraftParent] = useState(NO_PARENT);
-  const [draftDept, setDraftDept] = useState("");
-  const [draftNode, setDraftNode] = useState("");
-  const [draftApp, setDraftApp] = useState("");
-
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(p => ({ ...p, [k]: v }));
-  const toggle = (k: "domains" | "audiences" | "stack", v: string) =>
-    setForm(p => ({ ...p, [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v] }));
 
-  // 관계사 선택 변경 핸들러. 드롭다운이 호출할 단일 진입점.
-  // codes가 빈 배열이면 "전사 공용"으로 명시적 선택된 것으로 처리.
   const handlePlatformCompaniesChange = (codes: string[]) => {
     setForm(p => ({ ...p, platformCompanies: codes }));
     setPlatformScope(codes.length === 0 ? "company-wide" : "specific");
   };
 
-  const addOrgEntry = () => {
-    const newEntry: OrgEntry = {
-      id: orgEntryIdSeq++,
-      company: draftCompany,
-      parent: draftParent === NO_PARENT ? null : draftParent,
-      dept: draftDept || null,
-    };
-    const isDuplicate = form.orgEntries.some(e => e.company === newEntry.company && e.parent === newEntry.parent && e.dept === newEntry.dept);
-    if (isDuplicate) return;
-    setForm(p => ({ ...p, orgEntries: [...p.orgEntries, newEntry] }));
-    setDraftParent(NO_PARENT);
-    setDraftDept("");
-  };
-  const removeOrgEntry = (id: number) => setForm(p => ({ ...p, orgEntries: p.orgEntries.filter(e => e.id !== id) }));
-  const availableParents = PARENTS_BY_COMPANY[draftCompany] ?? [];
-  const availableDepts = draftParent !== NO_PARENT ? (DEPTS_BY_PARENT[draftParent] ?? []) : [];
-
-  // 노드 칩 추가/삭제
   const addNode = (value?: string) => {
     const v = (value ?? draftNode).trim();
     if (!v || form.nodes.includes(v)) return;
@@ -520,7 +420,6 @@ export default function ProjectRegisterPage() {
   };
   const removeNode = (v: string) => setForm(p => ({ ...p, nodes: p.nodes.filter(n => n !== v) }));
 
-  // 연동 앱 칩 추가/삭제
   const addApp = (value?: string) => {
     const v = (value ?? draftApp).trim();
     if (!v || form.connectedApps.includes(v)) return;
@@ -531,25 +430,34 @@ export default function ProjectRegisterPage() {
 
   const addContact = () => setForm(p => ({ ...p, contacts: [...p.contacts, { name: "", dept: "", role: "공동담당자", email: "" }] }));
   const removeContact = (i: number) => setForm(p => ({ ...p, contacts: p.contacts.filter((_, ci) => ci !== i) }));
-  const setContact = (i: number, k: keyof Contact, v: string) => setForm(p => ({ ...p, contacts: p.contacts.map((c, ci) => ci === i ? { ...c, [k]: v } : c) }));
+  const setContact = (i: number, k: keyof Contact, v: string) =>
+    setForm(p => ({ ...p, contacts: p.contacts.map((c, ci) => ci === i ? { ...c, [k]: v } : c) }));
 
   const addLink = () => setForm(p => ({ ...p, links: [...p.links, { label: "", url: "" }] }));
   const removeLink = (i: number) => setForm(p => ({ ...p, links: p.links.filter((_, li) => li !== i) }));
-  const setLink = (i: number, k: keyof LinkItem, v: string) => setForm(p => ({ ...p, links: p.links.map((l, li) => li === i ? { ...l, [k]: v } : l) }));
+  const setLink = (i: number, k: keyof LinkItem, v: string) =>
+    setForm(p => ({ ...p, links: p.links.map((l, li) => li === i ? { ...l, [k]: v } : l) }));
 
   const STEPS = kind ? STEPS_BY_KIND(kind) : ["유형 선택"];
 
   const canNext = () => {
     if (step === 0) return kind !== null;
-    if (step === 1) return form.title.trim() && form.summary.trim() && form.description.trim();
+    if (step === 1) return Boolean(form.title.trim() && form.summary.trim() && form.description.trim());
     if (step === 2) {
-      if (kind === "project") {
-        return Boolean(form.status && form.systemType && form.domains.length > 0 && form.orgEntries.length > 0 && form.audiences.length > 0);
-      }
-      if (kind && isModelKind(kind)) {
+      if (!kind) return false;
+      if (isModelKind(kind)) {
         return Boolean(form.status && platformScope !== "unset" && form.provider.trim() && form.contextWindow.trim() && form.specificUrl.trim());
       }
-      // n8n / 나만의 비서(HK GPT 커스텀) — 구성·효과 단계
+      if (isMLKind(kind)) {
+        return Boolean(form.status && platformScope !== "unset" && form.mlType.trim());
+      }
+      if (isVibeKind(kind)) {
+        return Boolean(form.status && platformScope !== "unset");
+      }
+      // workflow kinds: n8n, pa, assistant
+      if (kind === "pa") {
+        return Boolean(form.status && platformScope !== "unset" && form.nodes.length > 0);
+      }
       return Boolean(form.status && platformScope !== "unset" && form.nodes.length > 0 && form.specificUrl.trim());
     }
     if (step === 3) return Boolean(form.contacts[0]?.name && form.contacts[0]?.email);
@@ -558,11 +466,8 @@ export default function ProjectRegisterPage() {
 
   const handleSubmit = async () => {
     setSaving(true);
-    // TODO: 실제 연동 시 아래 payload를 POST /api/v1/projects 또는 /api/v1/platform-items 로 전송
-    const _payload = kind === "project" ? {
-      ...form,
-      expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
-    } : {
+    // TODO: 실제 연동 시 POST /api/v1/platform-items 로 전송
+    const _payload = {
       platformId: kind,
       ...form,
       expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
@@ -580,8 +485,6 @@ export default function ProjectRegisterPage() {
   };
 
   const selectedKindMeta = kind ? KIND_OPTIONS.find(k => k.key === kind)! : null;
-
-  // 요약 표시용 — 직렬화된 절감 시간 문자열
   const timeSavedDisplay = serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod) || "—";
 
   return (
@@ -593,7 +496,7 @@ export default function ProjectRegisterPage() {
         <div style={{ maxWidth: 780, margin: "0 auto" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>등록</div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>신규 항목 등록 신청</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>작성 완료 후 관리자 검토를 거쳐 Tech Hub에 게시됩니다.</p>
+          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>작성 완료 후 관리자 검토를 거쳐 AX Platform에 게시됩니다.</p>
         </div>
       </div>
 
@@ -625,17 +528,13 @@ export default function ProjectRegisterPage() {
           <Section title="등록할 항목의 유형을 선택하세요">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {KIND_OPTIONS.map(opt => (
-                <div
-                  key={opt.key}
-                  onClick={() => setKind(opt.key)}
-                  style={{
-                    border: `1.5px solid ${kind === opt.key ? opt.color : "#E2E8F0"}`,
-                    borderTop: `3px solid ${opt.color}`,
-                    background: kind === opt.key ? opt.bg : "#fff",
-                    borderRadius: 10, padding: "16px 18px", cursor: "pointer",
-                    transition: "border-color 0.15s",
-                  }}
-                >
+                <div key={opt.key} onClick={() => setKind(opt.key)} style={{
+                  border: `1.5px solid ${kind === opt.key ? opt.color : "#E2E8F0"}`,
+                  borderTop: `3px solid ${opt.color}`,
+                  background: kind === opt.key ? opt.bg : "#fff",
+                  borderRadius: 10, padding: "16px 18px", cursor: "pointer",
+                  transition: "border-color 0.15s",
+                }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <span style={{ width: 8, height: 8, borderRadius: 2, background: opt.color, display: "inline-block", flexShrink: 0 }} />
                     <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{opt.label}</span>
@@ -652,10 +551,17 @@ export default function ProjectRegisterPage() {
 
         {/* ===== STEP 1 — 공통 기본정보 ===== */}
         {step === 1 && (
-          <Section title={`기본정보 ${selectedKindMeta ? `(${selectedKindMeta.label})` : ""}`}>
+          <Section title={`기본정보${selectedKindMeta ? ` (${selectedKindMeta.label})` : ""}`}>
             <Field label="제목" required>
               <input value={form.title} onChange={e => set("title", e.target.value)}
-                placeholder={kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" : kind === "project" ? "프로젝트명을 입력하세요" : kind === "n8n" ? "예: 신규 입사자 계정 자동 생성" : "에이전트명을 입력하세요"}
+                placeholder={
+                  kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" :
+                  kind === "n8n" ? "예: 신규 입사자 계정 자동 생성" :
+                  kind === "pa" ? "예: 결재 완료 시 SharePoint 업데이트" :
+                  kind === "ml" ? "예: 불량품 이미지 분류 모델" :
+                  kind === "vibe" ? "예: 재고 현황 대시보드" :
+                  "에이전트명을 입력하세요"
+                }
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
@@ -669,13 +575,13 @@ export default function ProjectRegisterPage() {
             </Field>
             <Field label="상세 설명" required>
               <textarea value={form.description} onChange={e => set("description", e.target.value)}
-                placeholder={kind === "project"
-                  ? "개발 배경, 해결하려는 문제, 주요 기능, 현재 단계 등을 포함하면 좋습니다."
-                  : kind === "ai-orchestration"
-                    ? "어떤 반복 업무를 자동화하는지, 트리거 조건은 무엇인지 설명하세요."
-                    : kind === "assistant"
-                      ? "HK GPT를 어떤 업무에 맞게 커스터마이징했는지, 주요 활용 시나리오를 설명하세요."
-                      : "트리거 조건, 동작 순서, 연동되는 시스템을 포함하면 좋습니다."}
+                placeholder={
+                  kind === "ai-orchestration" ? "어떤 반복 업무를 자동화하는지, 트리거 조건은 무엇인지 설명하세요." :
+                  kind === "assistant" ? "HK GPT를 어떤 업무에 맞게 커스터마이징했는지, 주요 활용 시나리오를 설명하세요." :
+                  kind === "ml" ? "모델의 목적, 학습 데이터 출처, 현재 운영 상태 등을 포함하세요." :
+                  kind === "vibe" ? "어떤 문제를 해결하기 위해 만들었는지, 주요 기능을 설명하세요." :
+                  "트리거 조건, 동작 순서, 연동되는 시스템을 포함하면 좋습니다."
+                }
                 style={{ ...inputStyle, minHeight: 140, resize: "vertical", lineHeight: 1.7 }}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
@@ -683,103 +589,8 @@ export default function ProjectRegisterPage() {
           </Section>
         )}
 
-        {/* ===== STEP 2 — 일반 프로젝트 분류 ===== */}
-        {step === 2 && kind === "project" && (
-          <Section title="프로젝트 분류">
-            <Field label="프로젝트 상태" required>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
-              </div>
-            </Field>
-            <Field label="시스템 유형" required>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {SYSTEM_TYPES.map(s => <Tag key={s} label={s} selected={form.systemType === s} onClick={() => set("systemType", s)} />)}
-              </div>
-              {form.systemType === "기타" && (
-                <input value={form.systemTypeOther} onChange={e => set("systemTypeOther", e.target.value)}
-                  placeholder="시스템 유형을 직접 입력하세요"
-                  style={{ ...inputStyle, marginTop: 8 }}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-              )}
-            </Field>
-            <Field label="비즈니스 도메인" required hint="복수 선택 가능합니다.">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {DOMAINS.map(d => <Tag key={d} label={d} selected={form.domains.includes(d)} onClick={() => toggle("domains", d)} />)}
-              </div>
-              {form.domains.includes("기타") && (
-                <input value={form.domainOther} onChange={e => set("domainOther", e.target.value)}
-                  placeholder="비즈니스 도메인을 직접 입력하세요"
-                  style={{ ...inputStyle, marginTop: 8 }}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-              )}
-            </Field>
-
-            <Field label="참여 관계사 / 본부 / 부서" required hint="관계사는 필수이며, 본부와 부서는 선택사항입니다.">
-              {form.orgEntries.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-                  {form.orgEntries.map(e => (
-                    <div key={e.id} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 11px",
-                    }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#1E40AF" }}>{orgEntryDisplay(e)}</span>
-                      <button onClick={() => removeOrgEntry(e.id)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ background: "#F8FAFC", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "12px 14px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
-                  <select value={draftCompany} onChange={e => { setDraftCompany(e.target.value); setDraftParent(NO_PARENT); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px" }}>
-                    {SELECTABLE_COMPANIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                  </select>
-                  <select value={draftParent} onChange={e => { setDraftParent(e.target.value); setDraftDept(""); }} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px" }}>
-                    <option value={NO_PARENT}>본부 없음</option>
-                    {availableParents.map(p => <option key={p}>{p}</option>)}
-                  </select>
-                  <select value={draftDept} onChange={e => setDraftDept(e.target.value)} disabled={draftParent === NO_PARENT} style={{ ...selectStyle, fontSize: 11, padding: "7px 8px", opacity: draftParent === NO_PARENT ? 0.5 : 1 }}>
-                    <option value="">부서 없음</option>
-                    {availableDepts.map(d => <option key={d}>{d}</option>)}
-                  </select>
-                </div>
-                <button onClick={addOrgEntry} style={{
-                  background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
-                  padding: "7px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                }}>
-                  + 추가
-                </button>
-              </div>
-            </Field>
-
-            <Field label="사용 대상" required>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {AUDIENCES.map(a => <Tag key={a} label={a} selected={form.audiences.includes(a)} onClick={() => toggle("audiences", a)} />)}
-              </div>
-            </Field>
-            <Field label="기술 스택">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {STACK_OPTIONS.map(s => <Tag key={s} label={s} selected={form.stack.includes(s)} onClick={() => toggle("stack", s)} />)}
-              </div>
-            </Field>
-            <Field label="연동 시스템" hint="콤마(,)로 구분하여 입력하세요.">
-              <input value={form.integrations} onChange={e => set("integrations", e.target.value)}
-                placeholder="예: ERP, LIMS" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-            </Field>
-            <Field label="자유 태그" hint="콤마(,)로 구분하여 입력하세요. 관리자 검토 후 공식 분류로 편입될 수 있습니다.">
-              <input value={form.freeTags} onChange={e => set("freeTags", e.target.value)}
-                placeholder="예: Lab색공간, 조색" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-            </Field>
-          </Section>
-        )}
-
-        {/* ===== STEP 2 — 워크플로우/에이전트형(n8n, 나만의 비서) "구성·효과" ===== */}
-        {step === 2 && kind && !isModelKind(kind) && kind !== "project" && (
+        {/* ===== STEP 2 — 워크플로우형 (n8n, pa, assistant) ===== */}
+        {step === 2 && kind && isWorkflowKind(kind) && (
           <>
             <Section title={`${selectedKindMeta?.label} 동작 정보`}>
               <Field label="상태" required>
@@ -787,45 +598,56 @@ export default function ProjectRegisterPage() {
                   {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
                 </div>
               </Field>
-              <Field
-                label="소속 / 대상 관계사"
-                required
-                hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다. 관계사마다 시스템 환경이 다를 수 있어 복수 선택이 가능합니다."
-              >
+              <Field label="소속 / 대상 관계사" required
+                hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
                 <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
                 {platformScope === "unset" && (
                   <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
                 )}
               </Field>
-              <Field label="트리거 · 동작 설명" required hint="언제 실행되고, 어떤 순서로 동작하는지 설명하세요.">
+              <Field label="트리거 · 동작 설명" hint="언제 실행되고, 어떤 순서로 동작하는지 설명하세요.">
                 <textarea value={form.triggerAction} onChange={e => set("triggerAction", e.target.value)}
-                  placeholder="예: Schedule Trigger(매일 오전 8시) → 재고 API 조회 → IF(임계치 이하) → Teams 알림"
+                  placeholder={kind === "pa"
+                    ? "예: 양식 제출 시 승인 요청 → 승인 완료 후 SharePoint 항목 업데이트 → Teams 알림"
+                    : "예: Schedule Trigger(매일 오전 8시) → 재고 API 조회 → IF(임계치 이하) → Teams 알림"}
                   style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7 }}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
-              <Field label="실행 URL" required>
-                <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
-                  placeholder="https://"
-                  style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-              </Field>
+              {kind !== "pa" && (
+                <Field label="실행 URL" required>
+                  <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
+                    placeholder="https://" style={inputStyle}
+                    onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                    onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                </Field>
+              )}
               <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
                 <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
-                  placeholder="예: HR, 계정자동화"
-                  style={inputStyle}
+                  placeholder="예: HR, 계정자동화" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
             </Section>
 
-            <Section title="노드 구성">
-              <Field label="사용된 노드" required>
-                <ChipInput items={form.nodes} onAdd={addNode} onRemove={removeNode} draft={draftNode} onDraftChange={setDraftNode} suggestions={NODE_SUGGESTIONS} placeholder="노드명 입력 후 Enter" />
+            <Section title={kind === "pa" ? "커넥터 구성" : "노드 구성"}>
+              <Field label={kind === "pa" ? "사용된 커넥터" : "사용된 노드"} required>
+                <ChipInput
+                  items={form.nodes}
+                  onAdd={addNode} onRemove={removeNode}
+                  draft={draftNode} onDraftChange={setDraftNode}
+                  suggestions={kind === "pa" ? PA_CONNECTOR_SUGGESTIONS : NODE_SUGGESTIONS}
+                  placeholder={kind === "pa" ? "커넥터명 입력 후 Enter" : "노드명 입력 후 Enter"}
+                />
               </Field>
               <Field label="연동 앱·서비스">
-                <ChipInput items={form.connectedApps} onAdd={addApp} onRemove={removeApp} draft={draftApp} onDraftChange={setDraftApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
+                <ChipInput
+                  items={form.connectedApps}
+                  onAdd={addApp} onRemove={removeApp}
+                  draft={draftApp} onDraftChange={setDraftApp}
+                  suggestions={APP_SUGGESTIONS}
+                  placeholder="연동 앱명 입력 후 Enter"
+                />
               </Field>
               {kind === "n8n" && (
                 <>
@@ -843,32 +665,23 @@ export default function ProjectRegisterPage() {
                         <input type="file" accept=".json" onChange={handleN8nJsonUpload} style={{ display: "none" }} />
                       </label>
                       {n8nUploadedFile ? (
-                        <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>
-                          ✓ {n8nUploadedFile}
-                        </span>
+                        <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>✓ {n8nUploadedFile}</span>
                       ) : (
                         <span style={{ fontSize: 12, color: "#94A3B8" }}>선택된 파일 없음</span>
                       )}
                     </div>
                   </Field>
-                  <Field label="워크플로우 다이어그램" hint="JSON 파일 업로드 시 자동으로 채워집니다. 직접 노드를 추가하거나 수정할 수도 있습니다.">
-                    <WorkflowEditor
-                      value={form.workflowInput}
-                      onChange={v => setForm(p => ({ ...p, workflowInput: v }))}
-                    />
+                  <Field label="워크플로우 다이어그램" hint="JSON 파일 업로드 시 자동으로 채워집니다.">
+                    <WorkflowEditor value={form.workflowInput} onChange={v => setForm(p => ({ ...p, workflowInput: v }))} />
                   </Field>
                 </>
               )}
             </Section>
 
             <Section title="예상 효과">
-              <Field
-                label="예상 절감 시간"
-                hint="이 도구를 사용해 절감되는 업무 시간을 입력하세요. 체감하기 쉬운 주기(일/주/월/년)를 고른 뒤 시간을 입력하면, 통계용 연간 환산값이 자동으로 계산됩니다."
-              >
+              <Field label="예상 절감 시간" hint="절감되는 업무 시간을 입력하면 통계용 연간 환산값이 자동으로 계산됩니다.">
                 <TimeSavedInput
-                  value={form.timeSavedValue}
-                  period={form.timeSavedPeriod}
+                  value={form.timeSavedValue} period={form.timeSavedPeriod}
                   onValueChange={v => set("timeSavedValue", v)}
                   onPeriodChange={p => set("timeSavedPeriod", p)}
                 />
@@ -882,7 +695,7 @@ export default function ProjectRegisterPage() {
           </>
         )}
 
-        {/* ===== STEP 2 — AI Agent(모델형) "모델 사양" ===== */}
+        {/* ===== STEP 2 — AI Agent (ai-orchestration) 모델 사양 ===== */}
         {step === 2 && kind && isModelKind(kind) && (
           <Section title="모델 사양">
             <Field label="상태" required>
@@ -890,11 +703,8 @@ export default function ProjectRegisterPage() {
                 {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
               </div>
             </Field>
-            <Field
-              label="소속 / 대상 관계사"
-              required
-              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다."
-            >
+            <Field label="소속 / 대상 관계사" required
+              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
               <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
               {platformScope === "unset" && (
                 <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
@@ -938,6 +748,116 @@ export default function ProjectRegisterPage() {
           </Section>
         )}
 
+        {/* ===== STEP 2 — ML 모델 정보 ===== */}
+        {step === 2 && kind && isMLKind(kind) && (
+          <Section title="ML 모델 정보">
+            <Field label="상태" required>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+              </div>
+            </Field>
+            <Field label="소속 / 대상 관계사" required
+              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+              <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
+              {platformScope === "unset" && (
+                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
+              )}
+            </Field>
+            <Field label="모델 유형" required>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {ML_TYPES.map(t => <Tag key={t} label={t} selected={form.mlType === t} onClick={() => set("mlType", t)} />)}
+              </div>
+            </Field>
+            <Field label="학습 데이터 설명" hint="사용된 데이터의 출처, 종류, 규모 등을 간략히 기술하세요.">
+              <textarea value={form.trainingDataDesc} onChange={e => set("trainingDataDesc", e.target.value)}
+                placeholder="예: 생산 라인 불량 이미지 12만 장 (2023–2024 수집)"
+                style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.7 }}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="성능 요약" hint="정확도, F1, RMSE 등 핵심 지표를 간략히 기술하세요.">
+              <input value={form.performanceSummary} onChange={e => set("performanceSummary", e.target.value)}
+                placeholder="예: 정확도 94.2%, F1 0.93 (테스트셋 기준)" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="개발 도구">
+              <input value={form.devTool} onChange={e => set("devTool", e.target.value)}
+                placeholder="예: PyTorch, scikit-learn, TensorFlow" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="출력 형태" hint="모델이 반환하는 결과물의 형태를 설명하세요.">
+              <input value={form.outputType} onChange={e => set("outputType", e.target.value)}
+                placeholder="예: 불량 여부 (0/1), 불량 확률 (0–1)" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="소스 저장소">
+              <input value={form.sourceRepo} onChange={e => set("sourceRepo", e.target.value)}
+                placeholder="예: https://github.com/kolmar/ml-defect-detection" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
+              <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
+                placeholder="예: 비전, 품질관리" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+          </Section>
+        )}
+
+        {/* ===== STEP 2 — Vibe Coding 정보 ===== */}
+        {step === 2 && kind && isVibeKind(kind) && (
+          <Section title="Vibe Coding 정보">
+            <Field label="상태" required>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+              </div>
+            </Field>
+            <Field label="소속 / 대상 관계사" required
+              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+              <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
+              {platformScope === "unset" && (
+                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
+              )}
+            </Field>
+            <Field label="사용한 AI 도구">
+              <input value={form.devTool} onChange={e => set("devTool", e.target.value)}
+                placeholder="예: Cursor, GitHub Copilot" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+                {VIBE_TOOL_SUGGESTIONS.map(t => (
+                  <span key={t} onClick={() => set("devTool", form.devTool ? `${form.devTool}, ${t}` : t)} style={{
+                    fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
+                    padding: "3px 9px", borderRadius: 20, cursor: "pointer",
+                  }}>+ {t}</span>
+                ))}
+              </div>
+            </Field>
+            <Field label="결과물 형태" hint="웹앱, 스크립트, 대시보드, CLI 등 만들어진 산출물을 설명하세요.">
+              <input value={form.outputType} onChange={e => set("outputType", e.target.value)}
+                placeholder="예: React 웹앱, Python 스크립트, Streamlit 대시보드" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="소스 저장소">
+              <input value={form.sourceRepo} onChange={e => set("sourceRepo", e.target.value)}
+                placeholder="예: https://github.com/kolmar/vibe-project" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
+              <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
+                placeholder="예: 대시보드, 재고관리" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+          </Section>
+        )}
+
         {/* ===== STEP 3 — 담당자 / 링크 (공통) ===== */}
         {step === 3 && (
           <>
@@ -957,9 +877,7 @@ export default function ProjectRegisterPage() {
               <button onClick={addContact} style={{
                 background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 6,
                 padding: "8px 16px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
-              }}>
-                + 담당자 추가
-              </button>
+              }}>+ 담당자 추가</button>
             </Section>
 
             <Section title="문서 및 외부 링크">
@@ -973,14 +891,12 @@ export default function ProjectRegisterPage() {
               <button onClick={addLink} style={{
                 background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 6,
                 padding: "8px 16px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
-              }}>
-                + 링크 추가
-              </button>
+              }}>+ 링크 추가</button>
             </Section>
           </>
         )}
 
-        {/* ===== STEP 4 — 최종확인 (유형별 분기) ===== */}
+        {/* ===== STEP 4 — 최종확인 ===== */}
         {step === 4 && (
           <Section title="최종 확인">
             <div style={{
@@ -996,32 +912,37 @@ export default function ProjectRegisterPage() {
               { label: "제목", value: form.title || "—" },
               { label: "한 줄 요약", value: form.summary || "—" },
               { label: "상태", value: form.status || "—" },
-              ...(kind === "project" ? [
-                { label: "시스템 유형", value: form.systemType === "기타" ? form.systemTypeOther : form.systemType || "—" },
-                { label: "비즈니스 도메인", value: form.domains.map(d => d === "기타" ? form.domainOther : d).join(", ") || "—" },
-                { label: "참여 관계사/본부/부서", value: form.orgEntries.length > 0 ? form.orgEntries.map(orgEntryDisplay).join(" / ") : "—" },
-                { label: "사용 대상", value: form.audiences.join(", ") || "—" },
-                { label: "기술 스택", value: form.stack.join(", ") || "—" },
-                { label: "연동 시스템", value: form.integrations || "—" },
-                { label: "자유 태그", value: form.freeTags || "—" },
-              ] : []),
-              ...(kind && !isModelKind(kind) && kind !== "project" ? [
-                { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
+              { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
+              ...(kind && isWorkflowKind(kind) ? [
                 { label: "트리거·동작 설명", value: form.triggerAction || "—" },
-                { label: "사용된 노드", value: form.nodes.join(" → ") || "—" },
+                { label: kind === "pa" ? "사용된 커넥터" : "사용된 노드", value: form.nodes.join(" → ") || "—" },
                 { label: "연동 앱·서비스", value: form.connectedApps.join(", ") || "—" },
                 { label: "예상 절감 시간", value: timeSavedDisplay },
                 { label: "구성 난이도", value: form.difficulty },
-                { label: "실행 URL", value: form.specificUrl || "—" },
+                ...(kind !== "pa" ? [{ label: "실행 URL", value: form.specificUrl || "—" }] : []),
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
               ...(kind && isModelKind(kind) ? [
-                { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
                 { label: "제공사", value: form.provider || "—" },
                 { label: "컨텍스트 윈도우", value: form.contextWindow || "—" },
                 { label: "비용 등급", value: form.costTier },
                 { label: "강점", value: form.strengths || "—" },
                 { label: "모델 접속 URL", value: form.specificUrl || "—" },
+                { label: "태그", value: form.itemTags || "—" },
+              ] : []),
+              ...(kind && isMLKind(kind) ? [
+                { label: "모델 유형", value: form.mlType || "—" },
+                { label: "학습 데이터", value: form.trainingDataDesc || "—" },
+                { label: "성능 요약", value: form.performanceSummary || "—" },
+                { label: "개발 도구", value: form.devTool || "—" },
+                { label: "출력 형태", value: form.outputType || "—" },
+                { label: "소스 저장소", value: form.sourceRepo || "—" },
+                { label: "태그", value: form.itemTags || "—" },
+              ] : []),
+              ...(kind && isVibeKind(kind) ? [
+                { label: "사용한 AI 도구", value: form.devTool || "—" },
+                { label: "결과물 형태", value: form.outputType || "—" },
+                { label: "소스 저장소", value: form.sourceRepo || "—" },
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
               { label: "주담당자", value: form.contacts[0] ? `${form.contacts[0].name} (${form.contacts[0].dept})` : "—" },
@@ -1036,7 +957,7 @@ export default function ProjectRegisterPage() {
             ))}
 
             <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "12px 16px", marginTop: 20, fontSize: 12, color: "#92400E" }}>
-              제출 후 관리자 검토를 거쳐 Tech Hub에 게시됩니다. 검토 결과는 이메일 및 Teams로 알림이 발송됩니다.
+              제출 후 관리자 검토를 거쳐 AX Platform에 게시됩니다. 검토 결과는 이메일 및 Teams로 알림이 발송됩니다.
             </div>
 
             {saved && (
@@ -1057,31 +978,19 @@ export default function ProjectRegisterPage() {
               padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569",
               cursor: step === 0 ? "not-allowed" : "pointer", opacity: step === 0 ? 0.5 : 1,
             }}
-          >
-            이전
-          </button>
+          >이전</button>
 
           {step < 4 ? (
-            <button
-              onClick={() => setStep(s => Math.min(4, s + 1))}
-              disabled={!canNext()}
-              style={{
-                background: canNext() ? "#2563EB" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 8,
-                padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-allowed",
-              }}
-            >
-              다음
-            </button>
+            <button onClick={() => setStep(s => Math.min(4, s + 1))} disabled={!canNext()} style={{
+              background: canNext() ? "#2563EB" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 8,
+              padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-allowed",
+            }}>다음</button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={saving || saved}
-              style={{
-                background: saved ? "#059669" : "#2563EB", color: "#fff", border: "none", borderRadius: 8,
-                padding: "10px 22px", fontSize: 13, fontWeight: 700,
-                cursor: saving || saved ? "not-allowed" : "pointer",
-              }}
-            >
+            <button onClick={handleSubmit} disabled={saving || saved} style={{
+              background: saved ? "#059669" : "#2563EB", color: "#fff", border: "none", borderRadius: 8,
+              padding: "10px 22px", fontSize: 13, fontWeight: 700,
+              cursor: saving || saved ? "not-allowed" : "pointer",
+            }}>
               {saving ? "제출 중..." : saved ? "제출 완료" : "제출하기"}
             </button>
           )}

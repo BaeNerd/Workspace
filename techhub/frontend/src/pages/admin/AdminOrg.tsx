@@ -271,7 +271,7 @@ function DeptRow({
       ) : isDelete ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
           <span style={{ flex: 1, fontSize: 13, color: "#991B1B", fontWeight: 600 }}>{dept.name} — 삭제하시겠습니까?</span>
-          {dept.projectCount > 0 && <span style={{ fontSize: 11, color: "#EF4444" }}>프로젝트 {dept.projectCount}건에 태깅됨</span>}
+          {dept.projectCount > 0 && <span style={{ fontSize: 11, color: "#EF4444" }}>AX 항목 {dept.projectCount}건에 태깅됨</span>}
           <button onClick={onConfirmDelete} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>삭제</button>
           <button onClick={onCancelDelete} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
         </div>
@@ -287,7 +287,7 @@ function DeptRow({
                 <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, padding: "1px 7px", borderRadius: 20 }}>{badge.label}</span>
               )}
             </div>
-            <span style={{ fontSize: 11, color: "#94A3B8" }}>프로젝트 {dept.projectCount}건</span>
+            <span style={{ fontSize: 11, color: "#94A3B8" }}>AX 항목 {dept.projectCount}건</span>
           </div>
           <button onClick={onStartEdit} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
           <button onClick={onAskDelete} style={{ background: "#fff", border: "1px solid #FECACA", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
@@ -494,7 +494,7 @@ export default function AdminOrg() {
               <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>관계사 노출 관리</span>
             </div>
             <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px 28px", lineHeight: 1.6 }}>
-              어떤 관계사를 Tech Hub에 노출할지 결정합니다. 이 설정은 사용자에게 보이는 범위(목록·필터·통계)를 좌우하는 접근 게이트입니다.
+              어떤 관계사를 AX Platform에 노출할지 결정합니다. 이 설정은 사용자에게 보이는 범위(목록·필터·통계)를 좌우하는 접근 게이트입니다.
             </p>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap", marginLeft: 28 }}>
@@ -507,7 +507,7 @@ export default function AdminOrg() {
             </div>
 
             <div style={{ marginLeft: 28, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#1E40AF", lineHeight: 1.6 }}>
-              비노출 처리된 관계사는 해당 관계사 소속이 아닌 일반 사용자에게 Tech Hub 목록·필터·통계에서 보이지 않습니다.
+              비노출 처리된 관계사는 해당 관계사 소속이 아닌 일반 사용자에게 AX Platform 목록·필터·통계에서 보이지 않습니다.
               단, <strong>"그룹 전체보기" 권한</strong>을 가진 사용자(AD-06에서 부여)는 비노출 관계사도 모두 조회·필터링할 수 있습니다.
               목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Agent 항목 수입니다(전사 공용 항목 포함).
             </div>
@@ -563,7 +563,7 @@ export default function AdminOrg() {
               </div>
 
               <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "#64748B", lineHeight: 1.6 }}>
-                각 부서의 "프로젝트 N건" 카운트는 일반 프로젝트만 집계합니다. n8n·나만의 비서·AI Agent는 부서가 아닌 관계사 단위로 집계되며, 위 <strong>섹션 1</strong>의 "자동화·AI 도구 N" 배지에서 확인할 수 있습니다.
+                각 부서의 "AX 항목 N건" 카운트는 해당 부서에 태깅된 AX 플랫폼 등록물 수입니다. 관계사 전체 집계는 위 <strong>섹션 1</strong>의 "자동화·AI 도구 N" 배지에서 확인할 수 있습니다.
               </div>
 
               {companiesWithDepts.length === 0 ? (
@@ -771,8 +771,8 @@ export default function AdminOrg() {
 
           <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", marginTop: 20, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
             <strong>운영 유의사항</strong><br />
-            관계사를 비노출로 전환해도 기존에 등록된 프로젝트·자동화·AI 도구 항목 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
-            부서 삭제 시 해당 부서에 태깅된 프로젝트가 있다면 영향 범위를 사전에 확인하세요.
+            관계사를 비노출로 전환해도 기존에 등록된 AX 플랫폼 항목 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
+            부서 삭제 시 해당 부서에 태깅된 AX 항목이 있다면 영향 범위를 사전에 확인하세요.
           </div>
         </main>
       </div>

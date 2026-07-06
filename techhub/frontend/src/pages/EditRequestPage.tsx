@@ -3,29 +3,23 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-// TODO: 실제 연동 시 GET /api/v1/projects/:id 응답으로 교체 (ProjectDetailPage와 동일 소스 권장)
-type CurrentProject = {
+// TODO: 실제 연동 시 GET /api/v1/platform-items/:id 응답으로 교체
+type CurrentItem = {
   title: string; summary: string; description: string; status: string;
-  domain: string[]; type: string; stack: string[]; departments: string[];
 };
 
-const MOCK_CURRENT: CurrentProject = {
-  title: "조색 예측 ML 모델",
-  summary: "원료 배합 데이터를 기반으로 최종 제품의 색상을 사전 예측하는 ML 모델",
-  description: "기존 조색 프로세스는 연구원이 수작업으로 원료를 배합하고 색상을 측정하는 반복 실험에 의존하고 있었습니다...",
-  status: "개발 중",
-  domain: ["제조/생산"],
-  type: "ML/AI 모델",
-  stack: ["Python", "TensorFlow", "FastAPI", "AWS SageMaker", "PostgreSQL"],
-  departments: ["메이크업연구소", "IT개발팀"],
+const MOCK_CURRENT: CurrentItem = {
+  title: "신규 입사자 계정 자동 생성",
+  summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성하는 n8n 워크플로우",
+  description: "신규 입사자가 HR 시스템에 등록되면 Schedule Trigger가 발동하여 AD 계정 생성 → Teams 초대 → 이메일 계정 활성화까지 자동으로 처리합니다.",
+  status: "운영 중",
 };
 
 const EDITABLE_FIELDS = [
-  { key: "title", label: "프로젝트명" },
+  { key: "title", label: "항목명" },
   { key: "summary", label: "한 줄 요약" },
   { key: "description", label: "상세 설명" },
-  { key: "status", label: "프로젝트 상태" },
-  { key: "stack", label: "기술 스택" },
+  { key: "status", label: "운영 상태" },
 ] as const;
 
 export default function EditRequestPage() {
@@ -51,17 +45,18 @@ export default function EditRequestPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    // TODO: 실제 연동 시 POST /api/v1/projects/:id/edit-requests
+    // TODO: 실제 연동 시 POST /api/v1/platform-items/:id/edit-requests
     // body: { fields: selectedFields, changes, reason }
+    void id;
     await new Promise(r => setTimeout(r, 600));
     setSubmitting(false);
     setSubmitted(true);
-    setTimeout(() => navigate(`/projects/${id}`), 1400);
+    setTimeout(() => navigate("/projects"), 1400);
   };
 
   const fieldValue = (key: string): string => {
-    const v = (current as any)[key];
-    return Array.isArray(v) ? v.join(", ") : v;
+    const v = (current as Record<string, unknown>)[key];
+    return Array.isArray(v) ? v.join(", ") : String(v ?? "");
   };
 
   return (
@@ -72,9 +67,9 @@ export default function EditRequestPage() {
       {/* BREADCRUMB */}
       <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "10px 32px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94A3B8" }}>
-          <span onClick={() => navigate("/projects")} style={{ cursor: "pointer", color: "#2563EB", fontWeight: 500 }}>Tech Hub</span>
+          <span onClick={() => navigate("/projects")} style={{ cursor: "pointer", color: "#2563EB", fontWeight: 500 }}>AX 플랫폼</span>
           <span>/</span>
-          <span onClick={() => navigate(`/projects/${id}`)} style={{ cursor: "pointer", color: "#64748B" }}>{current.title}</span>
+          <span style={{ color: "#64748B" }}>{current.title}</span>
           <span>/</span>
           <span style={{ color: "#0F172A", fontWeight: 600 }}>수정 요청</span>
         </div>
@@ -84,7 +79,7 @@ export default function EditRequestPage() {
       <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "20px 32px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>수정 요청</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>게시된 프로젝트 수정 요청</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>게시된 AX 항목 수정 요청</h1>
           <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>수정할 항목을 선택하고 변경 내용을 입력하세요. 관리자 검토 후 반영됩니다.</p>
         </div>
       </div>
@@ -94,11 +89,10 @@ export default function EditRequestPage() {
         {submitted ? (
           <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 10, padding: "20px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46", marginBottom: 4 }}>수정 요청이 제출되었습니다</div>
-            <div style={{ fontSize: 12, color: "#059669" }}>프로젝트 상세 페이지로 이동합니다...</div>
+            <div style={{ fontSize: 12, color: "#059669" }}>AX 플랫폼 목록으로 이동합니다...</div>
           </div>
         ) : (
           <>
-            {/* 안내 */}
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 16px", marginBottom: 20, fontSize: 12, color: "#1E40AF" }}>
               수정할 항목을 체크하면 현재 값이 표시됩니다. 변경할 내용을 입력해 주세요.
             </div>
@@ -166,7 +160,7 @@ export default function EditRequestPage() {
               <textarea
                 value={reason}
                 onChange={e => setReason(e.target.value)}
-                placeholder="왜 이 항목을 수정해야 하는지 간략히 작성해 주세요. (예: 담당자 변경에 따른 정보 갱신, 기술 스택 추가 등)"
+                placeholder="왜 이 항목을 수정해야 하는지 간략히 작성해 주세요. (예: 담당자 변경에 따른 정보 갱신, 운영 상태 업데이트 등)"
                 style={{
                   width: "100%", boxSizing: "border-box", padding: "10px 12px",
                   fontSize: 13, color: "#0F172A", background: "#F8FAFC",
@@ -182,9 +176,8 @@ export default function EditRequestPage() {
               제출된 수정 요청은 관리자 검토 후 반영됩니다. 처리 결과는 Teams 및 이메일로 안내됩니다.
             </div>
 
-            {/* ACTIONS */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => navigate(`/projects/${id}`)} style={{
+              <button onClick={() => navigate("/projects")} style={{
                 background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7,
                 padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
               }}>

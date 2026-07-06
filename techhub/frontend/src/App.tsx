@@ -10,7 +10,6 @@ import LoginPage from "./pages/LoginPage";
 
 // 로그인 필요 페이지
 import ProjectListPage from "./pages/ProjectListPage";
-import ProjectDetailPage from "./pages/ProjectDetailPage";
 import ProjectRegisterPage from "./pages/ProjectRegisterPage";
 import MyStatusPage from "./pages/MyStatusPage";
 import EditRequestPage from "./pages/EditRequestPage";
@@ -25,7 +24,6 @@ import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
 import AdminPlatforms from "./pages/admin/AdminPlatforms";
-import PresentationDeck from "./pages/PresentationDeck";
 
 export default function App() {
   return (
@@ -38,19 +36,20 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/deck" element={<PresentationDeck />} />
 
           {/* ===== 로그인 필요 ===== */}
           <Route path="/projects" element={<ProtectedRoute><ProjectListPage /></ProtectedRoute>} />
           <Route path="/projects/new" element={<ProtectedRoute><ProjectRegisterPage /></ProtectedRoute>} />
-          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/edit-request" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
           <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
+          <Route path="/edit-request/:id" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
 
-          {/* 플랫폼 항목 상세 — 통합 그리드 카드를 클릭했을 때 도달하는 페이지 */}
+          {/* AX 플랫폼 항목 상세 — 6개 플랫폼 타입별 경로 */}
           <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/pa/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/ai-orchestration/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/ml/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/vibe/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

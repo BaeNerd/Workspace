@@ -2,51 +2,56 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { PLATFORMS } from "../types/platformTypes";
+import type { PlatformId } from "../types/platformTypes";
 
 type ApprovalStatus = "승인" | "대기" | "반려";
 const STATUS_OPTIONS = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
 
 type MyItem = {
   id: string;
+  kind: PlatformId;
   title: string;
   summary: string;
   submittedAt: string;
   updatedAt: string;
   approval: ApprovalStatus;
   status: string;
-  domain: string;
-  type: string;
   rejectionReason: string | null;
 };
 
 const INITIAL_ITEMS: MyItem[] = [
   {
-    id: "PRJ-2025-041", title: "조색 예측 ML 모델",
-    summary: "원료 배합 데이터 기반 색상 사전 예측 ML 모델",
+    id: "N8N-012", kind: "n8n",
+    title: "신규 입사자 계정 자동 생성",
+    summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성하는 n8n 워크플로우",
     submittedAt: "2025.02.10", updatedAt: "2025.02.14",
-    approval: "승인", status: "개발 중", domain: "제조/생산", type: "ML/AI 모델",
+    approval: "승인", status: "운영 중",
     rejectionReason: null,
   },
   {
-    id: "PRJ-2025-058", title: "원료 입고 품질 검사 자동화",
-    summary: "입고 원료의 품질 기준 자동 판정 및 리포팅 시스템",
+    id: "AST-011", kind: "assistant",
+    title: "원료 성분 규제 문의 봇",
+    summary: "원료 MSDS·규제 데이터를 자연어로 검색하는 HK GPT 커스텀 봇",
     submittedAt: "2025.05.06", updatedAt: "2025.05.09",
-    approval: "승인", status: "파일럿", domain: "제조/생산", type: "웹 애플리케이션",
+    approval: "승인", status: "파일럿",
     rejectionReason: null,
   },
   {
-    id: "PRJ-2025-071", title: "연구 실험 데이터 통합 플랫폼",
-    summary: "메이크업연구소 실험 기록을 통합 관리하는 내부 플랫폼",
+    id: "PA-003", kind: "pa",
+    title: "신제품 출시 승인 자동화 플로우",
+    summary: "신제품 등록 시 관련 부서 순차 승인을 Power Automate로 자동화",
     submittedAt: "2025.06.01", updatedAt: "2025.06.01",
-    approval: "대기", status: "개발 중", domain: "데이터/분석", type: "내부 플랫폼",
+    approval: "대기", status: "개발 중",
     rejectionReason: null,
   },
   {
-    id: "PRJ-2025-063", title: "색차 측정 자동 리포트 생성기",
-    summary: "분광측색계 측정값을 자동으로 수집하여 리포트를 생성하는 도구",
+    id: "ML-005", kind: "ml",
+    title: "색차 불량 이미지 분류 모델",
+    summary: "분광측색계 이미지를 분석해 색차 불량 여부를 자동 판정하는 ML 모델",
     submittedAt: "2025.05.20", updatedAt: "2025.05.22",
-    approval: "반려", status: "개발 중", domain: "제조/생산", type: "내부 도구",
-    rejectionReason: "동일한 기능의 프로젝트를 다른 팀원이 이미 등록하였습니다. 해당 프로젝트(PRJ-2025-039)의 담당자에게 연락하여 공동담당자로 참여하거나, 기능적 차별점이 있다면 이를 상세 설명에 명시한 후 재제출해 주세요.",
+    approval: "반려", status: "개발 중",
+    rejectionReason: "유사한 기능의 ML 모델이 이미 운영 중입니다(ML-001). 해당 모델 담당자와 협의 후 개선 방향을 명확히 하여 재제출해 주세요.",
   },
 ];
 
@@ -64,7 +69,6 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "보류": { bg: "#FEE2E2", color: "#991B1B" },
 };
 
-// ★ 상태 변경 드롭다운 — 모듈 레벨 컴포넌트 (입력 끊김 버그 방지 규칙 적용)
 function StatusChanger({ status, onChange }: { status: string; onChange: (v: string) => void }) {
   const isTerminated = status === "종료";
   return (
@@ -95,6 +99,11 @@ function StatusChanger({ status, onChange }: { status: string; onChange: (v: str
   );
 }
 
+const platformPathOf = (kind: PlatformId, id: string) => {
+  const p = PLATFORMS.find(pl => pl.id === kind);
+  return p ? `${p.path}/${id}` : "/projects";
+};
+
 export default function MyStatusPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"전체" | ApprovalStatus>("전체");
@@ -115,8 +124,7 @@ export default function MyStatusPage() {
   }, [statusOverrides]);
 
   const handleStatusChange = (id: string, newStatus: string) => {
-    // TODO: 실제 연동 시 PATCH /api/v1/projects/:id/status (body: { status: newStatus })
-    // 백엔드에서도 "종료 → 다른 상태"는 본인 권한으로 거부하고 관리자 전용 엔드포인트로 분리해야 함
+    // TODO: 실제 연동 시 PATCH /api/v1/platform-items/:id/status (body: { status: newStatus })
     setStatusOverrides(p => ({ ...p, [id]: newStatus }));
   };
 
@@ -178,6 +186,7 @@ export default function MyStatusPage() {
             const isExpanded = expanded === item.id;
             const isResubmit = resubmit === item.id;
             const isDeleteConfirm = deleteConfirm === item.id;
+            const platformMeta = PLATFORMS.find(p => p.id === item.kind);
 
             return (
               <div key={item.id} style={{
@@ -189,12 +198,11 @@ export default function MyStatusPage() {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
                     <div
                       style={{ flex: 1, minWidth: 0, cursor: item.approval === "승인" ? "pointer" : "default" }}
-                      onClick={() => item.approval === "승인" && navigate(`/projects/${item.id}`)}
+                      onClick={() => item.approval === "승인" && navigate(platformPathOf(item.kind, item.id))}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "#94A3B8" }}>{item.id}</span>
 
-                        {/* ★ 승인된 항목만 상태 변경 드롭다운, 그 외는 읽기 전용 배지 */}
                         {item.approval === "승인" ? (
                           <span onClick={e => e.stopPropagation()}>
                             <StatusChanger status={item.status} onChange={v => handleStatusChange(item.id, v)} />
@@ -208,9 +216,13 @@ export default function MyStatusPage() {
                           }}>{item.status}</span>
                         )}
 
-                        <span style={{ fontSize: 11, color: "#94A3B8" }}>{item.domain}</span>
-                        <span style={{ fontSize: 11, color: "#CBD5E1" }}>·</span>
-                        <span style={{ fontSize: 11, color: "#94A3B8" }}>{item.type}</span>
+                        {platformMeta && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700,
+                            background: platformMeta.bg, color: platformMeta.color,
+                            padding: "2px 8px", borderRadius: 20,
+                          }}>{platformMeta.name}</span>
+                        )}
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: "#64748B" }}>{item.summary}</div>
@@ -274,10 +286,10 @@ export default function MyStatusPage() {
                   <div style={{ borderTop: "1px solid #F1F5F9", padding: "16px 22px", background: "#FAFAFA" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10 }}>등록 내용 요약</div>
                     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px 16px", fontSize: 12 }}>
-                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>시스템 유형</span>
-                      <span style={{ color: "#334155" }}>{item.type}</span>
-                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>비즈니스 도메인</span>
-                      <span style={{ color: "#334155" }}>{item.domain}</span>
+                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>플랫폼</span>
+                      <span style={{ color: "#334155" }}>{platformMeta?.name ?? item.kind}</span>
+                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>항목 ID</span>
+                      <span style={{ color: "#334155", fontFamily: "var(--font-mono)" }}>{item.id}</span>
                     </div>
                   </div>
                 )}

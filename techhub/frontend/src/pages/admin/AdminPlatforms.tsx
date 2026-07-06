@@ -3,7 +3,6 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS, PLATFORM_ICON_PATH } from "../../types/platformTypes";
 import type { Platform, PlatformId } from "../../types/platformTypes";
-import { useAuth } from "../../context/useAuth";
 
 // ============================================================
 // AD-09 자동화·AI 도구(플랫폼) 관리 화면
@@ -15,9 +14,6 @@ import { useAuth } from "../../context/useAuth";
 //
 // 데모 단계에서는 로컬 상태로만 편집 흐름을 재현하며, 다른 화면의 정적
 // PLATFORMS 참조에는 즉시 반영되지 않는다(백엔드 연동 시 서버가 단일 소스).
-//
-// 권한: 플랫폼 메타데이터는 그룹 전체 공통 자원이므로 전사관리자(global)만
-//      추가·수정·비활성화 가능. 관계사관리자(company)는 열람만 허용.
 // ============================================================
 
 // 관리 화면 내부에서만 쓰는 확장 타입 — active(노출 여부) 플래그 추가.
@@ -25,11 +21,14 @@ import { useAuth } from "../../context/useAuth";
 type ManagedPlatform = Platform & { active: boolean };
 
 // 아이콘 옵션 (platformTypes.ts의 PLATFORM_ICON_PATH 키와 일치)
-const ICON_OPTIONS: Platform["icon"][] = ["automation", "assistant", "orchestration"];
+const ICON_OPTIONS: Platform["icon"][] = ["automation", "assistant", "orchestration", "pa", "ml", "vibe"];
 const ICON_LABEL: Record<Platform["icon"], string> = {
   automation: "자동화 (번개)",
   assistant: "비서 (원형)",
   orchestration: "오케스트레이션 (그리드)",
+  pa: "Power Automate (화살표)",
+  ml: "ML 모델 (큐브)",
+  vibe: "Vibe Coding (코드)",
 };
 
 // 색상 프리셋 — 출처 색상/배경 쌍. 자유 입력도 허용하되 대표 조합을 빠르게 고를 수 있게 제공.
@@ -40,6 +39,8 @@ const COLOR_PRESETS: { label: string; color: string; bg: string }[] = [
   { label: "그린", color: "#059669", bg: "#ECFDF5" },
   { label: "핑크", color: "#DB2777", bg: "#FDF2F8" },
   { label: "슬레이트", color: "#475569", bg: "#F1F5F9" },
+  { label: "스카이", color: "#0891B2", bg: "#ECFEFF" },
+  { label: "바이올렛", color: "#9333EA", bg: "#FAF5FF" },
 ];
 
 // 초기 목업 — PLATFORMS를 관리 화면용으로 로드. 전부 active=true로 시작.
@@ -51,7 +52,7 @@ const emptyDraft = (): ManagedPlatform => ({
   name: "",
   shortDesc: "",
   path: "",
-  accessUrl: "",
+  accessUrl: null,
   color: COLOR_PRESETS[0].color,
   bg: COLOR_PRESETS[0].bg,
   icon: "automation",
@@ -96,8 +97,6 @@ const PlatformIcon = ({ icon, color, bg, size = 40 }: { icon: Platform["icon"]; 
 );
 
 export default function AdminPlatforms() {
-  const { isGlobalAdmin } = useAuth();
-
   const [platforms, setPlatforms] = useState<ManagedPlatform[]>(INITIAL_PLATFORMS);
   const [selected, setSelected] = useState<string>(INITIAL_PLATFORMS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
@@ -110,15 +109,13 @@ export default function AdminPlatforms() {
   const activeItem = isNew ? draft : platforms.find(p => p.id === selected) ?? null;
   const displayData = editMode || isNew ? draft : activeItem;
   const isEditing = editMode || isNew;
-
-  // 전사관리자만 편집 가능
-  const canEdit = isGlobalAdmin;
+  const canEdit = true;
 
   const setF = <K extends keyof ManagedPlatform>(k: K, v: ManagedPlatform[K]) =>
     setDraft(p => p ? { ...p, [k]: v } : p);
 
   const startEdit = () => {
-    if (!activeItem || !canEdit) return;
+    if (!activeItem) return;
     setDraft({ ...activeItem });
     setEditMode(true);
     setIsNew(false);
@@ -127,7 +124,6 @@ export default function AdminPlatforms() {
   };
 
   const startNew = () => {
-    if (!canEdit) return;
     setDraft(emptyDraft());
     setIsNew(true);
     setEditMode(false);
@@ -148,28 +144,25 @@ export default function AdminPlatforms() {
     if (!d.shortDesc.trim()) return "짧은 설명을 입력해주세요.";
     if (!d.path.trim()) return "라우트 경로를 입력해주세요.";
     if (!d.path.startsWith("/")) return "라우트 경로는 '/'로 시작해야 합니다.";
-    if (!d.accessUrl.trim()) return "접속 URL을 입력해주세요.";
     if (isNew) {
       if (!d.id.trim()) return "식별자(ID)를 입력해주세요.";
       if (!/^[a-z0-9-]+$/.test(d.id)) return "식별자는 소문자·숫자·하이픈만 사용할 수 있습니다.";
       if (platforms.some(p => p.id === d.id)) return "이미 존재하는 식별자입니다. 다른 값을 사용해주세요.";
       if (platforms.some(p => p.path === d.path)) return "이미 사용 중인 라우트 경로입니다.";
     } else {
-      // 기존 편집 시 path 중복 검사(자기 자신 제외)
       if (platforms.some(p => p.path === d.path && p.id !== d.id)) return "이미 사용 중인 라우트 경로입니다.";
     }
     return "";
   };
 
   const handleSave = () => {
-    if (!draft || !canEdit) return;
+    if (!draft) return;
     const msg = validate(draft);
     if (msg) { setError(msg); return; }
 
     // TODO: 실제 연동 시
     //   isNew  → POST /api/v1/admin/platforms
     //   아니면 → PUT  /api/v1/admin/platforms/:id
-    //   신규 id 추가 시 백엔드 Platform 스키마·PlatformId 타입·라우팅 반영이 함께 필요.
     if (isNew) {
       setPlatforms(prev => [...prev, draft]);
       setSelected(draft.id);
@@ -184,15 +177,12 @@ export default function AdminPlatforms() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  // 비활성화/활성화 토글 (삭제 대신 노출 여부 제어 — 참조 무결성 보호)
+  // 비활성화/활성화 토글
   const toggleActive = (id: string) => {
-    if (!canEdit) return;
     setPlatforms(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
   };
 
-  // 삭제 — 참조 무결성 위험이 있으므로 확인 후에만. 실제로는 소프트 삭제(비활성) 권장.
   const handleDelete = (id: string) => {
-    if (!canEdit) return;
     setPlatforms(prev => prev.filter(p => p.id !== id));
     setDeleteConfirm(null);
     const remaining = platforms.filter(p => p.id !== id);
@@ -213,24 +203,16 @@ export default function AdminPlatforms() {
           <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>자동화·AI 도구 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{platforms.length}</span></span>
-                {canEdit && (
-                  <button onClick={startNew} style={{
-                    background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
-                    padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                  }}>+ 추가</button>
-                )}
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>AX 플랫폼 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{platforms.length}</span></span>
+                <button onClick={startNew} style={{
+                  background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
+                  padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                }}>+ 추가</button>
               </div>
               <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5, marginTop: 6 }}>
                 등록물의 출처가 되는 도구 종류를 관리합니다.
               </p>
             </div>
-
-            {!canEdit && (
-              <div style={{ margin: "12px 16px 0", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 6, padding: "8px 10px", fontSize: 10.5, color: "#475569", lineHeight: 1.5 }}>
-                자동화·AI 도구 메타데이터는 전사관리자만 편집할 수 있습니다. 열람만 가능합니다.
-              </div>
-            )}
 
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
               {platforms.map(p => {
@@ -289,24 +271,22 @@ export default function AdminPlatforms() {
                     </div>
                   </div>
 
-                  {canEdit && (
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      {!isEditing ? (
-                        <>
-                          <button onClick={() => toggleActive(displayData.id)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                            {displayData.active ? "비활성화" : "활성화"}
-                          </button>
-                          <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
-                          <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={cancelEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>취소</button>
-                          <button onClick={handleSave} style={{ background: "#2563EB", border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    {!isEditing ? (
+                      <>
+                        <button onClick={() => toggleActive(displayData.id)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+                          {displayData.active ? "비활성화" : "활성화"}
+                        </button>
+                        <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
+                        <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={cancelEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>취소</button>
+                        <button onClick={handleSave} style={{ background: "#2563EB", border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* 삭제 확인 */}
@@ -368,10 +348,17 @@ export default function AdminPlatforms() {
                       : <div style={{ fontSize: 13, color: "#334155", fontFamily: "var(--font-mono)" }}>{displayData.path}</div>}
                   </FieldRow>
 
-                  <FieldRow label="접속 URL" hint="외부 도구로 이동하는 실제 주소">
+                  <FieldRow label="접속 URL" hint="외부 도구로 이동하는 실제 주소 (없으면 비워두세요)">
                     {isEditing
-                      ? <input value={displayData.accessUrl} onChange={e => setF("accessUrl", e.target.value)} placeholder="예: https://n8n.kolmar.co.kr" style={inputStyle} />
-                      : <a href={displayData.accessUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.accessUrl}</a>}
+                      ? <input
+                          value={displayData.accessUrl ?? ""}
+                          onChange={e => setF("accessUrl", e.target.value === "" ? null : e.target.value)}
+                          placeholder="예: https://n8n.kolmar.co.kr (없으면 빈칸)"
+                          style={inputStyle}
+                        />
+                      : displayData.accessUrl
+                          ? <a href={displayData.accessUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.accessUrl}</a>
+                          : <span style={{ fontSize: 13, color: "#94A3B8" }}>미정 (준비 중)</span>}
                   </FieldRow>
                 </SectionBlock>
 

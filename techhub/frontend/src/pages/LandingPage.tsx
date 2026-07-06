@@ -7,28 +7,22 @@ import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 
 // 랜딩 상단 지표 (사용자 효용 중심 — "지금 쓸 수 있는가 / 살아있는가").
-// 집계 기준: 전수(visible 무관). visible 토글은 목록·상세의 접근 제어에만 적용하며,
-//   랜딩 집계 숫자까지 가리면 목록과의 정합성 혼란만 생기므로 그룹 전체 규모를 그대로 노출한다.
 // TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체.
-//   값 기준: 전체 등록물 208(프로젝트 124 + 플랫폼 84) /
-//            바로 쓸 수 있는 도구 = 운영 중 플랫폼 항목 수 /
-//            이번 달 신규 = 최근 30일 등록(프로젝트+플랫폼 합산).
 const STATS: { value: string; label: string; sub: string }[] = [
-  { value: "208", label: "전체 등록물", sub: "프로젝트·자동화·AI 통합" },
+  { value: "208", label: "전체 AX 항목", sub: "자동화·AI 도구 통합" },
   { value: "84", label: "바로 쓸 수 있는 도구", sub: "운영 중인 자동화·AI 도구" },
   { value: "14", label: "이번 달 신규", sub: "최근 30일 등록" },
 ];
 
 // 4번 칸(개인화) — 로그인 사용자의 소속 관계사(코드) 기준 누적 등록 수.
 // TODO: 실제 연동 시 GET /api/v1/stats/my-company?company=:code 응답으로 교체.
-//   미등록(0건) 관계사는 이 맵에 없으면 0건 + 초대 문구로 자연 처리된다.
 const COMPANY_REGISTRATIONS: Record<string, { name: string; count: number }> = {
   KKM: { name: "한국콜마", count: 47 },
   HKINNOEN: { name: "HK이노엔", count: 23 },
   KMBNH: { name: "콜마비앤에이치", count: 0 },
 };
 
-// 비로그인 폴백 — 참여 관계사 수(분모 없는 절대값, 천장·서열 없음).
+// 비로그인 폴백 — 참여 관계사 수.
 // TODO: 실제 연동 시 GET /api/v1/stats/participating-companies 응답으로 교체.
 const PARTICIPATING_COMPANIES = 18;
 
@@ -40,12 +34,11 @@ const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   "보류": { bg: "#FEE2E2", color: "#991B1B" },
 };
 
-// 랜딩페이지 "최근" 섹션에 보여줄 통합 항목 — Project와 PlatformItem을 같은 모양으로 정규화
 type RecentItem = {
   id: string;
-  kind: "project" | PlatformId;
+  kind: PlatformId;
   title: string;
-  summaryOrDept: string; // Project는 자동 요약, PlatformItem은 summary
+  summaryOrDept: string;
   dept: string;
   status: string;
   tags: string[];
@@ -54,19 +47,17 @@ type RecentItem = {
   path: string;
 };
 
-// TODO: 실제 연동 시 GET /api/v1/projects?sort=recent&limit=4 +
-//       GET /api/v1/platform-items?sort=recent&limit=2 를 합쳐서 교체
+// TODO: 실제 연동 시 GET /api/v1/platform-items?sort=recent&limit=6 응답으로 교체
 const RECENT_ITEMS: RecentItem[] = [
-  { id: "PRJ-2025-038", kind: "project", title: "통합 정산 자동화 시스템", summaryOrDept: "재무/회계 영역 · 재무팀에서 운영하는 데이터 파이프라인", dept: "재무팀", status: "운영 중", tags: ["Python", "Airflow", "PostgreSQL"], updated: "2025.05.12", likes: 14, path: "/projects/PRJ-2025-038" },
-  { id: "PRJ-2025-070", kind: "project", title: "고객 문의 분류 ML 모델", summaryOrDept: "고객 서비스 영역 · 고객서비스팀에서 운영하는 ML/AI 모델", dept: "고객서비스팀", status: "개발 중", tags: ["Python", "FastAPI", "AWS"], updated: "2025.05.28", likes: 9, path: "/projects/PRJ-2025-070" },
-  { id: "PRJ-2025-041", kind: "project", title: "조색 예측 ML 모델", summaryOrDept: "제조/생산 영역 · 메이크업연구소에서 운영하는 ML/AI 모델", dept: "메이크업연구소", status: "개발 중", tags: ["Python", "TensorFlow", "AWS"], updated: "2025.06.01", likes: 21, path: "/projects/PRJ-2025-041" },
   { id: "N8N-001", kind: "n8n", title: "Outlook 긴급 메일 자동 전달", summaryOrDept: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달", dept: "IT인프라팀", status: "운영 중", tags: ["Outlook", "긴급메일", "자동전달"], updated: "2025.07.03", likes: 19, path: "/n8n/N8N-001" },
   { id: "AST-001", kind: "assistant", title: "법무 검토 보조 봇", summaryOrDept: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", status: "운영 중", tags: ["법무", "계약서검토", "위험분석"], updated: "2025.06.10", likes: 25, path: "/assistant/AST-001" },
   { id: "AIO-002", kind: "ai-orchestration", title: "Claude (문서 분석 특화)", summaryOrDept: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델", dept: "IT개발팀", status: "운영 중", tags: ["문서분석", "긴컨텍스트", "법무"], updated: "2025.06.12", likes: 27, path: "/ai-orchestration/AIO-002" },
+  { id: "PA-001", kind: "pa", title: "결재 문서 SharePoint 자동 저장", summaryOrDept: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관", dept: "경영지원팀", status: "운영 중", tags: ["SharePoint", "전자결재", "문서관리"], updated: "2025.07.01", likes: 12, path: "/pa/PA-001" },
+  { id: "ML-001", kind: "ml", title: "조색 예측 ML 모델", summaryOrDept: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", status: "개발 중", tags: ["TensorFlow", "회귀모델", "색상예측"], updated: "2025.06.01", likes: 21, path: "/ml/ML-001" },
+  { id: "VIBE-001", kind: "vibe", title: "일일 판매 리포트 자동 생성기", summaryOrDept: "ERP 데이터를 읽어 매일 아침 판매 실적 요약 리포트를 Slack으로 발송", dept: "영업기획팀", status: "파일럿", tags: ["ERP", "Slack", "리포트자동화"], updated: "2025.07.05", likes: 8, path: "/vibe/VIBE-001" },
 ];
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  project: { color: "#475569", bg: "#F1F5F9", label: "프로젝트" },
   ...Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])),
 };
 
@@ -76,7 +67,6 @@ const HeartIcon = () => (
   </svg>
 );
 
-// 통계 셀 (모듈 레벨 — 4개 칸 공통 사용). last=true면 우측 구분선 제거.
 function StatCell({ value, label, sub, last }: { value: string; label: string; sub: string; last?: boolean }) {
   return (
     <div style={{
@@ -96,7 +86,6 @@ function StatCell({ value, label, sub, last }: { value: string; label: string; s
   );
 }
 
-// 4번 칸 (개인화) — 로그인 시 소속 관계사 누적 등록, 비로그인 시 참여 관계사로 폴백.
 function MyCompanyStatCell() {
   const { user } = useAuth();
 
@@ -144,14 +133,13 @@ export default function LandingPage() {
 
       <Navbar />
 
-      {/* HERO — AboutPage와 동일 규격 (패딩 72/64, 그라디언트, 글로우, 배지) */}
+      {/* HERO */}
       <section style={{
         background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
         padding: "72px 32px 64px",
         textAlign: "center",
         position: "relative", overflow: "hidden",
       }}>
-        {/* 배경 장식 — 은은한 방사형 글로우 (AboutPage 동일) */}
         <div style={{
           position: "absolute", top: -120, left: "50%", transform: "translateX(-50%)",
           width: 640, height: 640, borderRadius: "50%",
@@ -171,7 +159,6 @@ export default function LandingPage() {
             Kolmar Group · AX Platform
           </div>
 
-          {/* 메인 타이틀 — AboutPage와 동일하게 화이트 위계 적용 */}
           <h1 style={{
             fontSize: 40, fontWeight: 800, color: "#F8FAFC",
             lineHeight: 1.5, letterSpacing: "-0.03em", marginBottom: 18,
@@ -182,7 +169,7 @@ export default function LandingPage() {
             fontSize: 15, color: "#94A3B8", lineHeight: 1.7,
             marginBottom: 32, fontWeight: 400,
           }}>
-            진행 중인 IT 프로젝트부터 n8n 워크플로우, AI 에이전트, AI 모델까지<br />
+            n8n 워크플로우, AI 에이전트, ML 모델, Vibe Coding까지<br />
             한 곳에서 검색하고 연결하세요. 중복 개발을 줄이고 협업 기회를 발굴합니다.
           </p>
 
@@ -191,7 +178,7 @@ export default function LandingPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="프로젝트, 워크플로우, AI 모델 검색"
+              placeholder="워크플로우, AI 에이전트, ML 모델 검색"
               style={{
                 width: "100%", boxSizing: "border-box",
                 padding: "13px 90px 13px 18px",
@@ -225,14 +212,14 @@ export default function LandingPage() {
               padding: "13px 28px", fontSize: 14, fontWeight: 600,
               cursor: "pointer",
             }}>
-              프로젝트 등록
+              AX 항목 등록
             </button>
           </div>
         </div>
       </section>
 
       {/* STATS */}
-      {/* TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체 (전수 기준, visible 무관) */}
+      {/* TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체 */}
       <section style={{ background: "#fff", borderBottom: "1px solid #E2E8F0" }}>
         <div style={{
           maxWidth: 900, margin: "0 auto",
@@ -245,7 +232,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* RECENT — Project + PlatformItem 통합 */}
+      {/* RECENT */}
       <section style={{ padding: "48px 32px 72px", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }}>
           <div>
@@ -253,7 +240,7 @@ export default function LandingPage() {
               최근 등록
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>
-              최신 프로젝트 · 자동화 · AI 도구
+              최신 AX 항목
             </h2>
           </div>
           <span onClick={() => navigate("/projects")} style={{ fontSize: 13, color: "#2563EB", fontWeight: 600, cursor: "pointer", paddingBottom: 2 }}>
@@ -284,7 +271,6 @@ export default function LandingPage() {
                 onMouseLeave={() => setHovered(null)}
                 style={{
                   background: "#fff",
-                  // border 축약형 + borderTop 동시 지정 시 React 스타일 경고가 발생하므로 4면을 분해해 지정
                   borderTop: `3px solid ${sourceStyle.color}`,
                   borderRight: `1.5px solid ${sideColor}`,
                   borderBottom: `1.5px solid ${sideColor}`,
@@ -347,7 +333,7 @@ export default function LandingPage() {
                       background: "#F1F5F9", color: "#475569",
                       padding: "2px 7px", borderRadius: 4,
                     }}>
-                      {item.kind === "project" ? t : `#${t}`}
+                      #{t}
                     </span>
                   ))}
                 </div>
