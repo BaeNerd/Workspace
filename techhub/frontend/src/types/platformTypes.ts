@@ -1,3 +1,5 @@
+// ===== types/platformTypes.ts =====
+
 export type PlatformId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe";
 
 export type Platform = {
@@ -13,14 +15,27 @@ export type Platform = {
 
 export const PLATFORMS: Platform[] = [
   { id: "n8n", name: "n8n", shortDesc: "업무 자동화 워크플로우 플랫폼", path: "/n8n", accessUrl: "https://n8n.kolmar.co.kr", color: "#EA580C", bg: "#FFF7ED", icon: "automation" },
-  { id: "pa", name: "Power Automate", shortDesc: "Microsoft Power Automate 기반 자동화", path: "/pa", accessUrl: null, color: "#0078D4", bg: "#EFF6FF", icon: "pa" },
-  { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 업무·개인에 맞게 커스터마이징한 에이전트 모음", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#DBEAFE", icon: "assistant" },
-  { id: "ai-orchestration", name: "AI Agent", shortDesc: "업무에 맞는 AI 모델을 선택하여 연결", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
-  { id: "ml", name: "ML 모델", shortDesc: "머신러닝 모델 개발·배포·운영", path: "/ml", accessUrl: null, color: "#0891B2", bg: "#ECFEFF", icon: "ml" },
-  { id: "vibe", name: "Vibe Coding", shortDesc: "AI 기반 코드 생성·자동화 개발 도구", path: "/vibe", accessUrl: null, color: "#9333EA", bg: "#FAF5FF", icon: "vibe" },
+  { id: "pa", name: "Power Automate", shortDesc: "클라우드 플로우와 데스크톱 자동화(RPA)를 아우르는 Microsoft 자동화 도구", path: "/pa", accessUrl: null, color: "#0078D4", bg: "#EFF6FF", icon: "pa" },
+  { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#DBEAFE", icon: "assistant" },
+  { id: "ai-orchestration", name: "AI Agent", shortDesc: "업무 니즈에 맞는 AI 모델을 선택해 사용하는 사내 AI 게이트웨이(HK GPT)", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
+  { id: "ml", name: "ML 모델", shortDesc: "특정 플랫폼에 속하지 않는 독립 머신러닝 모델", path: "/ml", accessUrl: null, color: "#0891B2", bg: "#ECFEFF", icon: "ml" },
+  { id: "vibe", name: "Vibe Coding", shortDesc: "AI 코딩 도구로 직접 개발된 독립 소프트웨어·자동화 스크립트", path: "/vibe", accessUrl: null, color: "#9333EA", bg: "#FAF5FF", icon: "vibe" },
 ];
 
-export type PlatformItemStatus = "운영 중" | "개발 중" | "파일럿" | "보류" | "종료";
+// 유형별로 실제 운영 방식이 다르므로 상태 값도 유형별로 다르게 쓰인다.
+// 아래는 6개 유형에서 실제 쓰이는 상태 문자열을 모두 모은 통합 타입이다.
+export type PlatformItemStatus =
+  | "운영 중"        // n8n / pa / ml
+  | "테스트 중"      // n8n / pa
+  | "일시 중지"      // n8n / pa
+  | "사용 가능"      // assistant / ai-orchestration
+  | "준비 중"        // assistant
+  | "운영 중지"      // assistant / ml / vibe
+  | "일부 제한"      // ai-orchestration
+  | "지원 종료 예정" // ai-orchestration
+  | "실험 중"        // ml
+  | "사용 중"        // vibe
+  | "프로토타입";    // vibe
 
 export type PlatformItem = {
   id: string;
@@ -46,28 +61,46 @@ export type PlatformItem = {
     nodes: { id: string; label: string; type: "trigger" | "condition" | "action" | "output"; n8nType?: string }[];
     edges: { from: string; to: string }[];
   };
-
-  // n8n 워크플로우 원본 JSON (업로드된 파일 내용)
   workflowJson?: string;
 
-  // n8n / 나만의 비서 전용 — 노드 구성·연동 앱·예상 효과
+  // n8n / pa 공용 — 노드(커넥터) 구성·연동 앱·트리거 설명·예상 효과
+  triggerAction?: string;
   nodes?: string[];
   connectedApps?: string[];
   expectedTimeSaved?: string;
   difficulty?: "쉬움" | "보통" | "어려움";
 
-  // AI Agent 전용
+  // pa 전용
+  flowType?: string;
+  runMode?: string;
+  connectorTier?: string;
+
+  // 나만의 비서(assistant) 전용
+  shareScope?: string;
+  sharedPrompt?: string;
+  basedModel?: string;
+  roleDefinition?: string;
+  connectedData?: string;
+  sampleQuestions?: string[];
+
+  // AI Agent(ai-orchestration) 전용
   modelMeta?: {
     provider: string;
-    contextWindow: string;
+    modelName?: string;
+    contextWindow: string; // 쉬운 표현으로 저장 (예: "문서 여러 장 (수십 페이지)")
     strengths: string[];
+    strengthsDetail?: string;
+    tokenUsageNote?: string;
     costTier: "낮음" | "보통" | "높음";
+    useCases?: string[];
   };
 
   // ML 전용
   mlType?: string;
   trainingDataDesc?: string;
   performanceSummary?: string;
+
+  // ML / Vibe 공용
   devTool?: string;
   sourceRepo?: string;
   outputType?: string;

@@ -1,3 +1,4 @@
+// ===== AdminProjectManage.tsx =====
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -6,8 +7,41 @@ import type { PlatformId } from "../../types/platformTypes";
 import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 
-// ===== AX 플랫폼 공통 상수 =====
-const STATUSES = ["운영 중", "개발 중", "파일럿", "보류", "종료"];
+// ===== 유형별 상태 값 =====
+// "상태"는 과거 일반 IT 프로젝트 생애주기 개념이었으나, 유형별 실제 운영 방식에 맞게 분리.
+const WORKFLOW_STATUSES: string[] = ["운영 중", "테스트 중", "일시 중지"];
+const ASSISTANT_STATUSES: string[] = ["사용 가능", "준비 중", "운영 중지"];
+const AGENT_STATUSES: string[] = ["사용 가능", "일부 제한", "지원 종료 예정"];
+const ML_STATUSES: string[] = ["운영 중", "실험 중", "운영 중지"];
+const VIBE_STATUSES: string[] = ["사용 중", "프로토타입", "운영 중지"];
+
+const STATUS_OPTIONS_BY_KIND = (kind: PlatformId): string[] => {
+  if (kind === "n8n" || kind === "pa") return WORKFLOW_STATUSES;
+  if (kind === "assistant") return ASSISTANT_STATUSES;
+  if (kind === "ai-orchestration") return AGENT_STATUSES;
+  if (kind === "ml") return ML_STATUSES;
+  return VIBE_STATUSES;
+};
+
+// 목록 필터용 — 전체 유형의 상태값을 합친 목록 (중복 제거)
+const ALL_STATUSES: string[] = Array.from(new Set([
+  ...WORKFLOW_STATUSES, ...ASSISTANT_STATUSES, ...AGENT_STATUSES, ...ML_STATUSES, ...VIBE_STATUSES,
+]));
+
+const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
+  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
+  "사용 가능": { bg: "#D1FAE5", color: "#065F46" },
+  "사용 중": { bg: "#D1FAE5", color: "#065F46" },
+  "테스트 중": { bg: "#DBEAFE", color: "#1E40AF" },
+  "실험 중": { bg: "#DBEAFE", color: "#1E40AF" },
+  "프로토타입": { bg: "#DBEAFE", color: "#1E40AF" },
+  "준비 중": { bg: "#DBEAFE", color: "#1E40AF" },
+  "일시 중지": { bg: "#FEF3C7", color: "#92400E" },
+  "일부 제한": { bg: "#FEF3C7", color: "#92400E" },
+  "운영 중지": { bg: "#FEE2E2", color: "#991B1B" },
+  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
+};
+
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
 
@@ -24,6 +58,27 @@ const PA_CONNECTOR_SUGGESTIONS = [
   "SharePoint", "Microsoft Teams", "Outlook", "Excel Online", "Power BI",
   "Dataverse", "Forms", "Approvals", "Planner", "OneDrive", "SQL Server",
 ];
+
+// Power Automate 흐름 유형 — 쉬운 말로 표기
+const PA_FLOW_TYPES = [
+  "이벤트 발생 시 자동 실행", "버튼 클릭으로 즉시 실행", "정해진 시간에 예약 실행",
+  "데스크톱 자동화 (RPA)", "업무 절차 안내형",
+];
+const PA_RUN_MODES = ["사람이 지켜보며 실행", "무인으로 자동 실행"];
+const PA_CONNECTOR_TIERS = ["기본 커넥터만 사용", "유료(프리미엄) 커넥터 포함"];
+
+// 나만의 비서 — 공유 범위 / 기반 모델 힌트
+const ASSISTANT_SHARE_SCOPES = ["회사 공통 비서", "팀 공유 비서", "개인 비서 (비공개)"];
+const ASSISTANT_MODEL_HINTS = [
+  "웍스 대표 모델", "GPT-5.4", "GPT-5.4 Mini", "Claude Opus 4.8", "Claude Sonnet 5",
+  "Gemini", "xAI", "LG AI", "Upstage", "Perplexity",
+];
+
+// AI Agent(HK GPT 게이트웨이) — 제공사 선택형 / 처리 가능한 글 분량(쉬운 표현) / 권장 사용 시나리오
+const PROVIDER_OPTIONS = ["웍스 대표 모델", "Anthropic", "Google", "OpenAI", "xAI", "LG AI", "Upstage", "Perplexity"];
+const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
+const USE_CASE_SUGGESTIONS = ["문서 요약", "코드 생성", "법무 검토", "번역", "데이터 분석", "이미지 분석", "회의록 정리", "제안서 초안"];
+
 const ML_TYPES = [
   "분류 (Classification)", "회귀 (Regression)", "클러스터링",
   "NLP / 텍스트", "이미지 인식", "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달",
@@ -32,7 +87,7 @@ const VIBE_TOOL_SUGGESTIONS = [
   "GitHub Copilot", "Cursor", "Claude Code", "Codeium", "Tabnine", "Replit AI", "v0", "Bolt",
 ];
 
-// ===== 예상 절감 시간 정규화 =====
+// ===== 예상 절감 시간 정규화 (n8n / pa 전용) =====
 const TIME_PERIODS = ["일", "주", "월", "년"] as const;
 type TimePeriod = typeof TIME_PERIODS[number];
 const PERIOD_ANNUAL_FACTOR: Record<TimePeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
@@ -122,14 +177,21 @@ type ManagedPlatformItem = {
   tags: string; specificUrl: string;
   company: string[];
   platformScope: "unset" | "company-wide" | "specific";
-  // n8n / pa / assistant 전용
+  // n8n / pa 전용 (워크플로우형)
   triggerAction?: string;
   nodes?: string[]; connectedApps?: string[];
   expectedTimeSaved?: string; difficulty?: string;
   workflowInput?: WorkflowInput;
   workflowJson?: string;
+  // pa 전용
+  flowType?: string; runMode?: string; connectorTier?: string;
+  // assistant 전용
+  shareScope?: string; sharedPrompt?: string; basedModel?: string; roleDefinition?: string;
+  connectedData?: string; sampleQuestions?: string[];
   // ai-orchestration 전용
-  provider?: string; contextWindow?: string; strengths?: string; costTier?: string;
+  provider?: string; modelName?: string; contextWindow?: string;
+  strengths?: string; strengthsDetail?: string; tokenUsageNote?: string;
+  costTier?: string; useCases?: string[];
   // ml 전용
   mlType?: string; trainingDataDesc?: string; performanceSummary?: string;
   // ml / vibe 공용
@@ -141,14 +203,6 @@ type ManagedItem = ManagedPlatformItem;
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = Object.fromEntries(
   PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
 );
-
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
-  "개발 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "파일럿": { bg: "#FEF3C7", color: "#92400E" },
-  "종료": { bg: "#F1F5F9", color: "#475569" },
-  "보류": { bg: "#FEE2E2", color: "#991B1B" },
-};
 
 const inputStyle: React.CSSProperties = {
   width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7,
@@ -248,8 +302,7 @@ const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled
   );
 };
 
-// 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨)
-// 모든 관리자가 전체 관계사를 편집 가능
+// 관계사 닫힌 멀티셀렉트 드롭다운 (모듈 레벨) — 모든 관리자가 전체 관계사를 편집 가능
 function CompanyMultiSelect({ selected, onChange, disabled }: {
   selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean;
 }) {
@@ -325,44 +378,52 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   },
   {
     kind: "pa",
-    id: "PA-001", title: "구매 결재 자동 승인 플로우", dept: "구매팀", status: "개발 중",
+    id: "PA-001", title: "구매 결재 자동 승인 플로우", dept: "구매팀", status: "테스트 중",
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
     links: [], updatedAt: "2025.06.25", createdByEmail: "yujin.choi@kolmar.co.kr",
     tags: "결재, 구매자동화", specificUrl: "",
     company: ["KKM"], platformScope: "specific",
+    flowType: "이벤트 발생 시 자동 실행", connectorTier: "기본 커넥터만 사용",
     triggerAction: "Form 제출 → Dataverse 조회 → 조건 분기 → 결재 처리",
     connectedApps: ["SharePoint", "Dataverse", "Approvals"],
     expectedTimeSaved: "주 3시간", difficulty: "보통",
   },
   {
     kind: "assistant",
-    id: "AST-001", title: "해외법인 계약서 1차 검토 비서", dept: "법무팀", status: "파일럿",
+    id: "AST-001", title: "해외법인 계약서 1차 검토 비서", dept: "법무팀", status: "사용 가능",
     summary: "해외법인向 영문 계약서의 주요 리스크 조항을 1차 스크리닝",
     description: "미국콜마·북경콜마 등 해외법인에서 체결하는 영문 계약서의 주요 조항을 1차로 스크리닝하여 법무팀 검토 시간을 단축합니다.",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
     links: [], updatedAt: "2025.06.22", createdByEmail: "hyunwoo.kang@kolmar.co.kr",
     tags: "계약서, 법무, 해외법인", specificUrl: "https://assistant.kolmar.co.kr/agents/global-contract-review",
     company: ["KUS", "KMB"], platformScope: "specific",
-    nodes: ["Chat Trigger", "AI Agent"], connectedApps: ["Microsoft One Drive"],
-    triggerAction: "Chat Trigger → 계약서 업로드 → AI Agent 분석 → 리스크 리포트 출력",
-    expectedTimeSaved: "주 5시간", difficulty: "어려움",
+    shareScope: "팀 공유 비서",
+    sharedPrompt: "당신은 해외법인 계약서를 검토하는 법무 담당자입니다. 업로드된 영문 계약서에서 위험 조항을 찾아 한국어로 요약해 주세요.",
+    basedModel: "Claude Opus 4.8",
+    roleDefinition: "해외법인 영문 계약서의 위험 조항을 빠르게 찾아주는 법무 검토 도우미",
+    connectedData: "최근 3년 해외법인 계약서 템플릿 80건",
+    sampleQuestions: ["이 계약서에서 손해배상 조항을 알려줘", "위약금 조항이 있는지 확인해줘"],
   },
   {
     kind: "ai-orchestration",
-    id: "AIO-002", title: "Claude (문서 분석 특화)", dept: "IT개발팀", status: "운영 중",
+    id: "AIO-002", title: "Claude (문서 분석 특화)", dept: "IT개발팀", status: "사용 가능",
     summary: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델",
     description: "긴 컨텍스트가 필요한 계약서 검토, 보고서 분석, 복잡한 추론 작업에 적합합니다.",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
     links: [], updatedAt: "2025.06.12", createdByEmail: "taeyoung.jung@kolmar.co.kr",
     tags: "문서분석, 긴컨텍스트, 법무", specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude",
     company: [], platformScope: "company-wide",
-    provider: "Anthropic", contextWindow: "200K", strengths: "긴 컨텍스트, 정밀 추론, 안전성", costTier: "보통",
+    provider: "Anthropic", modelName: "Claude Opus 4.8", contextWindow: "매우 긴 문서 (책 한 권 분량)",
+    strengths: "긴 컨텍스트, 정밀 추론, 안전성",
+    strengthsDetail: "긴 문서를 한 번에 읽고 핵심을 요약하는 데 강합니다. 계약서 검토나 보고서 분석에 활용해보세요.",
+    tokenUsageNote: "문서 10페이지 요약 시 약 5,000토큰 사용", costTier: "보통",
+    useCases: ["문서 요약", "법무 검토"],
   },
   {
     kind: "ml",
-    id: "ML-001", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀", status: "파일럿",
+    id: "ML-001", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀", status: "실험 중",
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
@@ -376,7 +437,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   },
   {
     kind: "vibe",
-    id: "VIBE-001", title: "원가 계산 자동화 스크립트", dept: "재무팀", status: "운영 중",
+    id: "VIBE-001", title: "원가 계산 자동화 스크립트", dept: "재무팀", status: "사용 중",
     summary: "Cursor로 작성한 원가 자동 계산 내부 도구",
     description: "Cursor AI를 활용해 Python으로 제작한 원가 계산 자동화 스크립트입니다. 기존 Excel 수작업을 대체하여 처리 시간을 줄였습니다.",
     contacts: [{ name: "박소희", dept: "재무팀", role: "주담당자", email: "sohee.park@kolmar.co.kr" }],
@@ -390,20 +451,33 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
 
 const emptyPlatformItem = (kind: PlatformId): ManagedPlatformItem => ({
   kind,
-  id: "", title: "", summary: "", description: "", status: "개발 중", dept: "",
+  id: "", title: "", summary: "", description: "", status: STATUS_OPTIONS_BY_KIND(kind)[0], dept: "",
   contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], links: [], updatedAt: "",
   createdByEmail: "",
   tags: "", specificUrl: "",
   company: [], platformScope: "unset",
-  triggerAction: (kind === "n8n" || kind === "pa" || kind === "assistant") ? "" : undefined,
-  nodes: (kind === "n8n" || kind === "pa" || kind === "assistant") ? [] : undefined,
-  connectedApps: (kind === "n8n" || kind === "pa" || kind === "assistant") ? [] : undefined,
-  expectedTimeSaved: (kind === "n8n" || kind === "pa" || kind === "assistant") ? "" : undefined,
-  difficulty: (kind === "n8n" || kind === "pa" || kind === "assistant") ? "보통" : undefined,
+  triggerAction: (kind === "n8n" || kind === "pa") ? "" : undefined,
+  nodes: (kind === "n8n" || kind === "pa") ? [] : undefined,
+  connectedApps: (kind === "n8n" || kind === "pa") ? [] : undefined,
+  expectedTimeSaved: (kind === "n8n" || kind === "pa") ? "" : undefined,
+  difficulty: (kind === "n8n" || kind === "pa") ? "보통" : undefined,
+  flowType: kind === "pa" ? "" : undefined,
+  runMode: kind === "pa" ? "" : undefined,
+  connectorTier: kind === "pa" ? "" : undefined,
+  shareScope: kind === "assistant" ? "" : undefined,
+  sharedPrompt: kind === "assistant" ? "" : undefined,
+  basedModel: kind === "assistant" ? "" : undefined,
+  roleDefinition: kind === "assistant" ? "" : undefined,
+  connectedData: kind === "assistant" ? "" : undefined,
+  sampleQuestions: kind === "assistant" ? [] : undefined,
   provider: kind === "ai-orchestration" ? "" : undefined,
+  modelName: kind === "ai-orchestration" ? "" : undefined,
   contextWindow: kind === "ai-orchestration" ? "" : undefined,
   strengths: kind === "ai-orchestration" ? "" : undefined,
+  strengthsDetail: kind === "ai-orchestration" ? "" : undefined,
+  tokenUsageNote: kind === "ai-orchestration" ? "" : undefined,
   costTier: kind === "ai-orchestration" ? "보통" : undefined,
+  useCases: kind === "ai-orchestration" ? [] : undefined,
   mlType: kind === "ml" ? "" : undefined,
   trainingDataDesc: kind === "ml" ? "" : undefined,
   performanceSummary: kind === "ml" ? "" : undefined,
@@ -416,8 +490,10 @@ const ID_PREFIX: Record<PlatformId, string> = {
   n8n: "N8N", pa: "PA", assistant: "AST", "ai-orchestration": "AIO", ml: "ML", vibe: "VIBE",
 };
 
+// 노드·워크플로우 UI 대상은 n8n / pa로 한정. 나만의 비서는 별도 구성 화면으로 분리.
 const isWorkflowKind = (item: ManagedPlatformItem): boolean =>
-  item.kind === "n8n" || item.kind === "pa" || item.kind === "assistant";
+  item.kind === "n8n" || item.kind === "pa";
+const isAssistantKind = (item: ManagedPlatformItem): boolean => item.kind === "assistant";
 
 export default function AdminProjectManage() {
   const [items, setItems] = useState<ManagedItem[]>(INITIAL_PLATFORM_ITEMS);
@@ -491,10 +567,16 @@ export default function AdminProjectManage() {
     });
   };
 
-  const addNode = (v: string) => { if (!editData) return; const cur = editData.nodes ?? []; if (!cur.includes(v)) setF("nodes", [...cur, v]); };
-  const removeNode = (v: string) => { if (!editData) return; setF("nodes", (editData.nodes ?? []).filter(n => n !== v)); };
-  const addApp = (v: string) => { if (!editData) return; const cur = editData.connectedApps ?? []; if (!cur.includes(v)) setF("connectedApps", [...cur, v]); };
-  const removeApp = (v: string) => { if (!editData) return; setF("connectedApps", (editData.connectedApps ?? []).filter(a => a !== v)); };
+  // 배열형 필드(노드, 연동앱, 예시질문, 사용시나리오) 공용 추가/삭제 헬퍼
+  const addToArray = (key: keyof ManagedPlatformItem, v: string) => {
+    if (!editData) return;
+    const cur = (editData[key] as string[] | undefined) ?? [];
+    if (!cur.includes(v)) setF(key, [...cur, v]);
+  };
+  const removeFromArray = (key: keyof ManagedPlatformItem, v: string) => {
+    if (!editData) return;
+    setF(key, ((editData[key] as string[] | undefined) ?? []).filter(x => x !== v));
+  };
 
   const addContact = () => { if (!editData) return; setF("contacts", [...editData.contacts, { name: "", dept: "", role: "공동담당자", email: "" }]); };
   const removeContact = (i: number) => { if (!editData) return; setF("contacts", editData.contacts.filter((_, ci) => ci !== i)); };
@@ -571,7 +653,7 @@ export default function AdminProjectManage() {
               </div>
 
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                {["전체", ...STATUSES].map(s => (
+                {["전체", ...ALL_STATUSES].map(s => (
                   <button key={s} onClick={() => setFilterStatus(s)} style={{
                     padding: "3px 9px", borderRadius: 20, border: "none", fontSize: 10, fontWeight: 600, cursor: "pointer",
                     background: filterStatus === s ? "#0F172A" : "#F1F5F9",
@@ -679,7 +761,7 @@ export default function AdminProjectManage() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <FieldRow label="상태">
                       {isEditing
-                        ? <SingleSelectTag options={STATUSES} value={displayData.status} onChange={v => setF("status", v)} />
+                        ? <SingleSelectTag options={STATUS_OPTIONS_BY_KIND(displayData.kind)} value={displayData.status} onChange={v => setF("status", v)} />
                         : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: STATUS_COLOR[displayData.status]?.bg, color: STATUS_COLOR[displayData.status]?.color }}>{displayData.status}</span>}
                     </FieldRow>
                     <FieldRow label="등록 부서">
@@ -690,10 +772,10 @@ export default function AdminProjectManage() {
                   </div>
                 </SectionBlock>
 
-                {/* ===== 분기: n8n / 나만의비서 — 워크플로우형 ===== */}
-                {(displayData.kind === "n8n" || displayData.kind === "assistant") && (
+                {/* ===== 분기: n8n — 워크플로우형 ===== */}
+                {displayData.kind === "n8n" && (
                   <>
-                    <SectionBlock title={`${SOURCE_STYLE[displayData.kind].label} 동작 정보`}>
+                    <SectionBlock title="n8n 동작 정보">
                       <FieldRow label="소속 / 대상 관계사">
                         {isEditing
                           ? <>
@@ -724,34 +806,32 @@ export default function AdminProjectManage() {
                     <SectionBlock title="노드 구성">
                       <FieldRow label="사용된 노드">
                         {isEditing
-                          ? <ChipEditor items={displayData.nodes ?? []} onAdd={addNode} onRemove={removeNode} suggestions={NODE_SUGGESTIONS} placeholder="노드명 입력 후 Enter" />
+                          ? <ChipEditor items={displayData.nodes ?? []} onAdd={v => addToArray("nodes", v)} onRemove={v => removeFromArray("nodes", v)} suggestions={NODE_SUGGESTIONS} placeholder="노드명 입력 후 Enter" />
                           : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.nodes ?? []).map((n, i) => <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "4px 10px", borderRadius: 6, border: "1px solid #BFDBFE" }}>{n}</span>)}</div>}
                       </FieldRow>
                       <FieldRow label="연동 앱·서비스">
                         {isEditing
-                          ? <ChipEditor items={displayData.connectedApps ?? []} onAdd={addApp} onRemove={removeApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
+                          ? <ChipEditor items={displayData.connectedApps ?? []} onAdd={v => addToArray("connectedApps", v)} onRemove={v => removeFromArray("connectedApps", v)} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
                           : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.connectedApps ?? []).map((a, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{a}</span>)}</div>}
                       </FieldRow>
-                      {displayData.kind === "n8n" && (
-                        <FieldRow label="워크플로우 다이어그램">
-                          {isEditing
-                            ? <WorkflowEditor value={displayData.workflowInput ?? { status: "Stable", nodes: [] }} onChange={v => setF("workflowInput", v)} />
-                            : (() => {
-                                const wf = toWorkflowDef(displayData.workflowInput ?? { status: "Stable", nodes: [] });
-                                return (
-                                  <div>
-                                    {wf ? <WorkflowDiagram wf={wf} /> : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>}
-                                    {(displayData.workflowJson || wf) && (
-                                      <button onClick={() => { const c = displayData.workflowJson ?? JSON.stringify(wf ?? {}, null, 2); const b = new Blob([c], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = `${displayData.id.toLowerCase()}-workflow.json`; a.click(); URL.revokeObjectURL(u); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                                        JSON 다운로드
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                        </FieldRow>
-                      )}
+                      <FieldRow label="워크플로우 다이어그램">
+                        {isEditing
+                          ? <WorkflowEditor value={displayData.workflowInput ?? { status: "Stable", nodes: [] }} onChange={v => setF("workflowInput", v)} />
+                          : (() => {
+                              const wf = toWorkflowDef(displayData.workflowInput ?? { status: "Stable", nodes: [] });
+                              return (
+                                <div>
+                                  {wf ? <WorkflowDiagram wf={wf} /> : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>}
+                                  {(displayData.workflowJson || wf) && (
+                                    <button onClick={() => { const c = displayData.workflowJson ?? JSON.stringify(wf ?? {}, null, 2); const b = new Blob([c], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = `${displayData.id.toLowerCase()}-workflow.json`; a.click(); URL.revokeObjectURL(u); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                                      JSON 다운로드
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                      </FieldRow>
                     </SectionBlock>
 
                     <SectionBlock title="예상 효과">
@@ -785,6 +865,18 @@ export default function AdminProjectManage() {
                             ? <span style={{ fontSize: 13, color: "#DC2626", fontWeight: 600 }}>관계사 미지정</span>
                             : <span style={{ fontSize: 13, color: "#334155" }}>{platformCompanyDisplay(displayData.company)}</span>}
                       </FieldRow>
+                      <FieldRow label="흐름 유형">
+                        {isEditing
+                          ? <SingleSelectTag options={PA_FLOW_TYPES} value={displayData.flowType ?? ""} onChange={v => setF("flowType", v)} />
+                          : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.flowType || "—"}</span>}
+                      </FieldRow>
+                      {displayData.flowType === "데스크톱 자동화 (RPA)" && (
+                        <FieldRow label="실행 방식">
+                          {isEditing
+                            ? <SingleSelectTag options={PA_RUN_MODES} value={displayData.runMode ?? ""} onChange={v => setF("runMode", v)} />
+                            : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.runMode || "—"}</span>}
+                        </FieldRow>
+                      )}
                       <FieldRow label="트리거 · 동작 설명">
                         {isEditing
                           ? <textarea value={displayData.triggerAction ?? ""} onChange={e => setF("triggerAction", e.target.value)} style={{ ...inputStyle, minHeight: 60, resize: "vertical", lineHeight: 1.7 }} />
@@ -792,10 +884,15 @@ export default function AdminProjectManage() {
                       </FieldRow>
                       <FieldRow label="사용된 커넥터">
                         {isEditing
-                          ? <ChipEditor items={displayData.connectedApps ?? []} onAdd={addApp} onRemove={removeApp} suggestions={PA_CONNECTOR_SUGGESTIONS} placeholder="커넥터명 입력 후 Enter" />
+                          ? <ChipEditor items={displayData.connectedApps ?? []} onAdd={v => addToArray("connectedApps", v)} onRemove={v => removeFromArray("connectedApps", v)} suggestions={PA_CONNECTOR_SUGGESTIONS} placeholder="커넥터명 입력 후 Enter" />
                           : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.connectedApps ?? []).map((a, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{a}</span>)}</div>}
                       </FieldRow>
-                      <FieldRow label="플로우 URL">
+                      <FieldRow label="커넥터 등급">
+                        {isEditing
+                          ? <SingleSelectTag options={PA_CONNECTOR_TIERS} value={displayData.connectorTier ?? ""} onChange={v => setF("connectorTier", v)} />
+                          : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.connectorTier || "—"}</span>}
+                      </FieldRow>
+                      <FieldRow label="실행 위치">
                         {isEditing
                           ? <input value={displayData.specificUrl} onChange={e => setF("specificUrl", e.target.value)} style={inputStyle} />
                           : displayData.specificUrl ? <a href={displayData.specificUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.specificUrl}</a> : <span style={{ fontSize: 13, color: "#94A3B8" }}>—</span>}
@@ -824,6 +921,67 @@ export default function AdminProjectManage() {
                   </>
                 )}
 
+                {/* ===== 분기: 나만의 비서 ===== */}
+                {isAssistantKind(displayData) && (
+                  <SectionBlock title="비서 구성">
+                    <FieldRow label="소속 / 대상 관계사">
+                      {isEditing
+                        ? <>
+                            <CompanyMultiSelect selected={displayData.company} onChange={setPlatformCompanies} />
+                            {displayData.platformScope === "unset" && <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>관계사 범위가 선택되지 않았습니다.</div>}
+                          </>
+                        : displayData.platformScope === "unset"
+                          ? <span style={{ fontSize: 13, color: "#DC2626", fontWeight: 600 }}>관계사 미지정</span>
+                          : <span style={{ fontSize: 13, color: "#334155" }}>{platformCompanyDisplay(displayData.company)}</span>}
+                    </FieldRow>
+                    <FieldRow label="공유 범위">
+                      {isEditing
+                        ? <SingleSelectTag options={ASSISTANT_SHARE_SCOPES} value={displayData.shareScope ?? ""} onChange={v => setF("shareScope", v)} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.shareScope || "—"}</span>}
+                    </FieldRow>
+                    <FieldRow label="공유 프롬프트">
+                      {isEditing
+                        ? <textarea value={displayData.sharedPrompt ?? ""} onChange={e => setF("sharedPrompt", e.target.value)} style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.7, fontFamily: "monospace" }} />
+                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "monospace", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 12px" }}>{displayData.sharedPrompt || "—"}</div>}
+                    </FieldRow>
+                    <FieldRow label="기반 모델">
+                      {isEditing ? (
+                        <>
+                          <input value={displayData.basedModel ?? ""} onChange={e => setF("basedModel", e.target.value)} style={inputStyle} />
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                            {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => setF("basedModel", m)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
+                          </div>
+                        </>
+                      ) : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.basedModel || "—"}</span>}
+                    </FieldRow>
+                    <FieldRow label="비서 소개">
+                      {isEditing
+                        ? <input value={displayData.roleDefinition ?? ""} onChange={e => setF("roleDefinition", e.target.value)} style={inputStyle} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.roleDefinition || "—"}</span>}
+                    </FieldRow>
+                    <FieldRow label="연결된 데이터·문서">
+                      {isEditing
+                        ? <textarea value={displayData.connectedData ?? ""} onChange={e => setF("connectedData", e.target.value)} style={{ ...inputStyle, minHeight: 60, resize: "vertical", lineHeight: 1.7 }} />
+                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>{displayData.connectedData || "—"}</div>}
+                    </FieldRow>
+                    <FieldRow label="예시 질문">
+                      {isEditing
+                        ? <ChipEditor items={displayData.sampleQuestions ?? []} onAdd={v => addToArray("sampleQuestions", v)} onRemove={v => removeFromArray("sampleQuestions", v)} suggestions={[]} placeholder="예시 질문 입력 후 Enter" />
+                        : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.sampleQuestions ?? []).map((q, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{q}</span>)}</div>}
+                    </FieldRow>
+                    <FieldRow label="접속 URL">
+                      {isEditing
+                        ? <input value={displayData.specificUrl} onChange={e => setF("specificUrl", e.target.value)} style={inputStyle} />
+                        : displayData.specificUrl ? <a href={displayData.specificUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.specificUrl}</a> : <span style={{ fontSize: 13, color: "#94A3B8" }}>—</span>}
+                    </FieldRow>
+                    <FieldRow label="태그">
+                      {isEditing
+                        ? <input value={displayData.tags} onChange={e => setF("tags", e.target.value)} style={inputStyle} placeholder="쉼표로 구분하여 입력" />
+                        : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{t}</span>)}</div>}
+                    </FieldRow>
+                  </SectionBlock>
+                )}
+
                 {/* ===== 분기: AI Agent — 모델 사양 ===== */}
                 {displayData.kind === "ai-orchestration" && (
                   <SectionBlock title="모델 사양">
@@ -837,23 +995,43 @@ export default function AdminProjectManage() {
                           ? <span style={{ fontSize: 13, color: "#DC2626", fontWeight: 600 }}>관계사 미지정</span>
                           : <span style={{ fontSize: 13, color: "#334155" }}>{platformCompanyDisplay(displayData.company)}</span>}
                     </FieldRow>
+                    <FieldRow label="제공사">
+                      {isEditing
+                        ? <SingleSelectTag options={PROVIDER_OPTIONS} value={displayData.provider ?? ""} onChange={v => setF("provider", v)} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.provider || "—"}</span>}
+                    </FieldRow>
+                    <FieldRow label="강점 및 활용 방법">
+                      {isEditing
+                        ? <textarea value={displayData.strengthsDetail ?? ""} onChange={e => setF("strengthsDetail", e.target.value)} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7 }} />
+                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7 }}>{displayData.strengthsDetail || "—"}</div>}
+                    </FieldRow>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <FieldRow label="제공사">
-                        {isEditing ? <input value={displayData.provider ?? ""} onChange={e => setF("provider", e.target.value)} style={inputStyle} /> : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.provider || "—"}</span>}
+                      <FieldRow label="세부 모델명">
+                        {isEditing ? <input value={displayData.modelName ?? ""} onChange={e => setF("modelName", e.target.value)} style={inputStyle} /> : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.modelName || "—"}</span>}
                       </FieldRow>
-                      <FieldRow label="컨텍스트 윈도우">
-                        {isEditing ? <input value={displayData.contextWindow ?? ""} onChange={e => setF("contextWindow", e.target.value)} style={inputStyle} /> : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.contextWindow || "—"}</span>}
+                      <FieldRow label="1회 사용량">
+                        {isEditing ? <input value={displayData.tokenUsageNote ?? ""} onChange={e => setF("tokenUsageNote", e.target.value)} placeholder="예: 문서 1페이지당 약 500토큰" style={inputStyle} /> : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.tokenUsageNote || "—"}</span>}
                       </FieldRow>
                     </div>
+                    <FieldRow label="처리 가능한 글 분량">
+                      {isEditing
+                        ? <SingleSelectTag options={CONTEXT_SIZE_OPTIONS} value={displayData.contextWindow ?? ""} onChange={v => setF("contextWindow", v)} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.contextWindow || "—"}</span>}
+                    </FieldRow>
                     <FieldRow label="비용 등급">
                       {isEditing
                         ? <SingleSelectTag options={COST_TIERS} value={displayData.costTier ?? "보통"} onChange={v => setF("costTier", v)} />
                         : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "#F1F5F9", color: "#475569" }}>{displayData.costTier || "—"}</span>}
                     </FieldRow>
-                    <FieldRow label="강점">
+                    <FieldRow label="핵심 키워드">
                       {isEditing
                         ? <input value={displayData.strengths ?? ""} onChange={e => setF("strengths", e.target.value)} style={inputStyle} placeholder="쉼표로 구분하여 입력" />
                         : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{(displayData.strengths ?? "").split(",").map(s => s.trim()).filter(Boolean).map((s, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{s}</span>)}</div>}
+                    </FieldRow>
+                    <FieldRow label="권장 사용 시나리오">
+                      {isEditing
+                        ? <ChipEditor items={displayData.useCases ?? []} onAdd={v => addToArray("useCases", v)} onRemove={v => removeFromArray("useCases", v)} suggestions={USE_CASE_SUGGESTIONS} placeholder="예: 문서 요약" />
+                        : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.useCases ?? []).map((u, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{u}</span>)}</div>}
                     </FieldRow>
                     <FieldRow label="모델 접속 URL">
                       {isEditing
@@ -886,15 +1064,15 @@ export default function AdminProjectManage() {
                         ? <SingleSelectTag options={ML_TYPES} value={displayData.mlType ?? ""} onChange={v => setF("mlType", v)} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.mlType || "—"}</span>}
                     </FieldRow>
-                    <FieldRow label="학습 데이터 설명">
+                    <FieldRow label="핵심 성능">
                       {isEditing
-                        ? <textarea value={displayData.trainingDataDesc ?? ""} onChange={e => setF("trainingDataDesc", e.target.value)} style={{ ...inputStyle, minHeight: 60, resize: "vertical", lineHeight: 1.7 }} />
-                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>{displayData.trainingDataDesc || "—"}</div>}
-                    </FieldRow>
-                    <FieldRow label="성능 요약">
-                      {isEditing
-                        ? <input value={displayData.performanceSummary ?? ""} onChange={e => setF("performanceSummary", e.target.value)} placeholder="예: 정확도 92.3%, 재현율 89.7%" style={inputStyle} />
+                        ? <input value={displayData.performanceSummary ?? ""} onChange={e => setF("performanceSummary", e.target.value)} placeholder="예: 정확도 92%, 또는 평균 오차 5% 이내" style={inputStyle} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.performanceSummary || "—"}</span>}
+                    </FieldRow>
+                    <FieldRow label="학습 데이터 개요">
+                      {isEditing
+                        ? <input value={displayData.trainingDataDesc ?? ""} onChange={e => setF("trainingDataDesc", e.target.value)} style={inputStyle} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.trainingDataDesc || "—"}</span>}
                     </FieldRow>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <FieldRow label="개발 도구">
@@ -902,7 +1080,7 @@ export default function AdminProjectManage() {
                           ? <input value={displayData.devTool ?? ""} onChange={e => setF("devTool", e.target.value)} placeholder="예: PyTorch, TensorFlow" style={inputStyle} />
                           : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.devTool || "—"}</span>}
                       </FieldRow>
-                      <FieldRow label="출력 유형">
+                      <FieldRow label="출력 형태">
                         {isEditing
                           ? <input value={displayData.outputType ?? ""} onChange={e => setF("outputType", e.target.value)} placeholder="예: 합격/불합격 분류" style={inputStyle} />
                           : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.outputType || "—"}</span>}
@@ -939,7 +1117,7 @@ export default function AdminProjectManage() {
                           ? <span style={{ fontSize: 13, color: "#DC2626", fontWeight: 600 }}>관계사 미지정</span>
                           : <span style={{ fontSize: 13, color: "#334155" }}>{platformCompanyDisplay(displayData.company)}</span>}
                     </FieldRow>
-                    <FieldRow label="사용 도구">
+                    <FieldRow label="사용한 AI 도구">
                       {isEditing ? (
                         <>
                           <input value={displayData.devTool ?? ""} onChange={e => setF("devTool", e.target.value)} placeholder="예: Cursor, GitHub Copilot" style={inputStyle} />
@@ -949,20 +1127,20 @@ export default function AdminProjectManage() {
                         </>
                       ) : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.devTool || "—"}</span>}
                     </FieldRow>
-                    <FieldRow label="산출물 유형">
+                    <FieldRow label="결과물 형태">
                       {isEditing
-                        ? <input value={displayData.outputType ?? ""} onChange={e => setF("outputType", e.target.value)} placeholder="예: 내부 API, 대시보드, 스크립트" style={inputStyle} />
+                        ? <input value={displayData.outputType ?? ""} onChange={e => setF("outputType", e.target.value)} placeholder="예: React 웹앱, Python 스크립트" style={inputStyle} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.outputType || "—"}</span>}
-                    </FieldRow>
-                    <FieldRow label="소스 저장소">
-                      {isEditing
-                        ? <input value={displayData.sourceRepo ?? ""} onChange={e => setF("sourceRepo", e.target.value)} placeholder="예: gitlab.kolmar.co.kr/vibe/…" style={inputStyle} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.sourceRepo || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="접속 URL">
                       {isEditing
                         ? <input value={displayData.specificUrl} onChange={e => setF("specificUrl", e.target.value)} style={inputStyle} />
                         : displayData.specificUrl ? <a href={displayData.specificUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.specificUrl}</a> : <span style={{ fontSize: 13, color: "#94A3B8" }}>—</span>}
+                    </FieldRow>
+                    <FieldRow label="소스 저장소">
+                      {isEditing
+                        ? <input value={displayData.sourceRepo ?? ""} onChange={e => setF("sourceRepo", e.target.value)} placeholder="예: gitlab.kolmar.co.kr/vibe/…" style={inputStyle} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.sourceRepo || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="태그">
                       {isEditing

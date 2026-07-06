@@ -6,7 +6,19 @@ import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 
 type ApprovalStatus = "승인" | "대기" | "반려";
-const STATUS_OPTIONS = ["개발 중", "운영 중", "파일럿", "보류", "종료"];
+
+// 유형별 사용 가능한 상태값 (platformTypes.ts의 PlatformItemStatus와 일치)
+const STATUS_BY_KIND: Record<PlatformId, string[]> = {
+  n8n: ["운영 중", "테스트 중", "일시 중지"],
+  pa: ["운영 중", "테스트 중", "일시 중지"],
+  assistant: ["사용 가능", "준비 중", "운영 중지"],
+  "ai-orchestration": ["사용 가능", "일부 제한", "지원 종료 예정"],
+  ml: ["운영 중", "실험 중", "운영 중지"],
+  vibe: ["사용 중", "프로토타입", "운영 중지"],
+};
+
+// 종료/불가 상태 (관리자에게만 복원 가능)
+const TERMINAL_STATUSES = new Set(["운영 중지", "지원 종료 예정"]);
 
 type MyItem = {
   id: string;
@@ -18,6 +30,14 @@ type MyItem = {
   approval: ApprovalStatus;
   status: string;
   rejectionReason: string | null;
+  // 유형별 핵심 필드 요약
+  difficulty?: string;
+  expectedTimeSaved?: string;
+  shareScope?: string;
+  provider?: string;
+  costTier?: string;
+  mlType?: string;
+  devTool?: string;
 };
 
 const INITIAL_ITEMS: MyItem[] = [
@@ -28,30 +48,34 @@ const INITIAL_ITEMS: MyItem[] = [
     submittedAt: "2025.02.10", updatedAt: "2025.02.14",
     approval: "승인", status: "운영 중",
     rejectionReason: null,
+    difficulty: "보통", expectedTimeSaved: "주 2시간",
   },
   {
     id: "AST-011", kind: "assistant",
     title: "원료 성분 규제 문의 봇",
     summary: "원료 MSDS·규제 데이터를 자연어로 검색하는 HK GPT 커스텀 봇",
     submittedAt: "2025.05.06", updatedAt: "2025.05.09",
-    approval: "승인", status: "파일럿",
+    approval: "승인", status: "준비 중",
     rejectionReason: null,
+    shareScope: "팀 공유 비서",
   },
   {
     id: "PA-003", kind: "pa",
     title: "신제품 출시 승인 자동화 플로우",
     summary: "신제품 등록 시 관련 부서 순차 승인을 Power Automate로 자동화",
     submittedAt: "2025.06.01", updatedAt: "2025.06.01",
-    approval: "대기", status: "개발 중",
+    approval: "대기", status: "테스트 중",
     rejectionReason: null,
+    difficulty: "쉬움",
   },
   {
     id: "ML-005", kind: "ml",
     title: "색차 불량 이미지 분류 모델",
     summary: "분광측색계 이미지를 분석해 색차 불량 여부를 자동 판정하는 ML 모델",
     submittedAt: "2025.05.20", updatedAt: "2025.05.22",
-    approval: "반려", status: "개발 중",
+    approval: "반려", status: "실험 중",
     rejectionReason: "유사한 기능의 ML 모델이 이미 운영 중입니다(ML-001). 해당 모델 담당자와 협의 후 개선 방향을 명확히 하여 재제출해 주세요.",
+    mlType: "이미지 인식",
   },
 ];
 
@@ -62,37 +86,46 @@ const APPROVAL_STYLE: Record<ApprovalStatus, { bg: string; color: string; dot: s
 };
 
 const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
-  "개발 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "파일럿": { bg: "#FEF3C7", color: "#92400E" },
-  "종료": { bg: "#F1F5F9", color: "#475569" },
-  "보류": { bg: "#FEE2E2", color: "#991B1B" },
+  "운영 중":        { bg: "#D1FAE5", color: "#065F46" },
+  "테스트 중":      { bg: "#DBEAFE", color: "#1E40AF" },
+  "일시 중지":      { bg: "#FEF3C7", color: "#92400E" },
+  "사용 가능":      { bg: "#D1FAE5", color: "#065F46" },
+  "준비 중":        { bg: "#DBEAFE", color: "#1E40AF" },
+  "운영 중지":      { bg: "#FEE2E2", color: "#991B1B" },
+  "일부 제한":      { bg: "#FEF3C7", color: "#92400E" },
+  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
+  "실험 중":        { bg: "#DBEAFE", color: "#1E40AF" },
+  "사용 중":        { bg: "#D1FAE5", color: "#065F46" },
+  "프로토타입":     { bg: "#DBEAFE", color: "#1E40AF" },
 };
 
-function StatusChanger({ status, onChange }: { status: string; onChange: (v: string) => void }) {
-  const isTerminated = status === "종료";
+// 모듈 레벨 — 유형별 상태 옵션 드롭다운 (승인된 항목만 상태 변경 가능)
+function StatusChanger({ status, kind, onChange }: { status: string; kind: PlatformId; onChange: (v: string) => void }) {
+  const options = STATUS_BY_KIND[kind];
+  const isTerminal = TERMINAL_STATUSES.has(status);
+  const sc = STATUS_COLOR[status] ?? { bg: "#F1F5F9", color: "#475569" };
   return (
     <div>
       <select
         value={status}
-        disabled={isTerminated}
+        disabled={isTerminal}
         onChange={e => onChange(e.target.value)}
         style={{
           fontSize: 11, fontWeight: 700,
-          background: STATUS_COLOR[status]?.bg, color: STATUS_COLOR[status]?.color,
+          background: sc.bg, color: sc.color,
           border: "none", borderRadius: 20, padding: "3px 22px 3px 10px",
-          cursor: isTerminated ? "not-allowed" : "pointer", outline: "none",
-          opacity: isTerminated ? 0.7 : 1,
+          cursor: isTerminal ? "not-allowed" : "pointer", outline: "none",
+          opacity: isTerminal ? 0.7 : 1,
           appearance: "none",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(STATUS_COLOR[status]?.color ?? "#475569")}' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(sc.color)}' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
           backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center",
         }}
       >
-        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+        {options.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
-      {isTerminated && (
+      {isTerminal && (
         <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>
-          종료된 항목의 상태 복원은 관리자에게 문의하세요.
+          종료 상태는 관리자에게 복원 요청이 필요합니다.
         </div>
       )}
     </div>
@@ -103,6 +136,34 @@ const platformPathOf = (kind: PlatformId, id: string) => {
   const p = PLATFORMS.find(pl => pl.id === kind);
   return p ? `${p.path}/${id}` : "/projects";
 };
+
+// 유형별 핵심 필드 한 줄 요약 (모듈 레벨)
+function KindSummaryChips({ item }: { item: MyItem }) {
+  const chips: { label: string; value: string }[] = [];
+  if (item.kind === "n8n" || item.kind === "pa") {
+    if (item.difficulty) chips.push({ label: "난이도", value: item.difficulty });
+    if (item.expectedTimeSaved) chips.push({ label: "절감시간", value: item.expectedTimeSaved });
+  } else if (item.kind === "assistant") {
+    if (item.shareScope) chips.push({ label: "공유 범위", value: item.shareScope });
+  } else if (item.kind === "ai-orchestration") {
+    if (item.provider) chips.push({ label: "제공사", value: item.provider });
+    if (item.costTier) chips.push({ label: "비용 등급", value: item.costTier });
+  } else if (item.kind === "ml") {
+    if (item.mlType) chips.push({ label: "모델 유형", value: item.mlType });
+  } else if (item.kind === "vibe") {
+    if (item.devTool) chips.push({ label: "AI 도구", value: item.devTool });
+  }
+  if (chips.length === 0) return null;
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+      {chips.map((c, i) => (
+        <span key={i} style={{ fontSize: 10, background: "#F1F5F9", color: "#475569", padding: "2px 8px", borderRadius: 4 }}>
+          <span style={{ color: "#94A3B8" }}>{c.label} · </span>{c.value}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function MyStatusPage() {
   const navigate = useNavigate();
@@ -205,13 +266,13 @@ export default function MyStatusPage() {
 
                         {item.approval === "승인" ? (
                           <span onClick={e => e.stopPropagation()}>
-                            <StatusChanger status={item.status} onChange={v => handleStatusChange(item.id, v)} />
+                            <StatusChanger status={item.status} kind={item.kind} onChange={v => handleStatusChange(item.id, v)} />
                           </span>
                         ) : (
                           <span style={{
                             fontSize: 10, fontWeight: 700,
-                            background: STATUS_COLOR[item.status]?.bg,
-                            color: STATUS_COLOR[item.status]?.color,
+                            background: STATUS_COLOR[item.status]?.bg ?? "#F1F5F9",
+                            color: STATUS_COLOR[item.status]?.color ?? "#475569",
                             padding: "2px 8px", borderRadius: 20,
                           }}>{item.status}</span>
                         )}
@@ -226,6 +287,7 @@ export default function MyStatusPage() {
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{item.title}</div>
                       <div style={{ fontSize: 12, color: "#64748B" }}>{item.summary}</div>
+                      <KindSummaryChips item={item} />
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, flexShrink: 0 }}>
@@ -290,6 +352,48 @@ export default function MyStatusPage() {
                       <span style={{ color: "#334155" }}>{platformMeta?.name ?? item.kind}</span>
                       <span style={{ color: "#94A3B8", fontWeight: 600 }}>항목 ID</span>
                       <span style={{ color: "#334155", fontFamily: "var(--font-mono)" }}>{item.id}</span>
+                      {(item.kind === "n8n" || item.kind === "pa") && item.difficulty && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>구성 난이도</span>
+                          <span style={{ color: "#334155" }}>{item.difficulty}</span>
+                        </>
+                      )}
+                      {(item.kind === "n8n" || item.kind === "pa") && item.expectedTimeSaved && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>예상 절감 시간</span>
+                          <span style={{ color: "#334155" }}>{item.expectedTimeSaved}</span>
+                        </>
+                      )}
+                      {item.kind === "assistant" && item.shareScope && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>공유 범위</span>
+                          <span style={{ color: "#334155" }}>{item.shareScope}</span>
+                        </>
+                      )}
+                      {item.kind === "ai-orchestration" && item.provider && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>제공사</span>
+                          <span style={{ color: "#334155" }}>{item.provider}</span>
+                        </>
+                      )}
+                      {item.kind === "ai-orchestration" && item.costTier && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>비용 등급</span>
+                          <span style={{ color: "#334155" }}>{item.costTier}</span>
+                        </>
+                      )}
+                      {item.kind === "ml" && item.mlType && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>모델 유형</span>
+                          <span style={{ color: "#334155" }}>{item.mlType}</span>
+                        </>
+                      )}
+                      {item.kind === "vibe" && item.devTool && (
+                        <>
+                          <span style={{ color: "#94A3B8", fontWeight: 600 }}>사용 AI 도구</span>
+                          <span style={{ color: "#334155" }}>{item.devTool}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

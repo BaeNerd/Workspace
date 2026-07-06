@@ -13,7 +13,6 @@ type Period = typeof PERIODS[number];
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-// 출처 정의 (표시용 라벨/색). PLATFORMS 색상과 동기화.
 const SOURCES: { key: SourceKey; label: string; color: string }[] = [
   { key: "n8n", label: "n8n", color: "#EA580C" },
   { key: "pa", label: "Power Automate", color: "#0078D4" },
@@ -24,28 +23,20 @@ const SOURCES: { key: SourceKey; label: string; color: string }[] = [
 ];
 
 // ============================================================
-// ★ 화면 고유 더미 (공용화하지 않음) — 상태·스택·부서·시스템유형·난이도·비용·키워드·절감시간
+// ★ 화면 고유 더미 — 상태·부서·난이도·비용·ML유형·키워드·절감시간
 // TODO: 백엔드 연동 시 폐기.
 // ============================================================
 
+// 4개 의미 그룹 — 유형별 상태 다양성을 시맨틱 그룹으로 통합
 const STATUS_META = [
-  { label: "운영 중", color: "#059669" }, { label: "개발 중", color: "#2563EB" },
-  { label: "파일럿", color: "#D97706" }, { label: "보류", color: "#EF4444" }, { label: "종료", color: "#475569" },
+  { label: "정상 운영", sub: "운영 중 · 사용 가능 · 사용 중", color: "#059669" },
+  { label: "검증·개발", sub: "테스트 중 · 준비 중 · 실험 중 · 프로토타입", color: "#2563EB" },
+  { label: "제한", sub: "일시 중지 · 일부 제한", color: "#D97706" },
+  { label: "종료", sub: "운영 중지 · 지원 종료 예정", color: "#EF4444" },
 ];
 const STATUS_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [26, 19, 8, 3, 2], KBH: [10, 8, 3, 1, 1], HC: [7, 6, 2, 1, 0],
-  KMG: [5, 4, 2, 1, 1], KMW: [3, 2, 2, 1, 0], KUS: [2, 1, 1, 0, 0], KBT: [1, 1, 0, 0, 0],
-};
-
-const STACK_META = [
-  { label: "Python", color: "#2563EB" }, { label: "React", color: "#7C3AED" },
-  { label: "AWS", color: "#D97706" }, { label: "TypeScript", color: "#059669" },
-  { label: "PostgreSQL", color: "#0891B2" }, { label: "Docker", color: "#475569" },
-  { label: "FastAPI", color: "#DB2777" }, { label: "Kubernetes", color: "#EA580C" },
-];
-const STACK_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [18, 13, 11, 9, 8, 7, 5, 4], KBH: [7, 5, 4, 3, 3, 2, 2, 1], HC: [5, 3, 3, 2, 2, 2, 1, 1],
-  KMG: [4, 3, 2, 2, 2, 1, 1, 1], KMW: [2, 2, 2, 1, 1, 1, 1, 1], KUS: [1, 1, 1, 1, 1, 1, 1, 0], KBT: [1, 0, 1, 1, 0, 0, 0, 0],
+  KKM: [26, 19, 8, 5], KBH: [10, 8, 3, 2], HC: [7, 6, 2, 1],
+  KMG: [5, 4, 2, 2], KMW: [3, 2, 2, 1], KUS: [2, 1, 1, 0], KBT: [1, 1, 0, 0],
 };
 
 const DEPT_BY_COMPANY: Record<StatCompany, { dept: string; count: number }[]> = {
@@ -54,42 +45,48 @@ const DEPT_BY_COMPANY: Record<StatCompany, { dept: string; count: number }[]> = 
     { dept: "재무팀", count: 5 }, { dept: "마케팅팀", count: 5 }, { dept: "영업팀", count: 3 },
   ],
   KBH: [{ dept: "연구개발팀", count: 6 }, { dept: "경영지원팀", count: 4 }, { dept: "품질관리팀", count: 3 }],
-  HC: [{ dept: "생활건강연구소", count: 5 }, { dept: "마케팅팀", count: 3 }, { dept: "영업팀", count: 2 }],
+  HC:  [{ dept: "생활건강연구소", count: 5 }, { dept: "마케팅팀", count: 3 }, { dept: "영업팀", count: 2 }],
   KMG: [{ dept: "글로벌사업팀", count: 4 }, { dept: "경영지원팀", count: 3 }],
   KMW: [{ dept: "제조기술팀", count: 5 }, { dept: "품질관리팀", count: 4 }],
   KUS: [{ dept: "US Operations", count: 3 }],
   KBT: [{ dept: "바이오연구팀", count: 2 }],
 };
 
-const TYPE_META = ["웹 애플리케이션", "데이터 파이프라인", "ML/AI 모델", "API/서비스", "내부 플랫폼", "내부 도구", "기타"];
-const TYPE_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [18, 11, 10, 9, 6, 5, 2], KBH: [7, 4, 3, 3, 2, 2, 1], HC: [5, 2, 3, 2, 1, 1, 0],
-  KMG: [3, 2, 2, 2, 1, 1, 1], KMW: [3, 2, 1, 1, 1, 1, 0], KUS: [1, 1, 1, 1, 0, 0, 0], KBT: [1, 0, 0, 0, 1, 0, 0],
-};
-
+// n8n · PA 워크플로우 기준
 const DIFFICULTY_META = [
-  { label: "입문", color: "#059669" }, { label: "중급", color: "#2563EB" }, { label: "고급", color: "#7C3AED" },
+  { label: "쉬움", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "어려움", color: "#7C3AED" },
 ];
 const DIFFICULTY_BY_COMPANY: Record<StatCompany, number[]> = {
   KKM: [15, 18, 7], KBH: [6, 7, 2], HC: [4, 5, 1], KMG: [3, 4, 2], KMW: [1, 2, 1], KUS: [1, 1, 1], KBT: [1, 1, 1],
 };
 
+// AI Agent 모델 기준 (3단계)
 const COST_META = [
-  { label: "무료", color: "#059669" }, { label: "저비용", color: "#2563EB" },
-  { label: "중비용", color: "#D97706" }, { label: "고비용", color: "#EF4444" },
+  { label: "낮음", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "높음", color: "#EF4444" },
 ];
 const COST_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [21, 11, 6, 2], KBH: [8, 4, 2, 1], HC: [5, 3, 2, 1], KMG: [4, 2, 1, 1], KMW: [3, 1, 1, 0], KUS: [2, 1, 1, 0], KBT: [1, 0, 0, 0],
+  KKM: [21, 11, 8], KBH: [8, 4, 3], HC: [5, 3, 3], KMG: [4, 2, 2], KMW: [3, 1, 1], KUS: [2, 1, 1], KBT: [1, 0, 0],
+};
+
+// ML 모델 유형 분포
+const ML_TYPE_META = [
+  { label: "이미지 인식", color: "#0891B2" },
+  { label: "시계열 예측", color: "#2563EB" },
+  { label: "자연어 처리", color: "#7C3AED" },
+  { label: "분류/회귀", color: "#059669" },
+];
+const ML_TYPE_BY_COMPANY: Record<StatCompany, number[]> = {
+  KKM: [3, 2, 2, 1], KBH: [1, 1, 1, 1], HC: [1, 1, 0, 1], KMG: [0, 1, 1, 0], KMW: [1, 0, 0, 1], KUS: [0, 0, 1, 0], KBT: [0, 1, 0, 0],
 };
 
 const KEYWORD_BY_COMPANY: Record<StatCompany, { keyword: string; count: number }[]> = {
-  KKM: [{ keyword: "Python", count: 22 }, { keyword: "ML", count: 18 }, { keyword: "자동화", count: 14 }, { keyword: "AWS", count: 12 }, { keyword: "데이터", count: 11 }, { keyword: "React", count: 10 }, { keyword: "API", count: 9 }, { keyword: "대시보드", count: 7 }],
-  KBH: [{ keyword: "Python", count: 8 }, { keyword: "ML", count: 6 }, { keyword: "자동화", count: 5 }, { keyword: "AWS", count: 4 }, { keyword: "데이터", count: 4 }, { keyword: "React", count: 3 }, { keyword: "API", count: 3 }, { keyword: "대시보드", count: 2 }],
-  HC:  [{ keyword: "Python", count: 5 }, { keyword: "ML", count: 4 }, { keyword: "자동화", count: 3 }, { keyword: "AWS", count: 3 }, { keyword: "데이터", count: 3 }, { keyword: "React", count: 2 }, { keyword: "API", count: 2 }, { keyword: "대시보드", count: 2 }],
-  KMG: [{ keyword: "Python", count: 3 }, { keyword: "ML", count: 3 }, { keyword: "자동화", count: 3 }, { keyword: "AWS", count: 2 }, { keyword: "데이터", count: 2 }, { keyword: "React", count: 2 }, { keyword: "API", count: 1 }, { keyword: "대시보드", count: 1 }],
-  KMW: [{ keyword: "Python", count: 2 }, { keyword: "ML", count: 2 }, { keyword: "자동화", count: 2 }, { keyword: "AWS", count: 2 }, { keyword: "데이터", count: 1 }, { keyword: "React", count: 1 }, { keyword: "API", count: 1 }, { keyword: "대시보드", count: 1 }],
-  KUS: [{ keyword: "Python", count: 1 }, { keyword: "ML", count: 1 }, { keyword: "자동화", count: 1 }, { keyword: "AWS", count: 1 }, { keyword: "데이터", count: 1 }, { keyword: "React", count: 1 }, { keyword: "API", count: 1 }, { keyword: "대시보드", count: 1 }],
-  KBT: [{ keyword: "Python", count: 1 }, { keyword: "ML", count: 1 }, { keyword: "자동화", count: 0 }, { keyword: "AWS", count: 0 }, { keyword: "데이터", count: 0 }, { keyword: "React", count: 0 }, { keyword: "API", count: 0 }, { keyword: "대시보드", count: 0 }],
+  KKM: [{ keyword: "자동화", count: 22 }, { keyword: "AI", count: 18 }, { keyword: "승인", count: 14 }, { keyword: "원료", count: 12 }, { keyword: "데이터", count: 11 }, { keyword: "보고서", count: 10 }, { keyword: "API", count: 9 }, { keyword: "분류", count: 7 }],
+  KBH: [{ keyword: "자동화", count: 8 }, { keyword: "AI", count: 6 }, { keyword: "승인", count: 5 }, { keyword: "원료", count: 4 }, { keyword: "데이터", count: 4 }, { keyword: "보고서", count: 3 }, { keyword: "API", count: 3 }, { keyword: "분류", count: 2 }],
+  HC:  [{ keyword: "자동화", count: 5 }, { keyword: "AI", count: 4 }, { keyword: "승인", count: 3 }, { keyword: "원료", count: 3 }, { keyword: "데이터", count: 3 }, { keyword: "보고서", count: 2 }, { keyword: "API", count: 2 }, { keyword: "분류", count: 2 }],
+  KMG: [{ keyword: "자동화", count: 3 }, { keyword: "AI", count: 3 }, { keyword: "승인", count: 3 }, { keyword: "원료", count: 2 }, { keyword: "데이터", count: 2 }, { keyword: "보고서", count: 2 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
+  KMW: [{ keyword: "자동화", count: 2 }, { keyword: "AI", count: 2 }, { keyword: "승인", count: 2 }, { keyword: "원료", count: 2 }, { keyword: "데이터", count: 1 }, { keyword: "보고서", count: 1 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
+  KUS: [{ keyword: "자동화", count: 1 }, { keyword: "AI", count: 1 }, { keyword: "승인", count: 1 }, { keyword: "원료", count: 1 }, { keyword: "데이터", count: 1 }, { keyword: "보고서", count: 1 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
+  KBT: [{ keyword: "자동화", count: 1 }, { keyword: "AI", count: 1 }, { keyword: "승인", count: 0 }, { keyword: "원료", count: 0 }, { keyword: "데이터", count: 0 }, { keyword: "보고서", count: 0 }, { keyword: "API", count: 0 }, { keyword: "분류", count: 0 }],
 };
 
 const TIME_SAVED_BY_COMPANY: Record<StatCompany, string[]> = {
@@ -171,26 +168,24 @@ export default function AdminStatistics() {
     const sourceTotal = aggregateSourceTotal(companies);
     const domain = aggregateDomain(companies);
     const statusCounts = aggregateIndexed(companies, STATUS_BY_COMPANY, STATUS_META.length);
-    const stackCounts = aggregateIndexed(companies, STACK_BY_COMPANY, STACK_META.length);
-    const typeCounts = aggregateIndexed(companies, TYPE_BY_COMPANY, TYPE_META.length);
     const difficultyCounts = aggregateIndexed(companies, DIFFICULTY_BY_COMPANY, DIFFICULTY_META.length);
     const costCounts = aggregateIndexed(companies, COST_BY_COMPANY, COST_META.length);
+    const mlTypeCounts = aggregateIndexed(companies, ML_TYPE_BY_COMPANY, ML_TYPE_META.length);
     const dept = aggregateDept(companies);
     const keyword = aggregateKeyword(companies);
     const timeSamples = aggregateTimeSaved(companies);
 
     const status = STATUS_META.map((s, i) => ({ ...s, count: statusCounts[i] }));
-    const stack = STACK_META.map((s, i) => ({ ...s, count: stackCounts[i] }));
-    const type = TYPE_META.map((label, i) => ({ label, count: typeCounts[i] }));
     const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: difficultyCounts[i] }));
     const cost = COST_META.map((c, i) => ({ ...c, count: costCounts[i] }));
+    const mlType = ML_TYPE_META.map((t, i) => ({ ...t, count: mlTypeCounts[i] }));
 
     const parsed = timeSamples.map(parseTimeSaved);
     const totalAnnualHoursSaved = parsed.reduce<number>((sum, v) => sum + (v ?? 0), 0);
     const unestimableCount = parsed.filter(v => v === null).length;
     const estimableCount = parsed.length - unestimableCount;
 
-    return { companies, monthSeries, sourceTotal, domain, status, stack, type, difficulty, cost, dept, keyword,
+    return { companies, monthSeries, sourceTotal, domain, status, difficulty, cost, mlType, dept, keyword,
       totalAnnualHoursSaved, unestimableCount, estimableCount };
   }, []);
 
@@ -208,10 +203,9 @@ export default function AdminStatistics() {
 
   const totalProjects = agg.status.reduce((s, d) => s + d.count, 0) || 1;
   const totalDomain = agg.domain.reduce((s, d) => s + d.count, 0) || 1;
-  const totalType = agg.type.reduce((s, d) => s + d.count, 0) || 1;
   const totalDifficulty = agg.difficulty.reduce((s, d) => s + d.count, 0) || 1;
   const totalCost = agg.cost.reduce((s, d) => s + d.count, 0) || 1;
-  const maxStack = Math.max(...agg.stack.map(s => s.count), 1);
+  const totalMlType = agg.mlType.reduce((s, d) => s + d.count, 0) || 1;
   const maxDept = Math.max(...agg.dept.map(d => d.count), 1);
   const maxKeyword = Math.max(...agg.keyword.map(k => k.count), 1);
 
@@ -226,7 +220,8 @@ export default function AdminStatistics() {
   const sourceByPeriod = SOURCES.map(s => ({ ...s, count: monthly.reduce((acc, m) => acc + (m as Record<SourceKey, number>)[s.key], 0) }));
   const periodTotal = sourceByPeriod.reduce((a, b) => a + b.count, 0);
 
-  const activeItems = agg.status[0].count + agg.status[1].count + agg.status[2].count;
+  // 정상 운영 + 검증·개발만 활성 항목으로 간주
+  const activeItems = agg.status[0].count + agg.status[1].count;
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -280,7 +275,7 @@ export default function AdminStatistics() {
             {[
               { label: "전체 등록물", value: totalRegistrations, sub: "6개 플랫폼 합산", color: "#0F172A" },
               { label: "이번 달 신규", value: monthTotal(MONTH_SERIES[MONTH_SERIES.length - 1]), sub: "6개 플랫폼 합산", color: "#2563EB" },
-              { label: "활성 항목", value: activeItems, sub: "운영 중 + 개발 중 + 파일럿", color: "#059669" },
+              { label: "활성 항목", value: activeItems, sub: "정상 운영 + 검증·개발", color: "#059669" },
               { label: "참여 관계사", value: agg.companies.length, sub: "전체 관계사", color: "#7C3AED" },
             ].map((k, i) => (
               <div key={i} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px 20px" }}>
@@ -331,11 +326,14 @@ export default function AdminStatistics() {
               <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
                 {agg.status.map((s, i) => s.count > 0 && <div key={i} title={`${s.label}: ${s.count}건`} style={{ flex: s.count, background: s.color }} />)}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {agg.status.map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "#475569", flex: 1 }}>{s.label}</span>
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>{s.label}</div>
+                      <div style={{ fontSize: 10, color: "#CBD5E1", marginTop: 1 }}>{s.sub}</div>
+                    </div>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{s.count}</span>
                     <span style={{ fontSize: 11, color: "#94A3B8", width: 32, textAlign: "right" }}>{Math.round(s.count / totalProjects * 100)}%</span>
                   </div>
@@ -376,6 +374,7 @@ export default function AdminStatistics() {
             <span style={{ width: 4, height: 14, borderRadius: 2, background: "#2563EB" }} />AX 플랫폼 분석
           </div>
 
+          {/* 비즈니스 도메인 분포 | 부서별 현황 */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>비즈니스 도메인 분포</div>
@@ -392,42 +391,6 @@ export default function AdminStatistics() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-
-            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>시스템 유형 분포</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {agg.type.map((t, i) => {
-                  const pct = Math.round(t.count / totalType * 100);
-                  return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 12, color: "#475569", width: 110, flexShrink: 0 }}>{t.label}</span>
-                      <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 4, height: 7, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: "#7C3AED", borderRadius: 4 }} />
-                      </div>
-                      <span style={{ fontSize: 11, color: "#94A3B8", width: 28, textAlign: "right", flexShrink: 0 }}>{t.count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>기술 스택 TOP 8</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {agg.stack.map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: "#94A3B8", width: 16, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", width: 80, flexShrink: 0 }}>{s.label}</span>
-                    <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 4, height: 7, overflow: "hidden" }}>
-                      <div style={{ width: `${(s.count / maxStack) * 100}%`, height: "100%", background: s.color, borderRadius: 4 }} />
-                    </div>
-                    <span style={{ fontSize: 11, color: "#94A3B8", width: 28, textAlign: "right", flexShrink: 0 }}>{s.count}</span>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -463,7 +426,7 @@ export default function AdminStatistics() {
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
                 절감 효과 요약
                 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 8 }}>
-                  n8n · 나만의비서 등록 항목의 예상 절감 시간 기준 (자유 입력 텍스트 정규화 집계)
+                  n8n · PA 등록 항목의 예상 절감 시간 기준 (자유 입력 텍스트 정규화 집계)
                 </span>
               </div>
             </div>
@@ -494,9 +457,11 @@ export default function AdminStatistics() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          {/* 난이도 분포 | 비용 구간 분포 | ML 모델 유형 분포 */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>난이도 분포</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>난이도 분포</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>n8n · PA 워크플로우 기준</div>
               <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
                 {agg.difficulty.map((d, i) => d.count > 0 && <div key={i} title={`${d.label}: ${d.count}건`} style={{ flex: d.count, background: d.color }} />)}
               </div>
@@ -513,17 +478,37 @@ export default function AdminStatistics() {
             </div>
 
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>비용 구간 분포</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>비용 구간 분포</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>AI Agent 모델 기준</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {agg.cost.map((c, i) => {
                   const pct = Math.round(c.count / totalCost * 100);
                   return (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 12, color: "#475569", width: 70, flexShrink: 0 }}>{c.label}</span>
+                      <span style={{ fontSize: 12, color: "#475569", width: 42, flexShrink: 0 }}>{c.label}</span>
                       <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 4, height: 7, overflow: "hidden" }}>
                         <div style={{ width: `${pct}%`, height: "100%", background: c.color, borderRadius: 4 }} />
                       </div>
                       <span style={{ fontSize: 11, color: "#94A3B8", width: 44, textAlign: "right", flexShrink: 0 }}>{c.count} · {pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>ML 모델 유형 분포</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>ML 모델 기준</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {agg.mlType.map((t, i) => {
+                  const pct = Math.round(t.count / totalMlType * 100);
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 12, color: "#475569", width: 72, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.label}</span>
+                      <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 4, height: 7, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: t.color, borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: "#94A3B8", width: 44, textAlign: "right", flexShrink: 0 }}>{t.count} · {pct}%</span>
                     </div>
                   );
                 })}

@@ -97,10 +97,12 @@ techhub/
 
 #### `ProjectListPage.tsx` — `/projects`
 - **역할**: AX 플랫폼 탐색. 좌측 필터 사이드바(플랫폼 종류·상태·관계사)와 상단 검색·정렬. URL 쿼리스트링(`?q=`)과 검색어 동기화.
+- **상태 필터 동적화**: `STATUS_BY_KIND: Record<PlatformId, string[]>` — 플랫폼 선택 시 해당 플랫폼의 상태값만 옵션에 표시. 플랫폼 미선택("전체")이면 11개 전체 상태값 합산 목록.
+- **STATUS_COLOR**: 11개 상태값 각각에 의미 그룹 색상 매핑(정상 운영=녹색 / 검증·개발=파란색 / 제한=주황 / 종료=빨간).
 - **주요 state**
   - `search: string` — 검색어 (URL 쿼리스트링과 동기화)
   - `source: "전체" | PlatformId` — 플랫폼 필터 (6종 + 전체)
-  - `status: string` — 운영 상태 필터
+  - `status: string` — 운영 상태 필터 (source 변경 시 유효하지 않은 값은 "전체"로 초기화)
   - `company: string` — 관계사 필터
   - `sort: "최신순" | "인기순" | "이름순" | "부서순"` — 정렬 기준 (최신순 기본)
   - `sidebarOpen: boolean` — 필터 사이드바 열림 여부 (기본 닫힘)
@@ -138,7 +140,9 @@ techhub/
 
 #### `MyStatusPage.tsx` — `/my-status`
 - **역할**: 내가 등록 신청한 AX 항목 목록. 승인/대기/반려 탭 필터. 승인 항목은 운영 상태 직접 변경 가능. 반려 항목은 재제출 또는 삭제 가능.
-- **내부 컴포넌트** (모듈 레벨): `StatusChanger` — 승인된 항목의 상태 변경 드롭다운
+- **내부 컴포넌트** (모듈 레벨):
+  - `StatusChanger` — 승인된 항목의 상태 변경 드롭다운. `STATUS_BY_KIND[kind]`로 유형별 선택지 제한. `TERMINAL_STATUSES = {"운영 중지", "지원 종료 예정"}`에 속하면 잠김 안내.
+  - `KindSummaryChips` — 카드에 표시되는 유형별 요약 칩 (n8n·pa: 난이도·예상 절감시간 / assistant: 공개 범위 / ai-orchestration: 제공사·비용등급 / ml: ML 유형 / vibe: 개발 도구)
 - **주요 state**
   - `filter: "전체" | "승인" | "대기" | "반려"` — 목록 필터
   - `expanded / resubmit / deleteConfirm: string | null` — 패널 열림 항목 ID
@@ -148,7 +152,8 @@ techhub/
 
 #### `EditRequestPage.tsx` — `/edit-request/:id`
 - **역할**: 게시된 AX 항목 정보 수정 신청. 수정할 필드를 체크박스로 선택 후 변경 내용과 사유 입력.
-- **수정 가능 필드**: 항목명, 한 줄 요약, 상세 설명, 운영 상태
+- **수정 가능 필드**: `COMMON_FIELDS`(제목·한 줄 요약·상세 설명·상태) + `EXTRA_FIELDS_BY_KIND[current.kind]`로 유형별 전용 필드 추가. n8n·pa: 트리거·동작·실행 URL / assistant: 공유 프롬프트·비서 소개 / ai-orchestration: 강점·모델 URL / ml: 핵심 성능·학습 데이터 / vibe: 결과물 형태·접속 URL.
+- **상태 필드**: `<select>` 렌더링 + `STATUS_BY_KIND[current.kind]`에서 옵션 주입.
 - **주요 state**
   - `selectedFields: string[]` — 수정 신청 대상 필드 키 목록
   - `changes: Record<string, string>` — 필드별 변경 내용
@@ -194,6 +199,7 @@ techhub/
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy`
 - **역할**: AX 항목 분류체계 관리. 탭별 항목 추가/삭제/편집. 출처(SourceKind = PlatformId) 탭에는 6개 플랫폼 종류가 포함되며, "project" 탭은 없다.
+- **IMPORT_DEST_OPTIONS**: `difficulty`·`appHints` 항목 설명이 "n8n · PA" 기준. `pa` 탭에 `appHints` 추가. `assistant` 탭은 `[]` — 표준화 대상 분류 없음.
 - **주요 state**
   - `activeTab: TabId` — 현재 선택된 분류 탭
   - `taxonomy: Record<string, Category>` — 전체 분류체계 데이터
@@ -211,9 +217,12 @@ techhub/
   - 활동 로그: 출처 칩 표시
 
 #### `AdminStatistics.tsx` — `/admin/statistics`
-- **역할**: 통계 대시보드. 기간 선택에 따른 플랫폼 종류별 등록 현황·등록 추이, 상태·부서별 분포, 절감 효과 요약.
+- **역할**: 통계 대시보드. 기간 선택에 따른 플랫폼 종류별 등록 현황·등록 추이, 4그룹 상태 분포, 도메인·부서 분포, 절감 효과 요약, 3-column 분석 섹션.
 - **권한**: 모든 관리자가 전체 집계 조회. (`useAuth` 미사용)
-- **공용 데이터**: `mocks/statsMockData.ts`에서 `STAT_COMPANIES`, `COMPANY_NAME`, `scopedCompanies`, `aggregateMonthly`, `aggregateSourceTotal`, `aggregateDomain`, `monthTotal` import
+- **공용 데이터**: `mocks/statsMockData.ts`에서 `STAT_COMPANIES`, `scopedCompanies`, `aggregateMonthly`, `aggregateSourceTotal`, `aggregateDomain`, `monthTotal` import
+- **상태 4그룹**: `STATUS_META` — 정상 운영(#059669) / 검증·개발(#2563EB) / 제한(#D97706) / 종료(#EF4444). 각 항목에 `sub` 필드로 해당 그룹에 속하는 상태값 명시.
+- **활성 항목 계산**: `status[0].count + status[1].count` (정상 운영 + 검증·개발만 포함).
+- **3-column 분석**: 난이도 분포(n8n·PA 기준) / 비용 구간 분포(AI Agent 기준, 3단계: 낮음·보통·높음) / ML 모델 유형 분포(ML 기준). 구 "기술 스택 TOP 8"·"시스템 유형 분포" 섹션 제거.
 - **주요 state**: `periodMode`, `period`, `pickYear`, `pickMonth` — 조회 기간
 
 #### `AdminPlatforms.tsx` — `/admin/platforms`
@@ -275,7 +284,7 @@ useAuth() (context/useAuth.ts)
 |---|---|
 | `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe"` (6종) |
 | `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon). `accessUrl: string \| null` — pa·ml·vibe는 아직 URL 미확정 |
-| `PlatformItemStatus` | `"운영 중" \| "개발 중" \| "파일럿" \| "보류" \| "종료"` |
+| `PlatformItemStatus` | 11개 상태값 유니온 — 유형별로 다름. n8n·pa: `"운영 중" \| "테스트 중" \| "일시 중지"` / assistant: `"사용 가능" \| "준비 중" \| "운영 중지"` / ai-orchestration: `"사용 가능" \| "일부 제한" \| "지원 종료 예정"` / ml: `"운영 중" \| "실험 중" \| "운영 중지"` / vibe: `"사용 중" \| "프로토타입" \| "운영 중지"` |
 | `PlatformItem` | AX 항목 공용 타입. `company: string[]` — 소속 관계사 코드(비어있으면 전사 공용). `platformScope`. `expectedTimeSaved?: string`. 워크플로우형 전용 필드(nodes·connectedApps 등), AI Agent 전용(modelMeta), ML 전용(mlType·trainingDataDesc·performanceSummary), ML/Vibe 공용(devTool·sourceRepo·outputType) 포함. |
 | `PLATFORMS` | 6개 플랫폼 메타 배열. 출처 색상·경로의 단일 기준(source of truth). |
 | `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키) |

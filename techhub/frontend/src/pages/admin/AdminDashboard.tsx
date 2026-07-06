@@ -35,9 +35,9 @@ const detailPathOf = (source: SourceKey, id: string) => {
 type PendingItem = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: StatCompany };
 const PENDING_ALL: PendingItem[] = [
   { id: "N8N-2025-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2025.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM" },
-  { id: "HKGPT-2025-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2025.06.03", type: "나만의비서", source: "assistant", company: "KBH" },
+  { id: "AST-2025-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2025.06.03", type: "나만의비서", source: "assistant", company: "KBH" },
   { id: "PA-2025-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2025.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG" },
-  { id: "AGENT-2025-007", title: "원료 추천 에이전트", dept: "IT개발팀", submittedAt: "2025.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC" },
+  { id: "AIO-2025-007", title: "원료 추천 에이전트", dept: "IT개발팀", submittedAt: "2025.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC" },
   { id: "ML-2025-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2025.06.06", type: "ML 모델", source: "ml", company: "KKM" },
 ];
 

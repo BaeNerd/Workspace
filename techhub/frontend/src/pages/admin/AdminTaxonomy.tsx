@@ -11,16 +11,10 @@ type Category = {
 };
 
 type SourceKind = PlatformId;
-
 type SourceItem = { id: string; kind: SourceKind; title: string };
-
 type FreeTag = {
-  tag: string;
-  count: number;
-  proposedBy: string;
-  dept: string;
-  sourceKind: SourceKind;
-  sourceItems: SourceItem[];
+  tag: string; count: number; proposedBy: string; dept: string;
+  sourceKind: SourceKind; sourceItems: SourceItem[];
 };
 
 const freeTagContext = (t: FreeTag): string => {
@@ -33,31 +27,45 @@ const freeTagContext = (t: FreeTag): string => {
 // TODO: 실제 연동 시 GET /api/v1/admin/taxonomy?scope=platform 응답으로 교체
 const INITIAL_PLATFORM_TAXONOMY: Record<string, Category> = {
   nodeHints: {
-    label: "n8n 노드 힌트", desc: "n8n 등록 시 노드 입력란에서 제안되는 자동완성 힌트 목록. 단순 추천용이라 자유 추가 가능.", type: "multi",
+    label: "n8n 노드 힌트",
+    desc: "n8n 등록 시 노드 입력란에서 제안되는 자동완성 힌트 목록. n8n 전용이며 PA 커넥터와 공유하지 않는다.",
+    type: "multi",
     items: ["Manual Trigger", "Schedule Trigger", "Form Trigger", "Chat Trigger", "Webhook", "Set (Edit Fields)", "Code", "IF", "Switch", "Filter", "Merge", "Aggregate", "Sort", "AI Agent", "Basic LLM Chain"],
   },
   paConnectors: {
-    label: "PA 커넥터 힌트", desc: "Power Automate 등록 시 연결 앱 입력란에서 제안되는 커넥터 힌트 목록.", type: "multi",
+    label: "PA 커넥터 힌트",
+    desc: "Power Automate 등록 시 커넥터 입력란에서 제안되는 힌트 목록. n8n 노드 힌트와 별도 세트로 관리한다(실행 환경이 다르기 때문).",
+    type: "multi",
     items: ["SharePoint", "Microsoft Teams", "Outlook", "Excel Online", "Power BI", "Dataverse", "Forms", "Approvals", "Planner", "OneDrive", "Azure Blob Storage", "SQL Server"],
   },
   appHints: {
-    label: "n8n 연동 앱 힌트", desc: "n8n · 나만의 비서 등록 시 연동 앱 입력란에서 제안되는 힌트 목록.", type: "multi",
+    label: "n8n · PA 공용 연동 앱 힌트",
+    desc: "n8n · Power Automate 등록 시 연동 앱 입력란에서 제안되는 힌트 목록. 두 플랫폼이 공통으로 참조한다.",
+    type: "multi",
     items: ["Microsoft Outlook", "Microsoft Teams", "Microsoft One Drive", "Google Sheets", "HTTP Request", "Spreadsheet File", "Respond To Webhook"],
   },
   difficulty: {
-    label: "구성 난이도", desc: "n8n · 나만의 비서 등록 시 선택하는 난이도 등급. 단일 선택.", type: "single",
+    label: "구성 난이도",
+    desc: "n8n · PA 등록 시 선택하는 난이도 등급. 단일 선택. (나만의 비서·AI Agent·ML·Vibe 에는 적용되지 않는다)",
+    type: "single",
     items: ["쉬움", "보통", "어려움"],
   },
   costTier: {
-    label: "비용 등급", desc: "AI Agent 등록 시 선택하는 비용 등급. 단일 선택.", type: "single",
+    label: "비용 등급",
+    desc: "AI Agent 등록 시 선택하는 비용 등급. 단일 선택. AI Agent 전용.",
+    type: "single",
     items: ["낮음", "보통", "높음"],
   },
   mlTypes: {
-    label: "ML 모델 유형", desc: "ML 모델 등록 시 사용하는 모델 유형 분류. 단일 선택.", type: "single",
+    label: "ML 모델 유형",
+    desc: "ML 모델 등록 시 사용하는 모델 유형 분류. 단일 선택. ML 전용.",
+    type: "single",
     items: ["분류 (Classification)", "회귀 (Regression)", "클러스터링", "NLP / 텍스트", "이미지 인식", "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달"],
   },
   vibeTools: {
-    label: "Vibe 도구", desc: "Vibe Coding 등록 시 사용한 AI 코딩 도구 선택 힌트.", type: "multi",
+    label: "Vibe Coding 도구 힌트",
+    desc: "Vibe Coding 등록 시 사용한 AI 코딩 도구 선택 힌트. Vibe 전용.",
+    type: "multi",
     items: ["GitHub Copilot", "Cursor", "Claude Code", "Codeium", "Tabnine", "Replit AI", "v0", "Bolt", "Lovable", "Continue"],
   },
 };
@@ -96,11 +104,11 @@ const INITIAL_FREE_TAGS: FreeTag[] = [
 const PLATFORM_TABS = [
   { id: "nodeHints", label: "n8n 노드 힌트" },
   { id: "paConnectors", label: "PA 커넥터 힌트" },
-  { id: "appHints", label: "n8n 연동 앱 힌트" },
+  { id: "appHints", label: "n8n · PA 연동 앱" },
   { id: "difficulty", label: "구성 난이도" },
   { id: "costTier", label: "비용 등급" },
   { id: "mlTypes", label: "ML 모델 유형" },
-  { id: "vibeTools", label: "Vibe 도구" },
+  { id: "vibeTools", label: "Vibe 도구 힌트" },
 ] as const;
 
 const TABS = [
@@ -115,19 +123,18 @@ const SOURCE_STYLE: Record<SourceKind, { color: string; bg: string; label: strin
   PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
 ) as Record<PlatformId, { color: string; bg: string; label: string }>;
 
-// 출처별로 편입 가능한 목적지 분류체계 옵션
+// 출처별로 편입 가능한 목적지 분류체계 옵션.
+// assistant: 표준 분류에 편입할 마땅한 카테고리 없음 → 빈 배열 (표준화 버튼 미노출)
 const IMPORT_DEST_OPTIONS: Record<SourceKind, { key: string; label: string }[]> = {
   n8n: [
     { key: "nodeHints", label: "n8n 노드 힌트" },
-    { key: "appHints", label: "n8n 연동 앱 힌트" },
+    { key: "appHints", label: "n8n · PA 공용 연동 앱 힌트" },
   ],
   pa: [
     { key: "paConnectors", label: "PA 커넥터 힌트" },
+    { key: "appHints", label: "n8n · PA 공용 연동 앱 힌트" },
   ],
-  assistant: [
-    { key: "nodeHints", label: "n8n 노드 힌트" },
-    { key: "appHints", label: "n8n 연동 앱 힌트" },
-  ],
+  assistant: [],
   "ai-orchestration": [
     { key: "costTier", label: "비용 등급" },
   ],
@@ -135,7 +142,7 @@ const IMPORT_DEST_OPTIONS: Record<SourceKind, { key: string; label: string }[]> 
     { key: "mlTypes", label: "ML 모델 유형" },
   ],
   vibe: [
-    { key: "vibeTools", label: "Vibe 도구" },
+    { key: "vibeTools", label: "Vibe Coding 도구 힌트" },
   ],
 };
 
@@ -151,9 +158,7 @@ const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "none", ba
 
 // ===== 재사용 서브컴포넌트 (모듈 레벨) =====
 type ItemRowProps = {
-  label: string;
-  keyName: string;
-  idx: number;
+  label: string; keyName: string; idx: number;
   editingItem: { key: string; idx: number; value: string } | null;
   deleteConfirm: { key: string; idx: number } | null;
   onStartEdit: (key: string, idx: number, value: string) => void;
@@ -203,7 +208,6 @@ const ItemRow = ({
 };
 
 export default function AdminTaxonomy() {
-
   const [activeTab, setActiveTab] = useState<TabId>("nodeHints");
   const [platformTaxonomy, setPlatformTaxonomy] = useState(INITIAL_PLATFORM_TAXONOMY);
   const [freeTags, setFreeTags] = useState<FreeTag[]>(INITIAL_FREE_TAGS);
@@ -219,7 +223,6 @@ export default function AdminTaxonomy() {
   const showSaved = (msg: string) => { setSavedMsg(msg); setTimeout(() => setSavedMsg(""), 2200); };
 
   const cat = activeTab !== "freeTags" ? platformTaxonomy[activeTab] : null;
-
   const filteredFreeTags = freeTags.filter(t => freeTagSourceFilter === "전체" || t.sourceKind === freeTagSourceFilter);
 
   const handleAdd = () => {
@@ -274,7 +277,6 @@ export default function AdminTaxonomy() {
   };
 
   const toggleFreeTag = (tag: string) => setSelectedFreeTags(p => p.includes(tag) ? p.filter(x => x !== tag) : [...p, tag]);
-
   const startEdit = (key: string, idx: number, value: string) => setEditingItem({ key, idx, value });
   const editValueChange = (value: string) => setEditingItem(p => p ? { ...p, value } : p);
   const startDelete = (key: string, idx: number) => setDeleteConfirm({ key, idx });
@@ -284,10 +286,8 @@ export default function AdminTaxonomy() {
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
-
       <div style={{ display: "flex" }}>
         <AdminSidebar />
-
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div>
@@ -302,7 +302,7 @@ export default function AdminTaxonomy() {
             )}
           </div>
 
-          {/* ===== 탭 바 ===== */}
+          {/* 탭 바 */}
           <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
             {PLATFORM_TABS.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
@@ -316,9 +316,7 @@ export default function AdminTaxonomy() {
                 {t.label}
               </button>
             ))}
-
             <span style={{ width: 1, height: 18, background: "#E2E8F0", margin: "0 4px" }} />
-
             <button onClick={() => setActiveTab("freeTags")} style={{
               padding: "8px 16px", borderRadius: 7, border: activeTab === "freeTags" ? "none" : "1px solid #E2E8F0",
               background: activeTab === "freeTags" ? "#0F172A" : "transparent",
@@ -334,7 +332,7 @@ export default function AdminTaxonomy() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
             <div>
-              {/* ===== 분류 항목 목록 ===== */}
+              {/* 분류 항목 목록 */}
               {activeTab !== "freeTags" && cat && (
                 <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9" }}>
@@ -344,7 +342,6 @@ export default function AdminTaxonomy() {
                     </div>
                     <div style={{ fontSize: 12, color: "#64748B" }}>{cat.desc}</div>
                   </div>
-
                   {cat.items?.map((item, idx) => (
                     <ItemRow
                       key={idx} label={item} keyName={activeTab} idx={idx}
@@ -358,13 +355,13 @@ export default function AdminTaxonomy() {
                 </div>
               )}
 
-              {/* ===== 자유 태그 누적 목록 ===== */}
+              {/* 자유 태그 누적 목록 */}
               {activeTab === "freeTags" && (
                 <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>자유 태그 누적 목록</div>
-                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. n8n · PA · 나만의비서 · AI Agent · ML · Vibe 등록에서 수집됩니다.</div>
+                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 6개 플랫폼 타입(n8n · PA · 나만의비서 · AI Agent · ML · Vibe) 등록에서 수집됩니다.</div>
                     </div>
                     {selectedFreeTags.length > 0 && (
                       <button onClick={() => handleFreeTagDelete(selectedFreeTags)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>선택 삭제 ({selectedFreeTags.length})</button>
@@ -393,6 +390,7 @@ export default function AdminTaxonomy() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {filteredFreeTags.map((t, i) => {
                       const style = SOURCE_STYLE[t.sourceKind];
+                      const canPromote = IMPORT_DEST_OPTIONS[t.sourceKind]?.length > 0;
                       return (
                         <div key={i} style={{ borderRadius: 8, border: `1px solid ${selectedFreeTags.includes(t.tag) ? "#BFDBFE" : "#F1F5F9"}`, background: selectedFreeTags.includes(t.tag) ? "#EFF6FF" : "#fff" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
@@ -408,7 +406,7 @@ export default function AdminTaxonomy() {
                               </div>
                             </div>
                             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                              {IMPORT_DEST_OPTIONS[t.sourceKind]?.length > 0 && (
+                              {canPromote && (
                                 <button onClick={() => openImportPanel(t.tag)} style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 700, color: "#2563EB", cursor: "pointer" }}>표준화</button>
                               )}
                               <button onClick={() => handleFreeTagDelete([t.tag])} style={{ background: "none", border: "1px solid #FECACA", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
@@ -423,7 +421,7 @@ export default function AdminTaxonomy() {
               )}
             </div>
 
-            {/* ===== 우측 패널: 항목 추가 / 표준화 편입 ===== */}
+            {/* 우측 패널 */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {activeTab !== "freeTags" && (
                 <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
@@ -442,13 +440,11 @@ export default function AdminTaxonomy() {
                       {SOURCE_STYLE[importTagData.sourceKind].label} 출처
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#3B82F6", marginBottom: 14 }}><strong>#{importTag}</strong> 를 어느 분류에 편입할지 선택하세요. 출처에 맞는 분류체계만 표시됩니다.</div>
-
+                  <div style={{ fontSize: 12, color: "#3B82F6", marginBottom: 14 }}><strong>#{importTag}</strong> 를 어느 분류에 편입할지 선택하세요.</div>
                   <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 5 }}>편입 분류</label>
                   <select value={importDest.key} onChange={e => setImportDest({ key: e.target.value })} style={{ ...selectStyle, marginBottom: 8 }}>
                     {IMPORT_DEST_OPTIONS[importTagData.sourceKind].map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
                   </select>
-
                   <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                     <button onClick={() => setImportTag(null)} style={{ flex: 1, background: "#fff", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
                     <button onClick={() => handleImport(importTag)} style={{ flex: 1, background: "#2563EB", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>편입 확정</button>
@@ -459,7 +455,7 @@ export default function AdminTaxonomy() {
               <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
                 <strong>운영 유의사항</strong><br />
                 고정 분류 항목을 삭제하면 기존에 태깅된 AX 플랫폼 항목의 해당 분류가 공란으로 처리될 수 있습니다.
-                노드·연동앱·커넥터 힌트는 단순 추천용이므로 삭제해도 기존 항목의 실제 구성에는 영향이 없습니다.
+                노드·커넥터·연동앱 힌트는 단순 추천용이므로 삭제해도 기존 항목의 실제 구성에는 영향이 없습니다.
               </div>
             </div>
           </div>

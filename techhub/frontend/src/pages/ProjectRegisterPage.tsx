@@ -2,13 +2,30 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useAuth } from "../context/useAuth";
 import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 import { WorkflowEditor, toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 
-// ===== 공통 상수 =====
-const STATUSES = ["운영 중", "개발 중", "파일럿", "보류"];
+// ===== 유형별 상태 값 =====
+// "상태"는 과거 일반 IT 프로젝트 생애주기(운영 중/개발 중/파일럿/보류) 개념을 그대로 썼으나,
+// 워크플로우·에이전트·모델 각각의 실제 운영 방식에 맞게 유형별로 분리했다.
+const WORKFLOW_STATUSES = ["운영 중", "테스트 중", "일시 중지"] as const;
+const ASSISTANT_STATUSES = ["사용 가능", "준비 중", "운영 중지"] as const;
+const AGENT_STATUSES = ["사용 가능", "일부 제한", "지원 종료 예정"] as const;
+const ML_STATUSES = ["운영 중", "실험 중", "운영 중지"] as const;
+const VIBE_STATUSES = ["사용 중", "프로토타입", "운영 중지"] as const;
+
+const STATUS_OPTIONS_BY_KIND = (kind: PlatformId | null): readonly string[] => {
+  if (!kind) return [];
+  if (kind === "n8n" || kind === "pa") return WORKFLOW_STATUSES;
+  if (kind === "assistant") return ASSISTANT_STATUSES;
+  if (kind === "ai-orchestration") return AGENT_STATUSES;
+  if (kind === "ml") return ML_STATUSES;
+  return VIBE_STATUSES;
+};
+
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
 
@@ -38,6 +55,31 @@ const PA_CONNECTOR_SUGGESTIONS = [
   "SharePoint", "Microsoft Teams", "Outlook", "Dataverse",
   "Excel Online", "Microsoft Forms", "OneDrive", "Planner", "Approvals", "HTTP",
 ];
+
+// Power Automate 흐름 유형 — 쉬운 말로 풀어씀 (기술 용어는 참고용으로만 괄호 표기)
+const PA_FLOW_TYPES = [
+  "이벤트 발생 시 자동 실행", "버튼 클릭으로 즉시 실행", "정해진 시간에 예약 실행",
+  "데스크톱 자동화 (RPA)", "업무 절차 안내형",
+] as const;
+// 데스크톱 자동화(RPA)에만 해당하는 실행 방식 — 선택 항목
+const PA_RUN_MODES = ["사람이 지켜보며 실행", "무인으로 자동 실행"] as const;
+// 유료 커넥터가 포함되면 다른 관계사 재사용 시 라이선스 확인이 필요
+const PA_CONNECTOR_TIERS = ["기본 커넥터만 사용", "유료(프리미엄) 커넥터 포함"] as const;
+
+// 나만의 비서 — 공유 범위
+const ASSISTANT_SHARE_SCOPES = ["회사 공통 비서", "팀 공유 비서", "개인 비서 (비공개)"] as const;
+// HK GPT 제공 모델 힌트
+const ASSISTANT_MODEL_HINTS = [
+  "웍스 대표 모델", "GPT-5.4", "GPT-5.4 Mini", "Claude Opus 4.8", "Claude Sonnet 5",
+  "Gemini", "xAI", "LG AI", "Upstage", "Perplexity",
+];
+
+// AI Agent(HK GPT 게이트웨이) — 제공사 선택형
+const PROVIDER_OPTIONS = ["웍스 대표 모델", "Anthropic", "Google", "OpenAI", "xAI", "LG AI", "Upstage", "Perplexity"];
+// "컨텍스트 윈도우"라는 어려운 말 대신 처리 가능한 글 분량을 쉬운 말로 선택
+const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
+// 권장 사용 시나리오 힌트
+const USE_CASE_SUGGESTIONS = ["문서 요약", "코드 생성", "법무 검토", "번역", "데이터 분석", "이미지 분석", "회의록 정리", "제안서 초안"];
 
 // ML 모델 유형
 const ML_TYPES = [
@@ -97,7 +139,7 @@ type LinkItem = { label: string; url: string };
 
 const KIND_OPTIONS: { key: PlatformId; label: string; desc: string; color: string; bg: string }[] = PLATFORMS.map(p => {
   if (p.id === "assistant") {
-    return { key: p.id, label: p.name, desc: "HK GPT를 업무·개인 맞춤으로 커스터마이징한 에이전트", color: p.color, bg: p.bg };
+    return { key: p.id, label: p.name, desc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", color: p.color, bg: p.bg };
   }
   if (p.id === "ai-orchestration") {
     return { key: p.id, label: "AI Agent", desc: p.shortDesc, color: p.color, bg: p.bg };
@@ -105,23 +147,31 @@ const KIND_OPTIONS: { key: PlatformId; label: string; desc: string; color: strin
   return { key: p.id, label: p.name, desc: p.shortDesc, color: p.color, bg: p.bg };
 });
 
-const isWorkflowKind = (k: PlatformId) => k === "n8n" || k === "pa" || k === "assistant";
+// 실행 환경이 n8n/PA인 워크플로우형만 노드·커넥터 UI 대상. 나만의 비서는 별도 구성 화면으로 분리.
+const isWorkflowKind = (k: PlatformId) => k === "n8n" || k === "pa";
+const isAssistantKind = (k: PlatformId) => k === "assistant";
 const isModelKind = (k: PlatformId) => k === "ai-orchestration";
 const isMLKind = (k: PlatformId) => k === "ml";
 const isVibeKind = (k: PlatformId) => k === "vibe";
 
 type FormState = {
   title: string; summary: string; description: string; status: string;
-  // 워크플로우/에이전트 전용 (n8n, pa, assistant)
+  // 워크플로우 전용 (n8n, pa)
   triggerAction: string; itemTags: string; specificUrl: string;
   nodes: string[]; connectedApps: string[];
   timeSavedValue: number | ""; timeSavedPeriod: SavedPeriod;
   difficulty: typeof DIFFICULTY_LEVELS[number];
   // n8n 전용
   workflowInput: WorkflowInput; workflowJson: string;
+  // pa 전용
+  flowType: string; runMode: string; connectorTier: string;
+  // assistant 전용
+  shareScope: string; sharedPrompt: string; basedModel: string; roleDefinition: string;
+  connectedData: string; sampleQuestions: string[];
   // ai-orchestration 전용
-  provider: string; contextWindow: string; strengths: string;
-  costTier: typeof COST_TIERS[number];
+  provider: string; modelName: string; contextWindow: string;
+  strengths: string; strengthsDetail: string; tokenUsageNote: string;
+  costTier: typeof COST_TIERS[number]; useCases: string[];
   // ml 전용
   mlType: string; trainingDataDesc: string; performanceSummary: string;
   // ml/vibe 공용
@@ -137,7 +187,8 @@ const STEPS_BY_KIND = (kind: PlatformId): string[] => {
   if (kind === "ml") return ["유형 선택", "기본정보", "ML 모델 정보", "담당자·링크", "최종확인"];
   if (kind === "vibe") return ["유형 선택", "기본정보", "Vibe Coding 정보", "담당자·링크", "최종확인"];
   if (kind === "pa") return ["유형 선택", "기본정보", "플로우 구성·효과", "담당자·링크", "최종확인"];
-  return ["유형 선택", "기본정보", "구성·효과", "담당자·링크", "최종확인"];
+  if (kind === "assistant") return ["유형 선택", "기본정보", "비서 구성", "담당자·링크", "최종확인"];
+  return ["유형 선택", "기본정보", "구성·효과", "담당자·링크", "최종확인"]; // n8n
 };
 
 // ===== 공용 스타일 (모듈 레벨) =====
@@ -150,12 +201,27 @@ const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", app
 const rowActionWidth = 24;
 
 // ===== 공용 컴포넌트 (모듈 레벨) =====
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
   return (
     <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 18 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>
+        {title}
+        {optional && (
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "2px 8px", borderRadius: 20 }}>선택</span>
+        )}
+      </div>
       {children}
     </div>
+  );
+}
+
+// 필수 항목 클러스터와 선택 항목 클러스터를 시각적으로 구분하는 구분선
+function SubHeading({ label = "선택 정보 (지금 몰라도 됩니다)" }: { label?: string }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em",
+      margin: "4px 0 16px", paddingTop: 16, borderTop: "1px dashed #E2E8F0",
+    }}>{label}</div>
   );
 }
 
@@ -365,6 +431,7 @@ function ChipInput({
 
 export default function ProjectRegisterPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<PlatformId | null>(null);
   const [saving, setSaving] = useState(false);
@@ -376,18 +443,26 @@ export default function ProjectRegisterPage() {
     nodes: [], connectedApps: [],
     timeSavedValue: "", timeSavedPeriod: "주", difficulty: "보통",
     workflowInput: { status: "Stable", nodes: [] }, workflowJson: "",
-    provider: "", contextWindow: "", strengths: "", costTier: "보통",
+    flowType: "", runMode: "", connectorTier: "",
+    shareScope: "", sharedPrompt: "", basedModel: "", roleDefinition: "", connectedData: "", sampleQuestions: [],
+    provider: "", modelName: "", contextWindow: "",
+    strengths: "", strengthsDetail: "", tokenUsageNote: "", costTier: "보통", useCases: [],
     mlType: "", trainingDataDesc: "", performanceSummary: "",
     devTool: "", sourceRepo: "", outputType: "",
-    platformCompanies: [],
+    // 등록자 소속 관계사를 기본 선택값으로 사용 — 전사 공용/다른 관계사로는 드롭다운에서 변경 가능
+    platformCompanies: user?.company ? [user.company] : [],
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
   });
 
-  const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">("unset");
+  const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">(
+    user?.company ? "specific" : "unset"
+  );
   const [n8nUploadedFile, setN8nUploadedFile] = useState<string | null>(null);
   const [draftNode, setDraftNode] = useState("");
   const [draftApp, setDraftApp] = useState("");
+  const [draftSampleQuestion, setDraftSampleQuestion] = useState("");
+  const [draftUseCase, setDraftUseCase] = useState("");
 
   const handleN8nJsonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -428,6 +503,22 @@ export default function ProjectRegisterPage() {
   };
   const removeApp = (v: string) => setForm(p => ({ ...p, connectedApps: p.connectedApps.filter(a => a !== v) }));
 
+  const addSampleQuestion = (value?: string) => {
+    const v = (value ?? draftSampleQuestion).trim();
+    if (!v || form.sampleQuestions.includes(v)) return;
+    setForm(p => ({ ...p, sampleQuestions: [...p.sampleQuestions, v] }));
+    setDraftSampleQuestion("");
+  };
+  const removeSampleQuestion = (v: string) => setForm(p => ({ ...p, sampleQuestions: p.sampleQuestions.filter(q => q !== v) }));
+
+  const addUseCase = (value?: string) => {
+    const v = (value ?? draftUseCase).trim();
+    if (!v || form.useCases.includes(v)) return;
+    setForm(p => ({ ...p, useCases: [...p.useCases, v] }));
+    setDraftUseCase("");
+  };
+  const removeUseCase = (v: string) => setForm(p => ({ ...p, useCases: p.useCases.filter(u => u !== v) }));
+
   const addContact = () => setForm(p => ({ ...p, contacts: [...p.contacts, { name: "", dept: "", role: "공동담당자", email: "" }] }));
   const removeContact = (i: number) => setForm(p => ({ ...p, contacts: p.contacts.filter((_, ci) => ci !== i) }));
   const setContact = (i: number, k: keyof Contact, v: string) =>
@@ -446,7 +537,10 @@ export default function ProjectRegisterPage() {
     if (step === 2) {
       if (!kind) return false;
       if (isModelKind(kind)) {
-        return Boolean(form.status && platformScope !== "unset" && form.provider.trim() && form.contextWindow.trim() && form.specificUrl.trim());
+        return Boolean(
+          form.status && platformScope !== "unset" &&
+          form.provider.trim() && form.strengthsDetail.trim() && form.specificUrl.trim()
+        );
       }
       if (isMLKind(kind)) {
         return Boolean(form.status && platformScope !== "unset" && form.mlType.trim());
@@ -454,10 +548,13 @@ export default function ProjectRegisterPage() {
       if (isVibeKind(kind)) {
         return Boolean(form.status && platformScope !== "unset");
       }
-      // workflow kinds: n8n, pa, assistant
-      if (kind === "pa") {
-        return Boolean(form.status && platformScope !== "unset" && form.nodes.length > 0);
+      if (isAssistantKind(kind)) {
+        return Boolean(form.status && platformScope !== "unset" && form.shareScope.trim() && form.sharedPrompt.trim());
       }
+      if (kind === "pa") {
+        return Boolean(form.status && platformScope !== "unset" && form.flowType.trim() && form.nodes.length > 0);
+      }
+      // n8n
       return Boolean(form.status && platformScope !== "unset" && form.nodes.length > 0 && form.specificUrl.trim());
     }
     if (step === 3) return Boolean(form.contacts[0]?.name && form.contacts[0]?.email);
@@ -486,6 +583,7 @@ export default function ProjectRegisterPage() {
 
   const selectedKindMeta = kind ? KIND_OPTIONS.find(k => k.key === kind)! : null;
   const timeSavedDisplay = serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod) || "—";
+  const companyHint = "기본적으로 소속 관계사가 선택되어 있습니다. 전사 공용이나 다른 관계사로 바꾸려면 드롭다운에서 변경하세요.";
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -558,9 +656,10 @@ export default function ProjectRegisterPage() {
                   kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" :
                   kind === "n8n" ? "예: 신규 입사자 계정 자동 생성" :
                   kind === "pa" ? "예: 결재 완료 시 SharePoint 업데이트" :
+                  kind === "assistant" ? "예: 특허 문서 검토 도우미" :
                   kind === "ml" ? "예: 불량품 이미지 분류 모델" :
                   kind === "vibe" ? "예: 재고 현황 대시보드" :
-                  "에이전트명을 입력하세요"
+                  "제목을 입력하세요"
                 }
                 style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
@@ -576,10 +675,11 @@ export default function ProjectRegisterPage() {
             <Field label="상세 설명" required>
               <textarea value={form.description} onChange={e => set("description", e.target.value)}
                 placeholder={
-                  kind === "ai-orchestration" ? "어떤 반복 업무를 자동화하는지, 트리거 조건은 무엇인지 설명하세요." :
+                  kind === "ai-orchestration" ? "어떤 업무에 적합한 모델인지, 어떤 상황에서 선택하면 좋은지 설명하세요." :
                   kind === "assistant" ? "HK GPT를 어떤 업무에 맞게 커스터마이징했는지, 주요 활용 시나리오를 설명하세요." :
                   kind === "ml" ? "모델의 목적, 학습 데이터 출처, 현재 운영 상태 등을 포함하세요." :
                   kind === "vibe" ? "어떤 문제를 해결하기 위해 만들었는지, 주요 기능을 설명하세요." :
+                  kind === "pa" ? "어떤 업무를 자동화하는지, 어떤 상황에서 실행되는지 설명하세요." :
                   "트리거 조건, 동작 순서, 연동되는 시스템을 포함하면 좋습니다."
                 }
                 style={{ ...inputStyle, minHeight: 140, resize: "vertical", lineHeight: 1.7 }}
@@ -589,22 +689,49 @@ export default function ProjectRegisterPage() {
           </Section>
         )}
 
-        {/* ===== STEP 2 — 워크플로우형 (n8n, pa, assistant) ===== */}
+        {/* ===== STEP 2 — 워크플로우형 (n8n, pa) ===== */}
         {step === 2 && kind && isWorkflowKind(kind) && (
           <>
             <Section title={`${selectedKindMeta?.label} 동작 정보`}>
               <Field label="상태" required>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+                  {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
                 </div>
               </Field>
-              <Field label="소속 / 대상 관계사" required
-                hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+              <Field label="소속 / 대상 관계사" required hint={companyHint}>
                 <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
                 {platformScope === "unset" && (
                   <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
                 )}
               </Field>
+
+              {kind === "pa" && (
+                <Field label="흐름 유형" required hint="자동으로 실행되는 방식과 데스크톱 자동화(RPA)는 성격이 다릅니다.">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {PA_FLOW_TYPES.map(f => <Tag key={f} label={f} selected={form.flowType === f} onClick={() => set("flowType", f)} />)}
+                  </div>
+                </Field>
+              )}
+
+              {kind === "n8n" && (
+                <Field label="실행 URL" required>
+                  <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
+                    placeholder="https://" style={inputStyle}
+                    onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                    onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                </Field>
+              )}
+
+              <SubHeading />
+
+              {kind === "pa" && form.flowType === "데스크톱 자동화 (RPA)" && (
+                <Field label="실행 방식" hint="데스크톱 자동화(RPA)에만 해당합니다.">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {PA_RUN_MODES.map(r => <Tag key={r} label={r} selected={form.runMode === r} onClick={() => set("runMode", r)} />)}
+                  </div>
+                </Field>
+              )}
+
               <Field label="트리거 · 동작 설명" hint="언제 실행되고, 어떤 순서로 동작하는지 설명하세요.">
                 <textarea value={form.triggerAction} onChange={e => set("triggerAction", e.target.value)}
                   placeholder={kind === "pa"
@@ -614,14 +741,16 @@ export default function ProjectRegisterPage() {
                   onFocus={e => (e.target.style.borderColor = "#2563EB")}
                   onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
               </Field>
-              {kind !== "pa" && (
-                <Field label="실행 URL" required>
+
+              {kind === "pa" && (
+                <Field label="실행 위치" hint="Power Automate 포털 링크 또는 이 흐름이 연결된 Teams·SharePoint 위치를 입력하세요.">
                   <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
-                    placeholder="https://" style={inputStyle}
+                    placeholder="예: Teams > 구매팀 채널 승인 카드, 또는 포털 링크" style={inputStyle}
                     onFocus={e => (e.target.style.borderColor = "#2563EB")}
                     onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
                 </Field>
               )}
+
               <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
                 <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                   placeholder="예: HR, 계정자동화" style={inputStyle}
@@ -640,6 +769,16 @@ export default function ProjectRegisterPage() {
                   placeholder={kind === "pa" ? "커넥터명 입력 후 Enter" : "노드명 입력 후 Enter"}
                 />
               </Field>
+
+              <SubHeading />
+
+              {kind === "pa" && (
+                <Field label="커넥터 등급" hint="유료 커넥터가 포함되면 다른 관계사에서 재사용할 때 라이선스 확인이 필요할 수 있습니다.">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {PA_CONNECTOR_TIERS.map(c => <Tag key={c} label={c} selected={form.connectorTier === c} onClick={() => set("connectorTier", c)} />)}
+                  </div>
+                </Field>
+              )}
               <Field label="연동 앱·서비스">
                 <ChipInput
                   items={form.connectedApps}
@@ -678,7 +817,7 @@ export default function ProjectRegisterPage() {
               )}
             </Section>
 
-            <Section title="예상 효과">
+            <Section title="예상 효과" optional>
               <Field label="예상 절감 시간" hint="절감되는 업무 시간을 입력하면 통계용 연간 환산값이 자동으로 계산됩니다.">
                 <TimeSavedInput
                   value={form.timeSavedValue} period={form.timeSavedPeriod}
@@ -695,41 +834,109 @@ export default function ProjectRegisterPage() {
           </>
         )}
 
-        {/* ===== STEP 2 — AI Agent (ai-orchestration) 모델 사양 ===== */}
-        {step === 2 && kind && isModelKind(kind) && (
-          <Section title="모델 사양">
+        {/* ===== STEP 2 — 나만의 비서 (assistant) ===== */}
+        {step === 2 && kind && isAssistantKind(kind) && (
+          <Section title="비서 구성">
             <Field label="상태" required>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+                {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
               </div>
             </Field>
-            <Field label="소속 / 대상 관계사" required
-              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+            <Field label="소속 / 대상 관계사" required hint={companyHint}>
               <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
               {platformScope === "unset" && (
                 <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
               )}
             </Field>
-            <Field label="제공사" required>
-              <input value={form.provider} onChange={e => set("provider", e.target.value)}
-                placeholder="예: OpenAI, Anthropic, Google" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-            </Field>
-            <Field label="컨텍스트 윈도우" required>
-              <input value={form.contextWindow} onChange={e => set("contextWindow", e.target.value)}
-                placeholder="예: 128K, 200K, 1M" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
-            </Field>
-            <Field label="비용 등급">
+            <Field label="공유 범위" required hint="이 비서를 누구와 공유하는지 선택하세요.">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {COST_TIERS.map(c => <Tag key={c} label={c} selected={form.costTier === c} onClick={() => set("costTier", c)} />)}
+                {ASSISTANT_SHARE_SCOPES.map(s => <Tag key={s} label={s} selected={form.shareScope === s} onClick={() => set("shareScope", s)} />)}
               </div>
             </Field>
-            <Field label="강점" hint="콤마(,)로 구분하여 입력하세요.">
-              <input value={form.strengths} onChange={e => set("strengths", e.target.value)}
-                placeholder="예: 긴 컨텍스트, 정밀 추론" style={inputStyle}
+            <Field label="공유 프롬프트" required hint="동료가 그대로 복사해서 쓸 수 있도록, 실제로 사용한 프롬프트 내용을 입력하세요.">
+              <textarea value={form.sharedPrompt} onChange={e => set("sharedPrompt", e.target.value)}
+                placeholder={'예: "당신은 계약서를 검토하는 법무 담당자입니다. 업로드된 계약서에서 위험 조항을 찾아 표로 정리해 주세요..."'}
+                style={{ ...inputStyle, minHeight: 140, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)" }}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+
+            <SubHeading />
+
+            <Field label="기반 모델" hint="HK GPT에서 선택한 대표 모델을 입력하세요.">
+              <input value={form.basedModel} onChange={e => set("basedModel", e.target.value)}
+                placeholder="예: Claude Opus 4.8, GPT-5.4" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+                {ASSISTANT_MODEL_HINTS.map(m => (
+                  <span key={m} onClick={() => set("basedModel", m)} style={{
+                    fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
+                    padding: "3px 9px", borderRadius: 20, cursor: "pointer",
+                  }}>+ {m}</span>
+                ))}
+              </div>
+            </Field>
+            <Field label="비서 소개" hint="이 비서를 한 문장으로 소개하면 어떻게 될까요?">
+              <input value={form.roleDefinition} onChange={e => set("roleDefinition", e.target.value)}
+                placeholder="예: 계약서 위험 조항을 빠르게 찾아주는 법무 검토 도우미" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="연결된 데이터·문서" hint="업로드된 참고 문서나 연결된 사내 데이터가 있다면 설명하세요.">
+              <textarea value={form.connectedData} onChange={e => set("connectedData", e.target.value)}
+                placeholder="예: 최근 3년 특허 출원 문서 PDF 220건"
+                style={{ ...inputStyle, minHeight: 70, resize: "vertical", lineHeight: 1.7 }}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="예시 질문" hint="이 비서에게 할 수 있는 대표 질문을 입력하세요.">
+              <ChipInput
+                items={form.sampleQuestions}
+                onAdd={addSampleQuestion} onRemove={removeSampleQuestion}
+                draft={draftSampleQuestion} onDraftChange={setDraftSampleQuestion}
+                suggestions={[]}
+                placeholder="예: 이 계약서의 위험 조항을 알려줘"
+              />
+            </Field>
+            <Field label="접속 URL">
+              <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
+                placeholder="HK GPT 내 비서 링크 (선택)" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
+              <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
+                placeholder="예: 법무, 계약검토" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+          </Section>
+        )}
+
+        {/* ===== STEP 2 — AI Agent (ai-orchestration) 모델 사양 ===== */}
+        {step === 2 && kind && isModelKind(kind) && (
+          <Section title="모델 사양">
+            <Field label="상태" required>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+              </div>
+            </Field>
+            <Field label="소속 / 대상 관계사" required hint={companyHint}>
+              <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
+              {platformScope === "unset" && (
+                <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
+              )}
+            </Field>
+            <Field label="제공사" required hint="HK GPT에서 선택 가능한 제공사 기준입니다.">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {PROVIDER_OPTIONS.map(p => <Tag key={p} label={p} selected={form.provider === p} onClick={() => set("provider", p)} />)}
+              </div>
+            </Field>
+            <Field label="강점 및 활용 방법" required hint="이 모델이 어떤 업무에 강한지, 실제로 어떻게 활용하면 좋은지 구체적으로 설명하세요.">
+              <textarea value={form.strengthsDetail} onChange={e => set("strengthsDetail", e.target.value)}
+                placeholder="예: 긴 문서를 한 번에 읽고 핵심을 요약하는 데 강합니다. 계약서 검토나 회의록 정리에 활용해보세요."
+                style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.7 }}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
@@ -738,6 +945,46 @@ export default function ProjectRegisterPage() {
                 placeholder="https://" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+
+            <SubHeading />
+
+            <Field label="세부 모델명" hint="선택한 제공사 내 구체적인 모델명을 입력하세요.">
+              <input value={form.modelName} onChange={e => set("modelName", e.target.value)}
+                placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="처리 가능한 글 분량" hint="한 번에 얼마나 긴 내용을 이해할 수 있는지 쉬운 말로 표시합니다.">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {CONTEXT_SIZE_OPTIONS.map(c => <Tag key={c} label={c} selected={form.contextWindow === c} onClick={() => set("contextWindow", c)} />)}
+              </div>
+            </Field>
+            <Field label="비용 등급">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {COST_TIERS.map(c => <Tag key={c} label={c} selected={form.costTier === c} onClick={() => set("costTier", c)} />)}
+              </div>
+            </Field>
+            <Field label="1회 사용량" hint="토큰 사용량이나 비용 수준을 참고할 수 있도록 간단히 적어주세요.">
+              <input value={form.tokenUsageNote} onChange={e => set("tokenUsageNote", e.target.value)}
+                placeholder="예: 문서 1페이지당 약 500토큰, 긴 대화일수록 늘어남" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="핵심 키워드" hint="콤마(,)로 구분하여 입력하세요.">
+              <input value={form.strengths} onChange={e => set("strengths", e.target.value)}
+                placeholder="예: 긴 컨텍스트, 정밀 추론" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="권장 사용 시나리오" hint="이 모델을 어떤 업무에 쓰면 좋은지 예시를 추가하세요.">
+              <ChipInput
+                items={form.useCases}
+                onAdd={addUseCase} onRemove={removeUseCase}
+                draft={draftUseCase} onDraftChange={setDraftUseCase}
+                suggestions={USE_CASE_SUGGESTIONS}
+                placeholder="예: 문서 요약"
+              />
             </Field>
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
@@ -753,11 +1000,10 @@ export default function ProjectRegisterPage() {
           <Section title="ML 모델 정보">
             <Field label="상태" required>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+                {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
               </div>
             </Field>
-            <Field label="소속 / 대상 관계사" required
-              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+            <Field label="소속 / 대상 관계사" required hint={companyHint}>
               <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
               {platformScope === "unset" && (
                 <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
@@ -768,16 +1014,18 @@ export default function ProjectRegisterPage() {
                 {ML_TYPES.map(t => <Tag key={t} label={t} selected={form.mlType === t} onClick={() => set("mlType", t)} />)}
               </div>
             </Field>
-            <Field label="학습 데이터 설명" hint="사용된 데이터의 출처, 종류, 규모 등을 간략히 기술하세요.">
-              <textarea value={form.trainingDataDesc} onChange={e => set("trainingDataDesc", e.target.value)}
-                placeholder="예: 생산 라인 불량 이미지 12만 장 (2023–2024 수집)"
-                style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.7 }}
+
+            <SubHeading />
+
+            <Field label="핵심 성능" hint="회귀·분류 모델 모두 알아보기 쉬운 한 줄로 적어주세요.">
+              <input value={form.performanceSummary} onChange={e => set("performanceSummary", e.target.value)}
+                placeholder="예: 정확도 92%, 또는 평균 오차 5% 이내" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
-            <Field label="성능 요약" hint="정확도, F1, RMSE 등 핵심 지표를 간략히 기술하세요.">
-              <input value={form.performanceSummary} onChange={e => set("performanceSummary", e.target.value)}
-                placeholder="예: 정확도 94.2%, F1 0.93 (테스트셋 기준)" style={inputStyle}
+            <Field label="학습 데이터 개요" hint="어떤 데이터로 학습했는지 간단히 적어주세요.">
+              <input value={form.trainingDataDesc} onChange={e => set("trainingDataDesc", e.target.value)}
+                placeholder="예: 생산 라인 불량 이미지 12만 장" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
@@ -813,16 +1061,18 @@ export default function ProjectRegisterPage() {
           <Section title="Vibe Coding 정보">
             <Field label="상태" required>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {STATUSES.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+                {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
               </div>
             </Field>
-            <Field label="소속 / 대상 관계사" required
-              hint="드롭다운을 열어 전사 공용 또는 해당 관계사(들)를 명시적으로 선택해야 합니다.">
+            <Field label="소속 / 대상 관계사" required hint={companyHint}>
               <CompanyMultiSelect selected={form.platformCompanies} onChange={handlePlatformCompaniesChange} />
               {platformScope === "unset" && (
                 <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>드롭다운을 열어 선택을 완료해주세요.</div>
               )}
             </Field>
+
+            <SubHeading />
+
             <Field label="사용한 AI 도구">
               <input value={form.devTool} onChange={e => set("devTool", e.target.value)}
                 placeholder="예: Cursor, GitHub Copilot" style={inputStyle}
@@ -837,9 +1087,15 @@ export default function ProjectRegisterPage() {
                 ))}
               </div>
             </Field>
-            <Field label="결과물 형태" hint="웹앱, 스크립트, 대시보드, CLI 등 만들어진 산출물을 설명하세요.">
+            <Field label="결과물 형태" hint="웹앱, 스크립트, 대시보드 등 만들어진 산출물을 설명하세요.">
               <input value={form.outputType} onChange={e => set("outputType", e.target.value)}
                 placeholder="예: React 웹앱, Python 스크립트, Streamlit 대시보드" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "#2563EB")}
+                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+            </Field>
+            <Field label="접속 URL" hint="사내에서 실제로 접근 가능한 배포 주소가 있다면 입력하세요.">
+              <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
+                placeholder="https:// (선택)" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>
@@ -880,7 +1136,7 @@ export default function ProjectRegisterPage() {
               }}>+ 담당자 추가</button>
             </Section>
 
-            <Section title="문서 및 외부 링크">
+            <Section title="문서 및 외부 링크" optional>
               {form.links.map((l, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: `1fr 2fr ${rowActionWidth}px`, gap: 8, marginBottom: 10, alignItems: "center" }}>
                   <input value={l.label} onChange={e => setLink(i, "label", e.target.value)} placeholder="라벨 (예: GitHub)" style={inputStyle} />
@@ -914,26 +1170,45 @@ export default function ProjectRegisterPage() {
               { label: "상태", value: form.status || "—" },
               { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
               ...(kind && isWorkflowKind(kind) ? [
+                ...(kind === "pa" ? [
+                  { label: "흐름 유형", value: form.flowType || "—" },
+                  ...(form.flowType === "데스크톱 자동화 (RPA)" ? [{ label: "실행 방식", value: form.runMode || "—" }] : []),
+                ] : []),
                 { label: "트리거·동작 설명", value: form.triggerAction || "—" },
                 { label: kind === "pa" ? "사용된 커넥터" : "사용된 노드", value: form.nodes.join(" → ") || "—" },
+                ...(kind === "pa" ? [{ label: "커넥터 등급", value: form.connectorTier || "—" }] : []),
                 { label: "연동 앱·서비스", value: form.connectedApps.join(", ") || "—" },
                 { label: "예상 절감 시간", value: timeSavedDisplay },
                 { label: "구성 난이도", value: form.difficulty },
-                ...(kind !== "pa" ? [{ label: "실행 URL", value: form.specificUrl || "—" }] : []),
+                { label: kind === "pa" ? "실행 위치" : "실행 URL", value: form.specificUrl || "—" },
+                { label: "태그", value: form.itemTags || "—" },
+              ] : []),
+              ...(kind && isAssistantKind(kind) ? [
+                { label: "공유 범위", value: form.shareScope || "—" },
+                { label: "공유 프롬프트", value: form.sharedPrompt || "—" },
+                { label: "기반 모델", value: form.basedModel || "—" },
+                { label: "비서 소개", value: form.roleDefinition || "—" },
+                { label: "연결된 데이터·문서", value: form.connectedData || "—" },
+                { label: "예시 질문", value: form.sampleQuestions.join(" / ") || "—" },
+                { label: "접속 URL", value: form.specificUrl || "—" },
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
               ...(kind && isModelKind(kind) ? [
                 { label: "제공사", value: form.provider || "—" },
-                { label: "컨텍스트 윈도우", value: form.contextWindow || "—" },
+                { label: "강점 및 활용 방법", value: form.strengthsDetail || "—" },
+                { label: "세부 모델명", value: form.modelName || "—" },
+                { label: "처리 가능한 글 분량", value: form.contextWindow || "—" },
                 { label: "비용 등급", value: form.costTier },
-                { label: "강점", value: form.strengths || "—" },
+                { label: "1회 사용량", value: form.tokenUsageNote || "—" },
+                { label: "핵심 키워드", value: form.strengths || "—" },
+                { label: "권장 사용 시나리오", value: form.useCases.join(", ") || "—" },
                 { label: "모델 접속 URL", value: form.specificUrl || "—" },
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
               ...(kind && isMLKind(kind) ? [
                 { label: "모델 유형", value: form.mlType || "—" },
-                { label: "학습 데이터", value: form.trainingDataDesc || "—" },
-                { label: "성능 요약", value: form.performanceSummary || "—" },
+                { label: "핵심 성능", value: form.performanceSummary || "—" },
+                { label: "학습 데이터 개요", value: form.trainingDataDesc || "—" },
                 { label: "개발 도구", value: form.devTool || "—" },
                 { label: "출력 형태", value: form.outputType || "—" },
                 { label: "소스 저장소", value: form.sourceRepo || "—" },
@@ -942,6 +1217,7 @@ export default function ProjectRegisterPage() {
               ...(kind && isVibeKind(kind) ? [
                 { label: "사용한 AI 도구", value: form.devTool || "—" },
                 { label: "결과물 형태", value: form.outputType || "—" },
+                { label: "접속 URL", value: form.specificUrl || "—" },
                 { label: "소스 저장소", value: form.sourceRepo || "—" },
                 { label: "태그", value: form.itemTags || "—" },
               ] : []),
