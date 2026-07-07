@@ -16,7 +16,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     desc: "전체 관리 · 집계 가능",
     user: {
       name: "김관리", email: "admin.kim@kolmar.co.kr", dept: "IT개발팀", title: "팀장",
-      role: "admin", company: "KKM", isGroupViewer: true,
+      role: "admin", company: "KKM", isGroupViewer: true, department: "IT",
     },
   },
   {
@@ -25,7 +25,25 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     desc: "등록 신청만 가능 · 관리자 화면 불가",
     user: {
       name: "정직원", email: "user.jung@kolmar.co.kr", dept: "마케팅팀", title: "사원",
-      role: "user", company: "KKM", isGroupViewer: false,
+      role: "user", company: "KKM", isGroupViewer: false, department: "마케팅",
+    },
+  },
+  {
+    key: "user-finance",
+    label: "재무팀 사용자",
+    desc: "KBH 소속 · 등록 신청만 가능",
+    user: {
+      name: "이재무", email: "user2.lee@kolmar.co.kr", dept: "재무팀", title: "대리",
+      role: "user", company: "KBH", isGroupViewer: false, department: "재무",
+    },
+  },
+  {
+    key: "user-production",
+    label: "생산팀 사용자",
+    desc: "HC 소속 · 등록 신청만 가능",
+    user: {
+      name: "박생산", email: "user3.park@kolmar.co.kr", dept: "생산팀", title: "사원",
+      role: "user", company: "HC", isGroupViewer: false, department: "생산",
     },
   },
 ];

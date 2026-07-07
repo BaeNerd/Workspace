@@ -59,7 +59,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
   { id: "N8N-002", platformId: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림", description: "", status: "운영 중", dept: "구매팀", company: ["KKM"], owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr", tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7 },
   { id: "N8N-003", platformId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", description: "", status: "운영 중", dept: "재무팀", company: ["KKM", "KMG"], owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12 },
   { id: "N8N-004", platformId: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", description: "", status: "테스트 중", dept: "품질관리팀", company: ["KMW"], owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr", tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3 },
-  { id: "PA-001", platformId: "pa", title: "결재 완료 시 SharePoint 자동 업데이트", summary: "Power Automate로 결재 완료 시 SharePoint 문서 라이브러리를 자동 업데이트", description: "", status: "운영 중", dept: "경영지원본부", company: ["KKM"], owner: "박지수", ownerEmail: "jisu.park@kolmar.co.kr", tags: ["결재", "SharePoint", "자동화"], specificUrl: "", updatedAt: "2025.06.10", likes: 11 },
+  { id: "PA-001", platformId: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관", description: "", status: "운영 중", dept: "경영지원팀", company: ["KKM"], owner: "최유진", ownerEmail: "yujin.choi@kolmar.co.kr", tags: ["SharePoint", "전자결재", "문서관리"], specificUrl: "https://make.powerautomate.com/environments/kolmar/flows/pa-001", updatedAt: "2025.07.01", likes: 12 },
   { id: "PA-002", platformId: "pa", title: "양식 제출 → Teams 알림 플로우", summary: "Microsoft Forms 제출 시 담당자에게 Teams 메시지 및 이메일 동시 발송", description: "", status: "운영 중", dept: "인사팀", company: [], owner: "김민지", ownerEmail: "minji.kim@kolmar.co.kr", tags: ["Forms", "Teams", "알림"], specificUrl: "", updatedAt: "2025.06.15", likes: 8 },
   { id: "AST-001", platformId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", description: "", status: "사용 가능", dept: "법무팀", company: [], owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["법무", "계약서검토", "위험분석"], specificUrl: "https://assistant.kolmar.co.kr/agents/legal-review", updatedAt: "2025.06.10", likes: 25 },
   { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "", status: "사용 가능", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18 },
@@ -90,10 +90,10 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
     modelMeta: { provider: "Google", contextWindow: "1M", strengths: ["멀티모달", "이미지 분석"], costTier: "보통" },
   },
   {
-    id: "ML-001", platformId: "ml", title: "불량품 이미지 분류 모델", summary: "생산 라인에서 촬영된 이미지를 분석해 불량 여부를 실시간으로 분류", description: "",
-    status: "운영 중", dept: "제조기술팀", company: ["KKM"], owner: "한승훈", ownerEmail: "seunghoon.han@kolmar.co.kr",
-    tags: ["품질관리", "비전", "분류"], specificUrl: "", updatedAt: "2025.06.08", likes: 17,
-    mlType: "이미지 인식", performanceSummary: "정확도 94.2%, F1 0.93",
+    id: "ML-001", platformId: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", description: "",
+    status: "실험 중", dept: "메이크업연구소", company: ["KKM"], owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr",
+    tags: ["TensorFlow", "회귀모델", "색상예측"], specificUrl: "", updatedAt: "2025.06.01", likes: 21,
+    mlType: "회귀 (Regression)", performanceSummary: "평균 오차 3% 이내",
   },
   {
     id: "ML-002", platformId: "ml", title: "원료 수요 예측 모델", summary: "과거 생산·판매 데이터를 기반으로 월별 원료 수요를 예측", description: "",
@@ -102,10 +102,10 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
     mlType: "시계열 예측", performanceSummary: "RMSE 12.4 (검증셋 기준)",
   },
   {
-    id: "VIBE-001", platformId: "vibe", title: "생산 현황 실시간 대시보드", summary: "Cursor로 개발한 React 대시보드 — 생산 라인별 현황을 실시간으로 시각화", description: "",
-    status: "사용 중", dept: "제조기술팀", company: ["KKM"], owner: "이민준", ownerEmail: "minjun.lee@kolmar.co.kr",
-    tags: ["대시보드", "생산현황", "시각화"], specificUrl: "", updatedAt: "2025.06.17", likes: 13,
-    devTool: "Cursor", outputType: "React 웹앱",
+    id: "VIBE-001", platformId: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", description: "",
+    status: "사용 중", dept: "영업기획팀", company: ["KKM"], owner: "한지민", ownerEmail: "jimin.han@kolmar.co.kr",
+    tags: ["ERP", "Slack", "리포트자동화"], specificUrl: "", updatedAt: "2025.07.05", likes: 8,
+    devTool: "Cursor, Claude", outputType: "Python 스크립트 + Slack 알림",
   },
   {
     id: "VIBE-002", platformId: "vibe", title: "원가 분석 자동화 스크립트", summary: "ChatGPT로 작성한 Python 스크립트로 ERP 원가 데이터 자동 분석 및 리포트 생성", description: "",

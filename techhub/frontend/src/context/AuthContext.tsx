@@ -11,6 +11,7 @@ export type CurrentUser = {
   role: Role;
   company: string;         // 소속 관계사 코드 (예: "KKM" = 한국콜마) — TODO: SSO 연동 시 Graph API 조직 속성에서 매핑
   isGroupViewer: boolean;  // 그룹 전체보기 권한 — TODO: 백엔드 GET /api/v1/auth/me 응답에 포함되어야 함
+  department?: string;     // 업무 분야 카테고리 (예: "IT", "재무") — 히어로 카드 1 매칭용
 } | null;
 
 type AuthContextType = {
