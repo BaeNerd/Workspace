@@ -22,20 +22,33 @@ export const PLATFORMS: Platform[] = [
   { id: "vibe", name: "Vibe Coding", shortDesc: "AI 코딩 도구로 직접 개발된 독립 소프트웨어·자동화 스크립트", path: "/vibe", accessUrl: null, color: "#9333EA", bg: "#FAF5FF", icon: "vibe" },
 ];
 
-// 유형별로 실제 운영 방식이 다르므로 상태 값도 유형별로 다르게 쓰인다.
-// 아래는 6개 유형에서 실제 쓰이는 상태 문자열을 모두 모은 통합 타입이다.
-export type PlatformItemStatus =
-  | "운영 중"        // n8n / pa / ml
-  | "테스트 중"      // n8n / pa
-  | "일시 중지"      // n8n / pa
-  | "사용 가능"      // assistant / ai-orchestration
-  | "준비 중"        // assistant
-  | "운영 중지"      // assistant / ml / vibe
-  | "일부 제한"      // ai-orchestration
-  | "지원 종료 예정" // ai-orchestration
-  | "실험 중"        // ml
-  | "사용 중"        // vibe
-  | "프로토타입";    // vibe
+export type PlatformItemStatus = "사용 가능" | "준비 중" | "일부 제한" | "사용 중지";
+
+export const STATUS_ORDER: PlatformItemStatus[] = ["사용 가능", "준비 중", "일부 제한", "사용 중지"];
+
+export const STATUS_COLOR: Record<PlatformItemStatus, { fg: string; bg: string }> = {
+  "사용 가능": { bg: "#D1FAE5", fg: "#065F46" },
+  "준비 중":   { bg: "#DBEAFE", fg: "#1E40AF" },
+  "일부 제한": { bg: "#FEF3C7", fg: "#92400E" },
+  "사용 중지": { bg: "#FEE2E2", fg: "#991B1B" },
+};
+
+export const LEGACY_STATUS_MAP: Record<string, PlatformItemStatus> = {
+  "운영 중": "사용 가능", "사용 중": "사용 가능",
+  "테스트 중": "준비 중", "실험 중": "준비 중", "프로토타입": "준비 중",
+  "일시 중지": "일부 제한",
+  "운영 중지": "사용 중지", "지원 종료 예정": "사용 중지",
+  "사용 가능": "사용 가능", "준비 중": "준비 중",
+  "일부 제한": "일부 제한", "사용 중지": "사용 중지",
+};
+
+export const normalizeStatus = (s: string): PlatformItemStatus =>
+  LEGACY_STATUS_MAP[s] ?? "준비 중";
+
+export const STATUS_QUERY_KEY: Record<PlatformItemStatus, string> = {
+  "사용 가능": "available", "준비 중": "preparing",
+  "일부 제한": "restricted", "사용 중지": "stopped",
+};
 
 export type PlatformItem = {
   id: string;
@@ -105,6 +118,9 @@ export type PlatformItem = {
   sourceRepo?: string;
   outputType?: string;
 };
+
+export const countAvailable = (items: PlatformItem[]): number =>
+  items.filter(item => item.status === "사용 가능").length;
 
 export const PLATFORM_ICON_PATH: Record<Platform["icon"], string> = {
   automation: "M13 2L3 14h7l-1 8 10-12h-7l1-8z",

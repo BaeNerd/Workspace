@@ -2,23 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS } from "../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, STATUS_COLOR } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 
 type ApprovalStatus = "승인" | "대기" | "반려";
 
-// 유형별 사용 가능한 상태값 (platformTypes.ts의 PlatformItemStatus와 일치)
-const STATUS_BY_KIND: Record<PlatformId, string[]> = {
-  n8n: ["운영 중", "테스트 중", "일시 중지"],
-  pa: ["운영 중", "테스트 중", "일시 중지"],
-  assistant: ["사용 가능", "준비 중", "운영 중지"],
-  "ai-orchestration": ["사용 가능", "일부 제한", "지원 종료 예정"],
-  ml: ["운영 중", "실험 중", "운영 중지"],
-  vibe: ["사용 중", "프로토타입", "운영 중지"],
-};
-
-// 종료/불가 상태 (관리자에게만 복원 가능)
-const TERMINAL_STATUSES = new Set(["운영 중지", "지원 종료 예정"]);
+const TERMINAL_STATUSES = new Set(["사용 중지"]);
 
 type MyItem = {
   id: string;
@@ -46,7 +35,7 @@ const INITIAL_ITEMS: MyItem[] = [
     title: "신규 입사자 계정 자동 생성",
     summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성하는 n8n 워크플로우",
     submittedAt: "2025.02.10", updatedAt: "2025.02.14",
-    approval: "승인", status: "운영 중",
+    approval: "승인", status: "사용 가능",
     rejectionReason: null,
     difficulty: "보통", expectedTimeSaved: "주 2시간",
   },
@@ -64,7 +53,7 @@ const INITIAL_ITEMS: MyItem[] = [
     title: "신제품 출시 승인 자동화 플로우",
     summary: "신제품 등록 시 관련 부서 순차 승인을 Power Automate로 자동화",
     submittedAt: "2025.06.01", updatedAt: "2025.06.01",
-    approval: "대기", status: "테스트 중",
+    approval: "대기", status: "준비 중",
     rejectionReason: null,
     difficulty: "쉬움",
   },
@@ -73,7 +62,7 @@ const INITIAL_ITEMS: MyItem[] = [
     title: "색차 불량 이미지 분류 모델",
     summary: "분광측색계 이미지를 분석해 색차 불량 여부를 자동 판정하는 ML 모델",
     submittedAt: "2025.05.20", updatedAt: "2025.05.22",
-    approval: "반려", status: "실험 중",
+    approval: "반려", status: "준비 중",
     rejectionReason: "유사한 기능의 ML 모델이 이미 운영 중입니다(ML-001). 해당 모델 담당자와 협의 후 개선 방향을 명확히 하여 재제출해 주세요.",
     mlType: "이미지 인식",
   },
@@ -85,25 +74,11 @@ const APPROVAL_STYLE: Record<ApprovalStatus, { bg: string; color: string; dot: s
   "반려": { bg: "#FEE2E2", color: "#991B1B", dot: "#EF4444" },
 };
 
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중":        { bg: "#D1FAE5", color: "#065F46" },
-  "테스트 중":      { bg: "#DBEAFE", color: "#1E40AF" },
-  "일시 중지":      { bg: "#FEF3C7", color: "#92400E" },
-  "사용 가능":      { bg: "#D1FAE5", color: "#065F46" },
-  "준비 중":        { bg: "#DBEAFE", color: "#1E40AF" },
-  "운영 중지":      { bg: "#FEE2E2", color: "#991B1B" },
-  "일부 제한":      { bg: "#FEF3C7", color: "#92400E" },
-  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
-  "실험 중":        { bg: "#DBEAFE", color: "#1E40AF" },
-  "사용 중":        { bg: "#D1FAE5", color: "#065F46" },
-  "프로토타입":     { bg: "#DBEAFE", color: "#1E40AF" },
-};
 
-// 모듈 레벨 — 유형별 상태 옵션 드롭다운 (승인된 항목만 상태 변경 가능)
-function StatusChanger({ status, kind, onChange }: { status: string; kind: PlatformId; onChange: (v: string) => void }) {
-  const options = STATUS_BY_KIND[kind];
+// 모듈 레벨 — 상태 변경 드롭다운 (승인된 항목만 상태 변경 가능)
+function StatusChanger({ status, onChange }: { status: string; kind: PlatformId; onChange: (v: string) => void }) {
   const isTerminal = TERMINAL_STATUSES.has(status);
-  const sc = STATUS_COLOR[status] ?? { bg: "#F1F5F9", color: "#475569" };
+  const sc = STATUS_COLOR[status as import("../types/platformTypes").PlatformItemStatus] ?? { bg: "#F1F5F9", fg: "#475569" };
   return (
     <div>
       <select
@@ -112,16 +87,16 @@ function StatusChanger({ status, kind, onChange }: { status: string; kind: Platf
         onChange={e => onChange(e.target.value)}
         style={{
           fontSize: 11, fontWeight: 700,
-          background: sc.bg, color: sc.color,
+          background: sc.bg, color: sc.fg,
           border: "none", borderRadius: 20, padding: "3px 22px 3px 10px",
           cursor: isTerminal ? "not-allowed" : "pointer", outline: "none",
           opacity: isTerminal ? 0.7 : 1,
           appearance: "none",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(sc.color)}' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(sc.fg)}' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
           backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center",
         }}
       >
-        {options.map(s => <option key={s} value={s}>{s}</option>)}
+        {STATUS_ORDER.map(s => <option key={s} value={s}>{s}</option>)}
       </select>
       {isTerminal && (
         <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 4 }}>

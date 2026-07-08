@@ -97,8 +97,8 @@ techhub/
 
 #### `ProjectListPage.tsx` — `/projects`
 - **역할**: AX 플랫폼 탐색. 좌측 필터 사이드바(플랫폼 종류·상태·관계사)와 상단 검색·정렬. URL 쿼리스트링(`?q=`)과 검색어 동기화.
-- **상태 필터 동적화**: `STATUS_BY_KIND: Record<PlatformId, string[]>` — 플랫폼 선택 시 해당 플랫폼의 상태값만 옵션에 표시. 플랫폼 미선택("전체")이면 11개 전체 상태값 합산 목록.
-- **STATUS_COLOR**: 11개 상태값 각각에 의미 그룹 색상 매핑(정상 운영=녹색 / 검증·개발=파란색 / 제한=주황 / 종료=빨간).
+- **상태 필터**: `STATUS_ORDER` 기반 5-chip 행 (전체 + 4개 보편 상태). `?status=available` 등 URL 파라미터 지원.
+- **STATUS_COLOR**: `platformTypes.ts`에서 임포트. 4개 보편 상태에 `{ fg, bg }` 색상 매핑.
 - **주요 state**
   - `search: string` — 검색어 (URL 쿼리스트링과 동기화)
   - `source: "전체" | PlatformId` — 플랫폼 필터 (6종 + 전체)
@@ -284,7 +284,7 @@ useAuth() (context/useAuth.ts)
 |---|---|
 | `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe"` (6종) |
 | `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon). `accessUrl: string \| null` — pa·ml·vibe는 아직 URL 미확정 |
-| `PlatformItemStatus` | 11개 상태값 유니온 — 유형별로 다름. n8n·pa: `"운영 중" \| "테스트 중" \| "일시 중지"` / assistant: `"사용 가능" \| "준비 중" \| "운영 중지"` / ai-orchestration: `"사용 가능" \| "일부 제한" \| "지원 종료 예정"` / ml: `"운영 중" \| "실험 중" \| "운영 중지"` / vibe: `"사용 중" \| "프로토타입" \| "운영 중지"` |
+| `PlatformItemStatus` | 4개 보편 상태 유니온 — `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"`. `STATUS_ORDER`, `STATUS_COLOR`({fg,bg}), `LEGACY_STATUS_MAP`, `normalizeStatus`, `STATUS_QUERY_KEY`, `countAvailable` 헬퍼 포함. |
 | `PlatformItem` | AX 항목 공용 타입. `company: string[]` — 소속 관계사 코드(비어있으면 전사 공용). `platformScope`. `expectedTimeSaved?: string`. 워크플로우형 전용 필드(nodes·connectedApps 등), AI Agent 전용(modelMeta), ML 전용(mlType·trainingDataDesc·performanceSummary), ML/Vibe 공용(devTool·sourceRepo·outputType) 포함. |
 | `PLATFORMS` | 6개 플랫폼 메타 배열. 출처 색상·경로의 단일 기준(source of truth). |
 | `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키) |

@@ -2,45 +2,11 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS } from "../../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, STATUS_COLOR } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
 import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 
-// ===== 유형별 상태 값 =====
-// "상태"는 과거 일반 IT 프로젝트 생애주기 개념이었으나, 유형별 실제 운영 방식에 맞게 분리.
-const WORKFLOW_STATUSES: string[] = ["운영 중", "테스트 중", "일시 중지"];
-const ASSISTANT_STATUSES: string[] = ["사용 가능", "준비 중", "운영 중지"];
-const AGENT_STATUSES: string[] = ["사용 가능", "일부 제한", "지원 종료 예정"];
-const ML_STATUSES: string[] = ["운영 중", "실험 중", "운영 중지"];
-const VIBE_STATUSES: string[] = ["사용 중", "프로토타입", "운영 중지"];
-
-const STATUS_OPTIONS_BY_KIND = (kind: PlatformId): string[] => {
-  if (kind === "n8n" || kind === "pa") return WORKFLOW_STATUSES;
-  if (kind === "assistant") return ASSISTANT_STATUSES;
-  if (kind === "ai-orchestration") return AGENT_STATUSES;
-  if (kind === "ml") return ML_STATUSES;
-  return VIBE_STATUSES;
-};
-
-// 목록 필터용 — 전체 유형의 상태값을 합친 목록 (중복 제거)
-const ALL_STATUSES: string[] = Array.from(new Set([
-  ...WORKFLOW_STATUSES, ...ASSISTANT_STATUSES, ...AGENT_STATUSES, ...ML_STATUSES, ...VIBE_STATUSES,
-]));
-
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 가능": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 중": { bg: "#D1FAE5", color: "#065F46" },
-  "테스트 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "실험 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "프로토타입": { bg: "#DBEAFE", color: "#1E40AF" },
-  "준비 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "일시 중지": { bg: "#FEF3C7", color: "#92400E" },
-  "일부 제한": { bg: "#FEF3C7", color: "#92400E" },
-  "운영 중지": { bg: "#FEE2E2", color: "#991B1B" },
-  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
-};
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
@@ -357,7 +323,7 @@ function CompanyMultiSelect({ selected, onChange, disabled }: {
 const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   {
     kind: "n8n",
-    id: "N8N-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀", status: "운영 중",
+    id: "N8N-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀", status: "사용 가능",
     summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달",
     description: "Outlook에서 메일을 수신하면 제목에 '긴급' 키워드 포함 여부를 자동으로 판별합니다.\n\n긴급 메일로 확인될 경우 팀장님 메일 주소로 즉시 전달하여 빠른 의사결정이 가능하도록 지원합니다.",
     contacts: [{ name: "이서현", dept: "IT인프라팀", role: "주담당자", email: "seohyun.lee@kolmar.co.kr" }],
@@ -378,7 +344,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   },
   {
     kind: "pa",
-    id: "PA-001", title: "구매 결재 자동 승인 플로우", dept: "구매팀", status: "테스트 중",
+    id: "PA-001", title: "구매 결재 자동 승인 플로우", dept: "구매팀", status: "준비 중",
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
@@ -423,7 +389,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   },
   {
     kind: "ml",
-    id: "ML-001", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀", status: "실험 중",
+    id: "ML-001", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀", status: "준비 중",
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
@@ -437,7 +403,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
   },
   {
     kind: "vibe",
-    id: "VIBE-001", title: "원가 계산 자동화 스크립트", dept: "재무팀", status: "사용 중",
+    id: "VIBE-001", title: "원가 계산 자동화 스크립트", dept: "재무팀", status: "사용 가능",
     summary: "Cursor로 작성한 원가 자동 계산 내부 도구",
     description: "Cursor AI를 활용해 Python으로 제작한 원가 계산 자동화 스크립트입니다. 기존 Excel 수작업을 대체하여 처리 시간을 줄였습니다.",
     contacts: [{ name: "박소희", dept: "재무팀", role: "주담당자", email: "sohee.park@kolmar.co.kr" }],
@@ -451,7 +417,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
 
 const emptyPlatformItem = (kind: PlatformId): ManagedPlatformItem => ({
   kind,
-  id: "", title: "", summary: "", description: "", status: STATUS_OPTIONS_BY_KIND(kind)[0], dept: "",
+  id: "", title: "", summary: "", description: "", status: STATUS_ORDER[0], dept: "",
   contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], links: [], updatedAt: "",
   createdByEmail: "",
   tags: "", specificUrl: "",
@@ -653,7 +619,7 @@ export default function AdminProjectManage() {
               </div>
 
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                {["전체", ...ALL_STATUSES].map(s => (
+                {["전체", ...STATUS_ORDER].map(s => (
                   <button key={s} onClick={() => setFilterStatus(s)} style={{
                     padding: "3px 9px", borderRadius: 20, border: "none", fontSize: 10, fontWeight: 600, cursor: "pointer",
                     background: filterStatus === s ? "#0F172A" : "#F1F5F9",
@@ -682,7 +648,7 @@ export default function AdminProjectManage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 10, fontWeight: 700, background: style.bg, color: style.color, padding: "2px 7px", borderRadius: 10 }}>{style.label}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: STATUS_COLOR[item.status]?.bg, color: STATUS_COLOR[item.status]?.color, padding: "2px 7px", borderRadius: 10 }}>{item.status}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, background: STATUS_COLOR[item.status as import("../../types/platformTypes").PlatformItemStatus]?.bg, color: STATUS_COLOR[item.status as import("../../types/platformTypes").PlatformItemStatus]?.fg, padding: "2px 7px", borderRadius: 10 }}>{item.status}</span>
                       {needsAttention && <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
@@ -761,8 +727,8 @@ export default function AdminProjectManage() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <FieldRow label="상태">
                       {isEditing
-                        ? <SingleSelectTag options={STATUS_OPTIONS_BY_KIND(displayData.kind)} value={displayData.status} onChange={v => setF("status", v)} />
-                        : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: STATUS_COLOR[displayData.status]?.bg, color: STATUS_COLOR[displayData.status]?.color }}>{displayData.status}</span>}
+                        ? <SingleSelectTag options={STATUS_ORDER} value={displayData.status} onChange={v => setF("status", v)} />
+                        : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: STATUS_COLOR[displayData.status as import("../../types/platformTypes").PlatformItemStatus]?.bg, color: STATUS_COLOR[displayData.status as import("../../types/platformTypes").PlatformItemStatus]?.fg }}>{displayData.status}</span>}
                     </FieldRow>
                     <FieldRow label="등록 부서">
                       {isEditing

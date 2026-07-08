@@ -1,4 +1,4 @@
-// ===== pages/LandingPage.tsx =====
+﻿// ===== pages/LandingPage.tsx =====
 /* ============================================================
    AX Platform 랜딩 페이지 — MSN/뉴스 포털형 재설계 v2
    2026-07-07: 히어로 쇼케이스 3카드 신설, 레이아웃 재구성
@@ -17,25 +17,12 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { PLATFORMS } from "../types/platformTypes";
-import type { PlatformId } from "../types/platformTypes";
+import { PLATFORMS, STATUS_COLOR } from "../types/platformTypes";
+import type { PlatformId, PlatformItemStatus } from "../types/platformTypes";
 
 // TODO: 실제 접속 주소 확정 시 교체
 const HK_CALLING_URL = "http://172.17.20.203:3001/n8n";
 
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#E8F7EE", color: "#0B7A43" },
-  "사용 가능": { bg: "#E8F7EE", color: "#0B7A43" },
-  "사용 중": { bg: "#E8F7EE", color: "#0B7A43" },
-  "테스트 중": { bg: "#E8F1FF", color: "#1C6BFF" },
-  "실험 중": { bg: "#E8F1FF", color: "#1C6BFF" },
-  "프로토타입": { bg: "#E8F1FF", color: "#1C6BFF" },
-  "준비 중": { bg: "#E8F1FF", color: "#1C6BFF" },
-  "일시 중지": { bg: "#FFF4E5", color: "#B95C00" },
-  "일부 제한": { bg: "#FFF4E5", color: "#B95C00" },
-  "운영 중지": { bg: "#FDECEC", color: "#C42B2B" },
-  "지원 종료 예정": { bg: "#FDECEC", color: "#C42B2B" },
-};
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> =
   Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }]));
@@ -62,26 +49,42 @@ const STAT_CARDS = [
 
 type FeedItem = {
   id: string; kind: PlatformId; title: string; summary: string;
-  dept: string; status: string; tags: string[]; likes: number;
+  dept: string; status: PlatformItemStatus; tags: string[]; likes: number; views: number;
   updated: string; path: string; domain: Domain;
 };
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items?sort=recent 응답으로 교체
 const ALL_ITEMS: FeedItem[] = [
-  { id: "N8N-001", kind: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달", dept: "IT인프라팀", status: "운영 중", tags: ["Outlook", "긴급메일"], likes: 19, updated: "2025.07.03", path: "/n8n/N8N-001", domain: "IT" },
-  { id: "VIBE-001", kind: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", dept: "영업기획팀", status: "사용 중", tags: ["ERP", "Slack"], likes: 8, updated: "2025.07.05", path: "/vibe/VIBE-001", domain: "영업" },
-  { id: "PA-001", kind: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동 보관", dept: "경영지원팀", status: "운영 중", tags: ["SharePoint", "전자결재"], likes: 12, updated: "2025.07.01", path: "/pa/PA-001", domain: "재무" },
-  { id: "AIO-002", kind: "ai-orchestration", title: "Claude (문서 분석 특화)", summary: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델", dept: "IT개발팀", status: "사용 가능", tags: ["문서분석", "법무"], likes: 27, updated: "2025.06.12", path: "/ai-orchestration/AIO-002", domain: "IT" },
-  { id: "AST-001", kind: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", status: "사용 가능", tags: ["법무", "계약서검토"], likes: 25, updated: "2025.06.10", path: "/assistant/AST-001", domain: "재무" },
-  { id: "ML-001", kind: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", status: "실험 중", tags: ["회귀모델", "색상예측"], likes: 21, updated: "2025.06.01", path: "/ml/ML-001", domain: "연구" },
-  { id: "AST-002", kind: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", dept: "IT개발팀", status: "사용 가능", tags: ["회의록", "요약"], likes: 18, updated: "2025.06.14", path: "/assistant/AST-002", domain: "HR" },
-  { id: "N8N-003", kind: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", dept: "재무팀", status: "운영 중", tags: ["매출리포트", "ERP"], likes: 12, updated: "2025.06.12", path: "/n8n/N8N-003", domain: "재무" },
-  { id: "N8N-004", kind: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", dept: "품질관리팀", status: "테스트 중", tags: ["품질관리", "생산"], likes: 3, updated: "2025.06.18", path: "/n8n/N8N-004", domain: "생산" },
-  { id: "AIO-004", kind: "ai-orchestration", title: "Gemini (멀티모달)", summary: "이미지·문서를 함께 분석할 수 있는 Google Gemini 모델", dept: "IT개발팀", status: "사용 가능", tags: ["멀티모달", "이미지분석"], likes: 14, updated: "2025.06.15", path: "/ai-orchestration/AIO-004", domain: "연구" },
-  { id: "AIO-001", kind: "ai-orchestration", title: "GPT-4 (범용)", summary: "범용 작업에 적합한 OpenAI GPT-4 모델 — 코드 생성, 문서 작성, 분석에 활용", dept: "IT개발팀", status: "사용 가능", tags: ["코드생성", "범용"], likes: 31, updated: "2025.07.02", path: "/ai-orchestration/AIO-001", domain: "IT" },
-  { id: "PA-003", kind: "pa", title: "팀 주간 보고서 Teams 자동 게시", summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동으로 게시", dept: "기획팀", status: "운영 중", tags: ["Teams", "SharePoint"], likes: 15, updated: "2025.07.04", path: "/pa/PA-003", domain: "HR" },
-  { id: "ML-002", kind: "ml", title: "원료 수요 예측 모델", summary: "과거 생산·판매 데이터를 기반으로 월별 원료 수요를 예측하는 시계열 모델", dept: "구매팀", status: "실험 중", tags: ["수요예측", "시계열"], likes: 9, updated: "2025.06.20", path: "/ml/ML-002", domain: "생산" },
-  { id: "VIBE-002", kind: "vibe", title: "원가 분석 자동화 스크립트", summary: "ERP 원가 데이터를 읽어 제품별 원가 분석 리포트를 자동 생성하는 Python 스크립트", dept: "재무팀", status: "프로토타입", tags: ["Python", "원가분석"], likes: 6, updated: "2025.06.21", path: "/vibe/VIBE-002", domain: "영업" },
+  // n8n
+  { id: "N8N-001", kind: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달", dept: "IT인프라팀", status: "사용 가능", tags: ["Outlook", "긴급메일"], likes: 22, views: 420, updated: "2025.07.03", path: "/n8n/N8N-001", domain: "IT" },
+  { id: "N8N-002", kind: "n8n", title: "발주 승인 알림 자동화", summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림 발송", dept: "구매팀", status: "사용 가능", tags: ["구매", "승인알림", "ERP"], likes: 11, views: 210, updated: "2025.06.08", path: "/n8n/N8N-002", domain: "생산" },
+  { id: "N8N-003", kind: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", dept: "재무팀", status: "사용 가능", tags: ["매출리포트", "ERP"], likes: 17, views: 380, updated: "2025.06.12", path: "/n8n/N8N-003", domain: "재무" },
+  { id: "N8N-004", kind: "n8n", title: "품질 이슈 발생 시 즉시 에스컬레이션", summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림", dept: "품질관리팀", status: "준비 중", tags: ["품질관리", "생산"], likes: 5, views: 180, updated: "2025.06.18", path: "/n8n/N8N-004", domain: "생산" },
+  { id: "N8N-005", kind: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD·Teams·이메일 계정을 자동 생성하고 환영 메시지 발송", dept: "IT인프라팀", status: "사용 가능", tags: ["HR", "온보딩", "계정자동화"], likes: 13, views: 290, updated: "2025.07.01", path: "/n8n/N8N-005", domain: "HR" },
+  // Power Automate
+  { id: "PA-001", kind: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동 보관", dept: "경영지원팀", status: "사용 가능", tags: ["SharePoint", "전자결재"], likes: 18, views: 350, updated: "2025.07.01", path: "/pa/PA-001", domain: "재무" },
+  { id: "PA-002", kind: "pa", title: "양식 제출 → Teams 알림 플로우", summary: "Microsoft Forms 제출 시 담당자에게 Teams 메시지 및 이메일 동시 발송", dept: "인사팀", status: "사용 가능", tags: ["Forms", "Teams", "알림"], likes: 9, views: 240, updated: "2025.06.15", path: "/pa/PA-002", domain: "HR" },
+  { id: "PA-003", kind: "pa", title: "팀 주간 보고서 Teams 자동 게시", summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동으로 게시", dept: "기획팀", status: "사용 가능", tags: ["Teams", "SharePoint"], likes: 14, views: 310, updated: "2025.07.04", path: "/pa/PA-003", domain: "HR" },
+  { id: "PA-004", kind: "pa", title: "재고 부족 알림 자동화", summary: "ERP 재고 수준이 기준치 이하로 내려가면 구매 담당자에게 즉시 Teams 알림 발송", dept: "구매팀", status: "준비 중", tags: ["재고관리", "ERP", "알림"], likes: 7, views: 190, updated: "2025.06.22", path: "/pa/PA-004", domain: "생산" },
+  // 나만의 비서
+  { id: "AST-001", kind: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", status: "사용 가능", tags: ["법무", "계약서검토"], likes: 32, views: 890, updated: "2025.06.10", path: "/assistant/AST-001", domain: "재무" },
+  { id: "AST-002", kind: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", dept: "IT개발팀", status: "사용 가능", tags: ["회의록", "요약"], likes: 23, views: 620, updated: "2025.06.14", path: "/assistant/AST-002", domain: "HR" },
+  { id: "AST-003", kind: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", dept: "IT개발팀", status: "준비 중", tags: ["코드리뷰", "GitHub"], likes: 12, views: 280, updated: "2025.06.19", path: "/assistant/AST-003", domain: "IT" },
+  { id: "AST-004", kind: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", dept: "메이크업연구소", status: "준비 중", tags: ["원료", "MSDS", "규제정보"], likes: 6, views: 190, updated: "2025.06.20", path: "/assistant/AST-004", domain: "연구" },
+  { id: "AST-005", kind: "assistant", title: "영업 제안서 초안 봇", summary: "고객사 정보와 요구사항을 입력하면 맞춤형 제안서 초안을 자동 생성", dept: "영업기획팀", status: "사용 가능", tags: ["제안서", "영업지원"], likes: 15, views: 340, updated: "2025.07.02", path: "/assistant/AST-005", domain: "영업" },
+  // AI Agent
+  { id: "AIO-001", kind: "ai-orchestration", title: "GPT-5.4 (OpenAI)", summary: "범용 업무 전반에 무난한 기본 선택지 — 코드 생성·문서 작성·분석에 활용", dept: "DX전략팀", status: "사용 가능", tags: ["범용", "문서작성"], likes: 27, views: 1420, updated: "2026.07.01", path: "/ai-orchestration/AIO-001", domain: "IT" },
+  { id: "AIO-002", kind: "ai-orchestration", title: "GPT-5.4 Mini (OpenAI)", summary: "단순·반복 작업을 빠르고 저렴하게 처리하는 경량 모델", dept: "DX전략팀", status: "사용 가능", tags: ["저비용", "반복작업"], likes: 14, views: 820, updated: "2026.07.01", path: "/ai-orchestration/AIO-002", domain: "IT" },
+  { id: "AIO-003", kind: "ai-orchestration", title: "Claude Opus 4.8 (Anthropic)", summary: "가장 어려운 문제를 끝까지 푸는 최상위 추론 모델 — 다단계 분석에 최적", dept: "DX전략팀", status: "사용 가능", tags: ["복잡한추론", "다단계분석"], likes: 20, views: 1180, updated: "2026.07.01", path: "/ai-orchestration/AIO-003", domain: "연구" },
+  { id: "AIO-004", kind: "ai-orchestration", title: "Claude Sonnet 4.6 (Anthropic)", summary: "일상 업무에 가장 균형 잡힌 모델 — 문서 분석·요약·작성 전반에 적합", dept: "DX전략팀", status: "사용 가능", tags: ["문서분석", "균형"], likes: 28, views: 1350, updated: "2026.07.01", path: "/ai-orchestration/AIO-004", domain: "IT" },
+  // ML 모델
+  { id: "ML-001", kind: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", status: "준비 중", tags: ["회귀모델", "색상예측"], likes: 21, views: 460, updated: "2025.06.01", path: "/ml/ML-001", domain: "연구" },
+  { id: "ML-002", kind: "ml", title: "원료 수요 예측 모델", summary: "과거 생산·판매 데이터를 기반으로 월별 원료 수요를 예측하는 시계열 모델", dept: "구매팀", status: "준비 중", tags: ["수요예측", "시계열"], likes: 9, views: 280, updated: "2025.06.20", path: "/ml/ML-002", domain: "생산" },
+  { id: "ML-003", kind: "ml", title: "불량품 이미지 분류 모델", summary: "생산 라인 카메라 이미지로 불량품을 실시간 자동 판별하는 CNN 모델", dept: "품질관리팀", status: "일부 제한", tags: ["이미지분류", "불량검출", "CNN"], likes: 16, views: 320, updated: "2025.07.06", path: "/ml/ML-003", domain: "생산" },
+  // Vibe Coding
+  { id: "VIBE-001", kind: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", dept: "영업기획팀", status: "사용 가능", tags: ["ERP", "Slack"], likes: 10, views: 220, updated: "2025.07.05", path: "/vibe/VIBE-001", domain: "영업" },
+  { id: "VIBE-002", kind: "vibe", title: "원가 분석 자동화 스크립트", summary: "ERP 원가 데이터를 읽어 제품별 원가 분석 리포트를 자동 생성하는 Python 스크립트", dept: "재무팀", status: "준비 중", tags: ["Python", "원가분석"], likes: 7, views: 180, updated: "2025.06.21", path: "/vibe/VIBE-002", domain: "영업" },
+  { id: "VIBE-003", kind: "vibe", title: "부서별 KPI 현황판 자동화", summary: "Excel KPI 데이터를 읽어 자동으로 부서별 성과 대시보드를 그려주는 Python 앱", dept: "경영기획팀", status: "사용 가능", tags: ["KPI", "대시보드", "Python"], likes: 13, views: 260, updated: "2025.07.06", path: "/vibe/VIBE-003", domain: "재무" },
 ];
 
 // TODO: 실제 연동 시 GET /api/v1/stats/by-platform 응답으로 교체
@@ -91,7 +94,7 @@ const PLATFORM_COUNTS: Record<PlatformId, number> = {
 
 const recentItems = [...ALL_ITEMS].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
 const popularItems = [...ALL_ITEMS].sort((a, b) => b.likes - a.likes).slice(0, 6);
-const top5 = [...ALL_ITEMS].sort((a, b) => b.likes - a.likes).slice(0, 5);
+const top5 = [...ALL_ITEMS].sort((a, b) => b.views - a.views).slice(0, 5);
 const itemsByDomain = (d: Domain) => ALL_ITEMS.filter(i => i.domain === d).slice(0, 3);
 
 const FEED_TABS = [
@@ -119,9 +122,9 @@ const PEER_HOT_ITEMS: PeerHotItem[] = [
   { company: "한국콜마",    department: "영업",  itemId: "VIBE-001", itemName: "판매 리포트 자동화",      platformId: "vibe",             likes: 19, summary: "ERP 데이터로 매일 아침 판매 실적 요약 리포트 생성" },
   { company: "콜마글로벌",  department: "구매",  itemId: "ML-002",  itemName: "원료 수요 예측",          platformId: "ml",               likes: 17, summary: "과거 데이터로 월별 원료 수요를 예측하는 시계열 모델" },
   { company: "HK이노엔",    department: "법무",  itemId: "AST-001", itemName: "법무 검토 보조 봇",       platformId: "assistant",        likes: 33, summary: "계약서 위험 조항 자동 식별하고 검토 의견 제시" },
-  { company: "콜마바이오텍", department: "IT",    itemId: "AIO-001", itemName: "GPT-4 (범용)",           platformId: "ai-orchestration", likes: 29, summary: "코드 생성·문서 작성·분석에 활용하는 범용 AI 모델" },
+  { company: "콜마바이오텍", department: "IT",    itemId: "AIO-001", itemName: "GPT-5.4 (OpenAI)",           platformId: "ai-orchestration", likes: 29, summary: "코드 생성·문서 작성·분석에 활용하는 범용 AI 모델" },
   { company: "무석콜마",    department: "생산",  itemId: "N8N-004", itemName: "품질 이슈 에스컬레이션", platformId: "n8n",              likes: 14, summary: "품질 이상 감지 시 관련 부서에 즉시 Teams 알림" },
-  { company: "미국콜마",    department: "마케팅", itemId: "AIO-002", itemName: "Claude (문서 분석)",      platformId: "ai-orchestration", likes: 22, summary: "긴 문서 분석과 정밀 추론에 강한 Anthropic Claude 모델" },
+  { company: "미국콜마",    department: "마케팅", itemId: "AIO-004", itemName: "Claude Sonnet 4.6 (Anthropic)", platformId: "ai-orchestration", likes: 22, summary: "일상 업무 전반에 균형 잡힌 Anthropic Claude 모델" },
 ];
 
 type AssistantShowcase = {
@@ -187,7 +190,7 @@ const VIBE_SHOWCASE: VibeShowcase[] = [
     problem: "커피 내기 당번을 정할 때마다 반복되는 실랑이",
     solution: "팀원 명단으로 돌리는 커피 룰렛 웹앱을 바이브 코딩으로 제작",
     tool: "바이브 코딩 도구",
-    owner: "마케팅팀 정직원",
+    owner: "마케팅팀 박직원",
     path: "/vibe/VIBE-002",
   },
   {
@@ -208,6 +211,13 @@ const HeartIcon = ({ size = 11 }: { size?: number }) => (
   </svg>
 );
 
+const EyeIcon = ({ size = 11 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2">
+    <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+);
+
 const SectionTitle = ({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
     <span style={{ fontSize: 15, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.01em" }}>{title}</span>
@@ -219,13 +229,14 @@ const SectionTitle = ({ title, action, onAction }: { title: string; action?: str
   </div>
 );
 
-const DotIndicator = ({ count, active }: { count: number; active: number }) => (
+const DotIndicator = ({ count, active, onSelect }: { count: number; active: number; onSelect?: (i: number) => void }) => (
   <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 10 }}>
     {Array.from({ length: count }).map((_, i) => (
-      <span key={i} style={{
+      <span key={i} onClick={onSelect ? (e) => { e.stopPropagation(); onSelect(i); } : undefined} style={{
         width: i === active ? 14 : 5, height: 5, borderRadius: 3,
         background: i === active ? "#1C6BFF" : "#D7DDE6",
         transition: "all 0.3s",
+        cursor: onSelect ? "pointer" : "default",
       }} />
     ))}
   </div>
@@ -250,7 +261,7 @@ function FeedCard({ item, onClick }: { item: FeedItem; onClick: () => void }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
         <div style={{ display: "flex", gap: 5, minWidth: 0 }}>
           <span style={{ fontSize: 10, fontWeight: 700, background: s.bg, color: s.color, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{s.label}</span>
-          <span style={{ fontSize: 10, fontWeight: 700, background: STATUS_COLOR[item.status]?.bg, color: STATUS_COLOR[item.status]?.color, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{item.status}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, background: STATUS_COLOR[item.status]?.bg, color: STATUS_COLOR[item.status]?.fg, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{item.status}</span>
         </div>
         <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
           <HeartIcon /> {item.likes}
@@ -383,7 +394,7 @@ export default function LandingPage() {
         {/* [B] 지표 4카드 */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 22 }}>
           {STAT_CARDS.map((s, i) => (
-            <div key={i} onClick={() => navigate("/projects")} style={{
+            <div key={i} onClick={() => navigate(i === 1 ? "/projects?status=available" : "/projects")} style={{
               background: s.grad, borderRadius: 14, padding: "18px 20px",
               color: "#fff", cursor: "pointer",
               boxShadow: "0 6px 16px rgba(26,31,39,0.10)",
@@ -396,7 +407,7 @@ export default function LandingPage() {
         </div>
 
         {/* 2-컬럼 메인 그리드 (좌: C+D / 우: E) */}
-        <div className="ax-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 18, marginBottom: 22, alignItems: "start" }}>
+        <div className="ax-main-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: 18, marginBottom: 22, alignItems: "stretch" }}>
 
           {/* 좌 컬럼: C (히어로 3카드) + D (피드) */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -409,7 +420,7 @@ export default function LandingPage() {
                 onClick={() => navigate(`/${peerItem.platformId}/${peerItem.itemId}`)}
                 style={{
                   background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", minHeight: 220,
+                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
                   cursor: "pointer", transition: "border-color 0.2s",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
@@ -418,7 +429,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   {isPeerFallback ? "그룹사에서 지금 핫한 항목" : "우리 부서 동료들의 선택"}
                 </div>
-                <div key={peerIdx % peerItems.length} style={{ flex: 1, animation: "axFadeIn 0.4s ease" }}>
+                <div key={peerIdx % peerItems.length} style={{ flex: 1, overflow: "hidden", animation: "axFadeIn 0.4s ease" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", marginBottom: 8 }}>
                     {peerItem.department}팀 동료들은 이걸 씁니다 — {peerItem.company}
                   </div>
@@ -436,7 +447,7 @@ export default function LandingPage() {
                     <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>{peerItem.likes}</span>
                   </div>
                 </div>
-                <DotIndicator count={peerItems.length} active={peerIdx % peerItems.length} />
+                <DotIndicator count={peerItems.length} active={peerIdx % peerItems.length} onSelect={setPeerIdx} />
               </div>
 
               {/* 카드 2: 나만의 비서 쇼케이스 */}
@@ -444,7 +455,7 @@ export default function LandingPage() {
                 onClick={() => navigate(assistantItem.path)}
                 style={{
                   background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", minHeight: 220,
+                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
                   cursor: "pointer", transition: "border-color 0.2s",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
@@ -453,7 +464,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   이런 프롬프트를 쓰니 편하더라
                 </div>
-                <div key={assistantIdx % ASSISTANT_SHOWCASE.length} style={{ flex: 1, animation: "axFadeIn 0.4s ease" }}>
+                <div key={assistantIdx % ASSISTANT_SHOWCASE.length} style={{ flex: 1, overflow: "hidden", animation: "axFadeIn 0.4s ease" }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: "#1A1F27", lineHeight: 1.45, marginBottom: 10 }}>
                     {assistantItem.headline}
                   </div>
@@ -470,7 +481,7 @@ export default function LandingPage() {
                     <div>필요한 환경: {assistantItem.environment}</div>
                   </div>
                 </div>
-                <DotIndicator count={ASSISTANT_SHOWCASE.length} active={assistantIdx % ASSISTANT_SHOWCASE.length} />
+                <DotIndicator count={ASSISTANT_SHOWCASE.length} active={assistantIdx % ASSISTANT_SHOWCASE.length} onSelect={setAssistantIdx} />
               </div>
 
               {/* 카드 3: Vibe Coding 쇼케이스 */}
@@ -478,7 +489,7 @@ export default function LandingPage() {
                 onClick={() => navigate(vibeItem.path)}
                 style={{
                   background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", minHeight: 220,
+                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
                   cursor: "pointer", transition: "border-color 0.2s",
                 }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
@@ -487,7 +498,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   내가 만든 프로그램 공유
                 </div>
-                <div key={vibeIdx % VIBE_SHOWCASE.length} style={{ flex: 1, animation: "axFadeIn 0.4s ease" }}>
+                <div key={vibeIdx % VIBE_SHOWCASE.length} style={{ flex: 1, overflow: "hidden", animation: "axFadeIn 0.4s ease" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
                     <span style={{ fontSize: 9.5, fontWeight: 700, background: "#FEE2E2", color: "#C42B2B", padding: "2px 8px", borderRadius: 20, flexShrink: 0, marginTop: 2 }}>문제</span>
                     <div style={{ fontSize: 12.5, color: "#1A1F27", lineHeight: 1.5 }}>{vibeItem.problem}</div>
@@ -500,7 +511,7 @@ export default function LandingPage() {
                     사용 도구: <strong style={{ color: "#475569" }}>{vibeItem.tool}</strong>
                   </div>
                 </div>
-                <DotIndicator count={VIBE_SHOWCASE.length} active={vibeIdx % VIBE_SHOWCASE.length} />
+                <DotIndicator count={VIBE_SHOWCASE.length} active={vibeIdx % VIBE_SHOWCASE.length} onSelect={setVibeIdx} />
               </div>
 
             </div>
@@ -619,7 +630,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
-                      <HeartIcon size={10} /> {item.likes}
+                      <EyeIcon size={10} /> {item.views.toLocaleString()}
                     </span>
                   </div>
                 );
@@ -627,7 +638,7 @@ export default function LandingPage() {
             </div>
 
             {/* 업무별 추천 */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EBEEF3" }}>
+            <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EBEEF3", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <SectionTitle title="업무별 추천" action="전체" onAction={() => navigate("/projects")} />
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
                 {DOMAINS.map((d, i) => (
@@ -640,7 +651,7 @@ export default function LandingPage() {
                   }}>{d}</button>
                 ))}
               </div>
-              <div style={{ height: 162, overflow: "hidden" }}>
+              <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
                 <div key={spotlightDomain} style={{ animation: "axFadeIn 0.35s ease" }}>
                   {spotlightItems.length === 0 ? (
                     <div style={{ fontSize: 12, color: "#AEB6C2", padding: "12px 0", textAlign: "center" }}>
@@ -679,7 +690,7 @@ export default function LandingPage() {
             {PLATFORMS.map(p => (
               <div
                 key={p.id}
-                onClick={() => navigate(`/projects?q=${encodeURIComponent(p.name)}`)}
+                onClick={() => navigate(`/projects?platform=${p.id}`)}
                 style={{
                   borderRadius: 12, padding: "16px 14px", cursor: "pointer", background: p.bg,
                   borderTop: "1.5px solid transparent", borderRight: "1.5px solid transparent",

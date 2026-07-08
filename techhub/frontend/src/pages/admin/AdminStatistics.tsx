@@ -29,10 +29,10 @@ const SOURCES: { key: SourceKey; label: string; color: string }[] = [
 
 // 4개 의미 그룹 — 유형별 상태 다양성을 시맨틱 그룹으로 통합
 const STATUS_META = [
-  { label: "정상 운영", sub: "운영 중 · 사용 가능 · 사용 중", color: "#059669" },
-  { label: "검증·개발", sub: "테스트 중 · 준비 중 · 실험 중 · 프로토타입", color: "#2563EB" },
-  { label: "제한", sub: "일시 중지 · 일부 제한", color: "#D97706" },
-  { label: "종료", sub: "운영 중지 · 지원 종료 예정", color: "#EF4444" },
+  { label: "사용 가능", sub: "사용 가능", color: "#059669" },
+  { label: "준비 중", sub: "준비 중", color: "#2563EB" },
+  { label: "일부 제한", sub: "일부 제한", color: "#D97706" },
+  { label: "사용 중지", sub: "사용 중지", color: "#EF4444" },
 ];
 const STATUS_BY_COMPANY: Record<StatCompany, number[]> = {
   KKM: [26, 19, 8, 5], KBH: [10, 8, 3, 2], HC: [7, 6, 2, 1],

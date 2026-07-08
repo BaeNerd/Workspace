@@ -82,7 +82,7 @@ export default function AdminDashboard() {
     { label: "전체 등록물", value: String(totalRegistrations), sub: "자동화·AI 도구 합산", subColor: "#059669" },
     { label: "승인 대기", value: String(pending.length), sub: "즉시 검토 필요", subColor: "#D97706" },
     { label: "이번 달 신규", value: String(thisMonthTotal), sub: "6개 플랫폼 합산", subColor: "#2563EB" },
-    { label: "운영 중 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
+    { label: "사용 가능 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
   ];
 
   return (

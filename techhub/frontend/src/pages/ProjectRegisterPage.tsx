@@ -3,28 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { PLATFORMS } from "../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 import { WorkflowEditor, toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 
-// ===== 유형별 상태 값 =====
-// "상태"는 과거 일반 IT 프로젝트 생애주기(운영 중/개발 중/파일럿/보류) 개념을 그대로 썼으나,
-// 워크플로우·에이전트·모델 각각의 실제 운영 방식에 맞게 유형별로 분리했다.
-const WORKFLOW_STATUSES = ["운영 중", "테스트 중", "일시 중지"] as const;
-const ASSISTANT_STATUSES = ["사용 가능", "준비 중", "운영 중지"] as const;
-const AGENT_STATUSES = ["사용 가능", "일부 제한", "지원 종료 예정"] as const;
-const ML_STATUSES = ["운영 중", "실험 중", "운영 중지"] as const;
-const VIBE_STATUSES = ["사용 중", "프로토타입", "운영 중지"] as const;
-
-const STATUS_OPTIONS_BY_KIND = (kind: PlatformId | null): readonly string[] => {
-  if (!kind) return [];
-  if (kind === "n8n" || kind === "pa") return WORKFLOW_STATUSES;
-  if (kind === "assistant") return ASSISTANT_STATUSES;
-  if (kind === "ai-orchestration") return AGENT_STATUSES;
-  if (kind === "ml") return ML_STATUSES;
-  return VIBE_STATUSES;
-};
 
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
@@ -71,11 +54,11 @@ const ASSISTANT_SHARE_SCOPES = ["회사 공통 비서", "팀 공유 비서", "�
 // HK GPT 제공 모델 힌트
 const ASSISTANT_MODEL_HINTS = [
   "웍스 대표 모델", "GPT-5.4", "GPT-5.4 Mini", "Claude Opus 4.8", "Claude Sonnet 5",
-  "Gemini", "xAI", "LG AI", "Upstage", "Perplexity",
+  "Gemini", "LG AI", "Upstage",
 ];
 
-// AI Agent(HK GPT 게이트웨이) — 제공사 선택형
-const PROVIDER_OPTIONS = ["웍스 대표 모델", "Anthropic", "Google", "OpenAI", "xAI", "LG AI", "Upstage", "Perplexity"];
+// AI Agent(HK GPT 게이트웨이) — 제공사 선택형 (6종 확정)
+const PROVIDER_OPTIONS = ["웍스 대표 모델", "OpenAI", "Anthropic", "Google", "LG AI", "Upstage"];
 // "컨텍스트 윈도우"라는 어려운 말 대신 처리 가능한 글 분량을 쉬운 말로 선택
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
 // 권장 사용 시나리오 힌트
@@ -431,7 +414,7 @@ function ChipInput({
 
 export default function ProjectRegisterPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<PlatformId | null>(null);
   const [saving, setSaving] = useState(false);
@@ -581,6 +564,14 @@ export default function ProjectRegisterPage() {
     }, 1200);
   };
 
+  // 비관리자에게는 ai-orchestration 유형 미노출
+  const visibleKindOptions = isAdmin ? KIND_OPTIONS : KIND_OPTIONS.filter(o => o.key !== "ai-orchestration");
+
+  // 방어 로직: 비관리자가 어떤 경로로든 ai-orchestration을 선택한 경우 리셋
+  if (!isAdmin && kind === "ai-orchestration") {
+    setKind(visibleKindOptions[0]?.key ?? null);
+  }
+
   const selectedKindMeta = kind ? KIND_OPTIONS.find(k => k.key === kind)! : null;
   const timeSavedDisplay = serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod) || "—";
   const companyHint = "기본적으로 소속 관계사가 선택되어 있습니다. 전사 공용이나 다른 관계사로 바꾸려면 드롭다운에서 변경하세요.";
@@ -625,7 +616,7 @@ export default function ProjectRegisterPage() {
         {step === 0 && (
           <Section title="등록할 항목의 유형을 선택하세요">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {KIND_OPTIONS.map(opt => (
+              {visibleKindOptions.map(opt => (
                 <div key={opt.key} onClick={() => setKind(opt.key)} style={{
                   border: `1.5px solid ${kind === opt.key ? opt.color : "#E2E8F0"}`,
                   borderTop: `3px solid ${opt.color}`,
@@ -641,7 +632,12 @@ export default function ProjectRegisterPage() {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 16, padding: "10px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 11, color: "#64748B" }}>
+            {isAdmin && (
+              <div style={{ marginTop: 12, padding: "10px 14px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 8, fontSize: 11, color: "#6D28D9" }}>
+                AI Agent 유형은 관리자 전용 등록입니다. 카탈로그 표준(모델명 + 제공사 표기)에 맞춰 등록해 주세요.
+              </div>
+            )}
+            <div style={{ marginTop: 10, padding: "10px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 11, color: "#64748B" }}>
               어떤 유형을 선택해도 등록 신청 → 관리자 검토 → 승인 절차는 동일하게 적용됩니다.
             </div>
           </Section>
@@ -650,10 +646,10 @@ export default function ProjectRegisterPage() {
         {/* ===== STEP 1 — 공통 기본정보 ===== */}
         {step === 1 && (
           <Section title={`기본정보${selectedKindMeta ? ` (${selectedKindMeta.label})` : ""}`}>
-            <Field label="제목" required>
+            <Field label="제목" required hint={kind === "ai-orchestration" ? "표기 규칙: 모델명 (제공사) — 예: Claude Sonnet 4.6 (Anthropic)" : undefined}>
               <input value={form.title} onChange={e => set("title", e.target.value)}
                 placeholder={
-                  kind === "ai-orchestration" ? "예: 긴급 메일 자동 전달" :
+                  kind === "ai-orchestration" ? "예: Claude Sonnet 4.6 (Anthropic)" :
                   kind === "n8n" ? "예: 신규 입사자 계정 자동 생성" :
                   kind === "pa" ? "예: 결재 완료 시 SharePoint 업데이트" :
                   kind === "assistant" ? "예: 특허 문서 검토 도우미" :
@@ -695,7 +691,7 @@ export default function ProjectRegisterPage() {
             <Section title={`${selectedKindMeta?.label} 동작 정보`}>
               <Field label="상태" required>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {STATUS_OPTIONS_BY_KIND(kind).map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
+                  {STATUS_ORDER.map(s => <Tag key={s} label={s} selected={form.status === s} onClick={() => set("status", s)} />)}
                 </div>
               </Field>
               <Field label="소속 / 대상 관계사" required hint={companyHint}>
@@ -933,9 +929,9 @@ export default function ProjectRegisterPage() {
                 {PROVIDER_OPTIONS.map(p => <Tag key={p} label={p} selected={form.provider === p} onClick={() => set("provider", p)} />)}
               </div>
             </Field>
-            <Field label="강점 및 활용 방법" required hint="이 모델이 어떤 업무에 강한지, 실제로 어떻게 활용하면 좋은지 구체적으로 설명하세요.">
+            <Field label="강점 및 활용 방법" required hint="상세 페이지 최상단에 노출됩니다. 이 모델이 무엇을 잘하고 어떤 업무에 적합한지 답변하듯 적어주세요.">
               <textarea value={form.strengthsDetail} onChange={e => set("strengthsDetail", e.target.value)}
-                placeholder="예: 긴 문서를 한 번에 읽고 핵심을 요약하는 데 강합니다. 계약서 검토나 회의록 정리에 활용해보세요."
+                placeholder="이 모델이 무엇을 잘하는지, 어떤 업무에 쓰면 좋은지 답변하듯 적어주세요. 상세 페이지 최상단에 노출됩니다."
                 style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.7 }}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
@@ -960,14 +956,14 @@ export default function ProjectRegisterPage() {
                 {CONTEXT_SIZE_OPTIONS.map(c => <Tag key={c} label={c} selected={form.contextWindow === c} onClick={() => set("contextWindow", c)} />)}
               </div>
             </Field>
-            <Field label="비용 등급">
+            <Field label="비용 등급" hint="출력 단가 기준 — 낮음 ≤ $5/M, 보통 $10~15/M, 높음 ≥ $25/M">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {COST_TIERS.map(c => <Tag key={c} label={c} selected={form.costTier === c} onClick={() => set("costTier", c)} />)}
               </div>
             </Field>
-            <Field label="1회 사용량" hint="토큰 사용량이나 비용 수준을 참고할 수 있도록 간단히 적어주세요.">
+            <Field label="1회 사용량" hint="A4 10페이지 문서(약 1만 토큰) 요약 1회 기준으로 환산해 적어주세요.">
               <input value={form.tokenUsageNote} onChange={e => set("tokenUsageNote", e.target.value)}
-                placeholder="예: 문서 1페이지당 약 500토큰, 긴 대화일수록 늘어남" style={inputStyle}
+                placeholder="A4 10페이지 문서(약 1만 토큰) 요약 1회 기준으로 환산해 적어주세요. 예: 문서 10페이지 요약 시 약 1.2만 토큰" style={inputStyle}
                 onFocus={e => (e.target.style.borderColor = "#2563EB")}
                 onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
             </Field>

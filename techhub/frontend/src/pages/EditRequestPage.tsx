@@ -3,16 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import type { PlatformId } from "../types/platformTypes";
-
-// 유형별 상태값 (platformTypes.ts의 PlatformItemStatus와 일치)
-const STATUS_BY_KIND: Record<PlatformId, string[]> = {
-  n8n: ["운영 중", "테스트 중", "일시 중지"],
-  pa: ["운영 중", "테스트 중", "일시 중지"],
-  assistant: ["사용 가능", "준비 중", "운영 중지"],
-  "ai-orchestration": ["사용 가능", "일부 제한", "지원 종료 예정"],
-  ml: ["운영 중", "실험 중", "운영 중지"],
-  vibe: ["사용 중", "프로토타입", "운영 중지"],
-};
+import { STATUS_ORDER } from "../types/platformTypes";
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items/:id 응답으로 교체
 type CurrentItem = {
@@ -37,7 +28,7 @@ const MOCK_CURRENT: CurrentItem = {
   title: "신규 입사자 계정 자동 생성",
   summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성하는 n8n 워크플로우",
   description: "신규 입사자가 HR 시스템에 등록되면 Schedule Trigger가 발동하여 AD 계정 생성 → Teams 초대 → 이메일 계정 활성화까지 자동으로 처리합니다.",
-  status: "운영 중",
+  status: "사용 가능",
   triggerAction: "신규 입사자 HR 등록 시 Schedule Trigger 발동",
   specificUrl: "https://n8n.kolmar.co.kr/workflow/001",
 };
@@ -197,7 +188,7 @@ export default function EditRequestPage() {
                             }}
                           >
                             <option value="">-- 상태 선택 --</option>
-                            {STATUS_BY_KIND[current.kind].map(s => (
+                            {STATUS_ORDER.map(s => (
                               <option key={s} value={s}>{s}</option>
                             ))}
                           </select>

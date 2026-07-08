@@ -23,23 +23,10 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS } from "../types/platformTypes";
-import type { PlatformItem, PlatformId } from "../types/platformTypes";
+import { PLATFORMS, STATUS_COLOR } from "../types/platformTypes";
+import type { PlatformItem, PlatformId, PlatformItemStatus } from "../types/platformTypes";
 import { WorkflowDiagram } from "../components/WorkflowDiagram";
 
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 가능": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 중": { bg: "#D1FAE5", color: "#065F46" },
-  "테스트 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "실험 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "프로토타입": { bg: "#DBEAFE", color: "#1E40AF" },
-  "준비 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "일시 중지": { bg: "#FEF3C7", color: "#92400E" },
-  "일부 제한": { bg: "#FEF3C7", color: "#92400E" },
-  "운영 중지": { bg: "#FEE2E2", color: "#991B1B" },
-  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
-};
 
 const COST_TIER_COLOR: Record<string, { bg: string; color: string }> = {
   "낮음": { bg: "#DCFCE7", color: "#166534" },
@@ -125,7 +112,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "Outlook 긴급 메일 자동 전달",
     summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달",
     description: "Outlook에서 메일을 수신하면 제목에 '긴급' 키워드 포함 여부를 자동으로 판별합니다.\n\n긴급 메일로 확인될 경우 팀장님 메일 주소로 즉시 전달하여 빠른 의사결정이 가능하도록 지원합니다.",
-    status: "운영 중", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
+    status: "사용 가능", dept: "IT인프라팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
     tags: ["Outlook", "긴급메일", "자동전달"],
     specificUrl: "https://n8n.kolmar.co.kr/workflow/001", updatedAt: "2025.07.03", likes: 19, company: ["KKM"],
     workflowDef: {
@@ -143,7 +130,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "발주 승인 알림 자동화",
     summary: "구매 시스템의 발주 승인 요청을 Teams로 즉시 알림",
     description: "구매 시스템에서 발주 요청이 생성되면 승인자에게 Teams 메시지로 즉시 알림을 보내고, 승인/반려 결과를 발주 시스템에 자동 반영합니다.",
-    status: "운영 중", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr",
+    status: "사용 가능", dept: "구매팀", owner: "박성훈", ownerEmail: "sunghoon.park@kolmar.co.kr",
     tags: ["구매", "승인알림", "ERP연동"], specificUrl: "https://n8n.kolmar.co.kr/workflow/002", updatedAt: "2025.06.08", likes: 7, company: ["KKM"],
     workflowDef: {
       status: "Stable",
@@ -160,7 +147,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "일일 매출 리포트 자동 발송",
     summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송",
     description: "ERP 매출 데이터를 집계하여 매일 오전 경영진 메일링 리스트에 전일 매출 요약 리포트를 자동으로 발송합니다.",
-    status: "운영 중", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr",
+    status: "사용 가능", dept: "재무팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr",
     tags: ["매출리포트", "ERP", "자동발송"], specificUrl: "https://n8n.kolmar.co.kr/workflow/003", updatedAt: "2025.06.12", likes: 12, company: ["KKM", "KMG"],
     workflowDef: {
       status: "Stable",
@@ -178,7 +165,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "품질 이슈 발생 시 즉시 에스컬레이션",
     summary: "품질관리 시스템 이상 감지 시 관련 부서에 즉시 알림",
     description: "생산 품질관리 시스템에서 기준치 이탈이 감지되면 품질관리팀, 생산본부, 관련 연구소에 동시에 Teams 알림을 발송합니다.",
-    status: "테스트 중", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr",
+    status: "준비 중", dept: "품질관리팀", owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr",
     tags: ["품질관리", "에스컬레이션", "생산"], specificUrl: "https://n8n.kolmar.co.kr/workflow/004", updatedAt: "2025.06.18", likes: 3, company: ["KMW"],
     workflowDef: {
       status: "Active",
@@ -195,7 +182,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "결재 문서 SharePoint 자동 저장",
     summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관",
     description: "전자결재가 완료되면 문서를 SharePoint의 지정된 폴더에 자동으로 업로드하여 별도의 수기 보관 작업 없이 문서를 정리합니다.",
-    status: "운영 중", dept: "경영지원팀", owner: "최유진", ownerEmail: "yujin.choi@kolmar.co.kr",
+    status: "사용 가능", dept: "경영지원팀", owner: "최유진", ownerEmail: "yujin.choi@kolmar.co.kr",
     tags: ["SharePoint", "전자결재", "문서관리"],
     specificUrl: "https://make.powerautomate.com/environments/kolmar/flows/pa-001", updatedAt: "2025.07.01", likes: 12, company: ["KKM"],
     flowType: "이벤트 발생 시 자동 실행", connectorTier: "기본 커넥터만 사용",
@@ -207,7 +194,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "조색 예측 ML 모델",
     summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델",
     description: "원료 배합 비율을 입력하면 최종 제품의 색상값을 예측하여, 반복적인 시험 조색 작업을 줄여줍니다.",
-    status: "실험 중", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr",
+    status: "준비 중", dept: "메이크업연구소", owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr",
     tags: ["TensorFlow", "회귀모델", "색상예측"],
     specificUrl: "https://gitlab.kolmar.co.kr/ml/color-prediction", updatedAt: "2025.06.01", likes: 21, company: ["KKM"],
     mlType: "회귀 (Regression)",
@@ -222,7 +209,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "일일 판매 리포트 자동 생성기",
     summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약 리포트를 Slack으로 발송",
     description: "매일 아침 ERP 판매 데이터를 읽어 요약 리포트를 생성하고 영업기획팀 Slack 채널로 자동 발송합니다.",
-    status: "사용 중", dept: "영업기획팀", owner: "한지민", ownerEmail: "jimin.han@kolmar.co.kr",
+    status: "사용 가능", dept: "영업기획팀", owner: "한지민", ownerEmail: "jimin.han@kolmar.co.kr",
     tags: ["ERP", "Slack", "리포트자동화"],
     specificUrl: "", updatedAt: "2025.07.05", likes: 8, company: ["KKM"],
     devTool: "Cursor, Claude",
@@ -283,64 +270,155 @@ const MOCK_ITEMS: PlatformItem[] = [
     connectedData: "MSDS 데이터베이스, 국가별 화장품 규제 문서",
     sampleQuestions: ["이 원료가 중국에서 사용 제한이 있는지 알려줘"],
   },
+  // AI Agent 카탈로그 (10건) — DeepSeek: 도입 확정 시 추가 (중국어 업무 대응, status 일부 제한으로 등록 예정)
   {
-    id: "AIO-001", platformId: "ai-orchestration", title: "GPT-4 (범용)",
-    summary: "범용 작업에 적합한 OpenAI GPT-4 모델",
-    description: "다양한 업무 전반에 활용 가능한 범용 모델입니다. 코드 생성, 문서 작성, 데이터 분석 보조 등에 적합합니다.",
-    status: "사용 가능", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["범용", "코드생성", "문서작성"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4", updatedAt: "2025.06.10", likes: 31, company: [],
+    id: "AIO-001", platformId: "ai-orchestration", title: "GPT-5.4 (OpenAI)",
+    summary: "범용 업무 전반에 무난한 기본 선택지입니다.",
+    description: "범용 업무 전반에 무난한 기본 선택지입니다. 최신 지식 반영이 좋고 응답 속도가 빨라 이메일·보고서 초안, 일반 질의응답, 문서 제작·편집에 두루 적합합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["범용", "빠른 응답", "문서 작성"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 38, company: [],
     modelMeta: {
-      provider: "OpenAI", modelName: "GPT-4",
-      contextWindow: "문서 여러 장 (수십 페이지)",
-      strengths: ["범용성", "코드 생성", "빠른 응답"],
-      strengthsDetail: "간단한 이메일 작성, 코드 스니펫 생성, 일반 문의 응대에 빠르고 무난하게 대응합니다.",
-      tokenUsageNote: "짧은 대화 1회당 약 1,000토큰 내외 사용",
-      costTier: "보통", useCases: ["이메일 작성", "코드 생성"],
+      provider: "OpenAI", modelName: "GPT-5.4",
+      contextWindow: "매우 긴 문서 (책 한 권 분량)",
+      strengths: ["범용", "빠른 응답", "문서 작성"],
+      strengthsDetail: "범용 업무 전반에 무난한 기본 선택지입니다. 최신 지식 반영이 좋고 응답 속도가 빨라 이메일·보고서 초안, 일반 질의응답, 문서 제작·편집에 두루 적합합니다. 어떤 모델을 써야 할지 모르겠다면 이 모델부터 시작하세요.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만~1.3만 토큰",
+      costTier: "보통", useCases: ["이메일·보고서 초안", "일반 질의응답", "문서 제작·편집"],
     },
   },
   {
-    id: "AIO-002", platformId: "ai-orchestration", title: "Claude (문서 분석 특화)",
-    summary: "긴 문서 분석과 정밀한 추론에 강한 Anthropic Claude 모델",
-    description: "긴 컨텍스트가 필요한 계약서 검토, 보고서 분석, 복잡한 추론 작업에 적합합니다.",
-    status: "사용 가능", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["문서분석", "긴컨텍스트", "법무"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude", updatedAt: "2025.06.12", likes: 27, company: [],
+    id: "AIO-002", platformId: "ai-orchestration", title: "GPT-5.4 Mini (OpenAI)",
+    summary: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다.",
+    description: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다. 본 모델(GPT-5.4) 대비 약 1/3 비용으로, 분류·정리·짧은 요약·코딩 보조처럼 양이 많은 일상 작업에 적합합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["저비용", "반복 작업", "코딩 보조"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 22, company: [],
+    modelMeta: {
+      provider: "OpenAI", modelName: "GPT-5.4 Mini",
+      contextWindow: "문서 여러 장 (수십 페이지)",
+      strengths: ["저비용", "반복 작업", "코딩 보조"],
+      strengthsDetail: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다. 본 모델(GPT-5.4) 대비 약 1/3 비용으로, 분류·정리·짧은 요약·코딩 보조처럼 양이 많은 일상 작업에 적합합니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만 토큰",
+      costTier: "낮음", useCases: ["대량 텍스트 분류·정리", "짧은 요약", "코드 스니펫 보조"],
+    },
+  },
+  {
+    id: "AIO-003", platformId: "ai-orchestration", title: "Claude Opus 4.8 (Anthropic)",
+    summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.",
+    description: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다. 복잡한 추론, 에이전트형 코딩, 여러 단계를 거치는 심층 분석에 적합합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["복잡한 추론", "에이전트 코딩", "다단계 분석"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 29, company: [],
     modelMeta: {
       provider: "Anthropic", modelName: "Claude Opus 4.8",
       contextWindow: "매우 긴 문서 (책 한 권 분량)",
-      strengths: ["긴 컨텍스트", "정밀 추론", "안전성"],
-      strengthsDetail: "긴 문서를 한 번에 읽고 핵심을 요약하는 데 강합니다. 계약서 검토나 보고서 분석에 활용해보세요.",
-      tokenUsageNote: "문서 10페이지 요약 시 약 5,000토큰 사용",
-      costTier: "보통", useCases: ["문서 요약", "법무 검토"],
+      strengths: ["복잡한 추론", "에이전트 코딩", "다단계 분석"],
+      strengthsDetail: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다. 복잡한 추론, 에이전트형 코딩, 여러 단계를 거치는 심층 분석에 적합합니다. 비용이 높으므로 일상 업무보다는 난도 높은 과제에 선택적으로 사용하세요.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.2만 토큰",
+      costTier: "높음", useCases: ["복잡한 기술 검토", "다단계 데이터 분석", "대규모 코드 작업"],
     },
   },
   {
-    id: "AIO-003", platformId: "ai-orchestration", title: "콜마 파인튜닝 모델 (사내 전용 용어 특화)",
-    summary: "콜마 사내 용어와 제품 데이터로 파인튜닝된 전용 모델",
-    description: "화장품 원료명, 사내 제품 코드, 콜마 그룹 조직 용어 등을 정확히 이해하는 사내 전용 모델입니다.",
-    status: "일부 제한", dept: "IT개발팀", owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
-    tags: ["사내전용", "화장품용어", "원료데이터"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/kolmar-ft", updatedAt: "2025.06.18", likes: 8, company: ["KKM", "KBH", "KMG"],
+    id: "AIO-004", platformId: "ai-orchestration", title: "Claude Sonnet 4.6 (Anthropic)",
+    summary: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다.",
+    description: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다. 문서 요약, 회의록 정리, 계약서 검토처럼 긴 글을 읽고 정확하게 정리하는 일에 특히 강합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["문서 분석", "균형", "긴 문서"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 35, company: [],
     modelMeta: {
-      provider: "사내 파인튜닝", modelName: "Kolmar-FT-v1",
-      contextWindow: "일반 대화 수준",
-      strengths: ["콜마 전용 용어", "원료 데이터 이해"],
-      strengthsDetail: "콜마 사내 용어와 제품 코드를 정확히 이해합니다. 원료명이나 사내 코드가 포함된 문의에 활용해보세요.",
-      tokenUsageNote: "일반 대화 1회당 약 800토큰 사용",
-      costTier: "낮음", useCases: ["사내 문서 검색"],
-    },
-  },
-  {
-    id: "AIO-004", platformId: "ai-orchestration", title: "Gemini (멀티모달)",
-    summary: "이미지·문서를 함께 분석할 수 있는 Google Gemini 모델",
-    description: "용기 디자인 이미지 분석, 도면 검토 등 이미지와 텍스트를 함께 다루는 작업에 적합합니다.",
-    status: "사용 가능", dept: "IT개발팀", owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr",
-    tags: ["멀티모달", "이미지분석", "도면검토"], specificUrl: "https://ai-gateway.kolmar.co.kr/models/gemini", updatedAt: "2025.06.15", likes: 14, company: [],
-    modelMeta: {
-      provider: "Google", modelName: "Gemini 2.5 Pro",
+      provider: "Anthropic", modelName: "Claude Sonnet 4.6",
       contextWindow: "매우 긴 문서 (책 한 권 분량)",
-      strengths: ["멀티모달", "이미지 분석"],
-      strengthsDetail: "이미지와 텍스트를 함께 분석하는 데 강합니다. 용기 디자인 시안이나 도면 검토에 활용해보세요.",
-      tokenUsageNote: "이미지 1장 분석 시 약 1,500토큰 사용",
-      costTier: "보통", useCases: ["이미지 분석"],
+      strengths: ["문서 분석", "균형", "긴 문서"],
+      strengthsDetail: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다. 문서 요약, 회의록 정리, 계약서 검토처럼 긴 글을 읽고 정확하게 정리하는 일에 특히 강하며, 대부분의 사무 업무를 안정적으로 처리합니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.2만 토큰",
+      costTier: "보통", useCases: ["문서 요약", "회의록 정리", "계약서·규정 검토"],
+    },
+  },
+  {
+    id: "AIO-005", platformId: "ai-orchestration", title: "Claude Haiku 4.5 (Anthropic)",
+    summary: "가장 빠른 응답이 필요할 때 선택합니다.",
+    description: "가장 빠른 응답이 필요할 때 선택합니다. 텍스트 분류, 정보 추출, 1차 응대처럼 짧고 많은 요청을 대량으로 처리하는 업무에 적합하며 비용도 낮습니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["최고 속도", "분류·추출", "대량 처리"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 18, company: [],
+    modelMeta: {
+      provider: "Anthropic", modelName: "Claude Haiku 4.5",
+      contextWindow: "문서 여러 장 (수십 페이지)",
+      strengths: ["최고 속도", "분류·추출", "대량 처리"],
+      strengthsDetail: "가장 빠른 응답이 필요할 때 선택합니다. 텍스트 분류, 정보 추출, 1차 응대처럼 짧고 많은 요청을 대량으로 처리하는 업무에 적합하며 비용도 낮습니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.2만 토큰",
+      costTier: "낮음", useCases: ["텍스트 분류", "핵심 정보 추출", "정형 데이터 변환"],
+    },
+  },
+  {
+    id: "AIO-006", platformId: "ai-orchestration", title: "Gemini 3.1 Pro (Google)",
+    summary: "아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업에 강합니다.",
+    description: "아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업과 추상적 추론에 강하며, 같은 급 모델 대비 비용 효율이 좋습니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["긴 문서 검색", "이미지 분석", "비용 효율"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 15, company: [],
+    modelMeta: {
+      provider: "Google", modelName: "Gemini 3.1 Pro",
+      contextWindow: "매우 긴 문서 (책 한 권 분량)",
+      strengths: ["긴 문서 검색", "이미지 분석", "비용 효율"],
+      strengthsDetail: "아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업과 추상적 추론에 강하며, 같은 급 모델 대비 비용 효율이 좋습니다. 이미지를 함께 넣어 분석할 수 있습니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만 토큰",
+      costTier: "보통", useCases: ["장문 자료 검색·질의", "이미지 포함 문서 분석"],
+    },
+  },
+  {
+    id: "AIO-007", platformId: "ai-orchestration", title: "Gemini 3.5 Flash (Google)",
+    summary: "도구 연동이 필요한 에이전트 작업을 빠르고 저렴하게 처리합니다.",
+    description: "도구 연동이 필요한 에이전트 작업과 이미지·영상을 다루는 멀티모달 작업을 빠르고 저렴하게 처리합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["도구 연동", "멀티모달", "빠른 처리"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 11, company: [],
+    modelMeta: {
+      provider: "Google", modelName: "Gemini 3.5 Flash",
+      contextWindow: "매우 긴 문서 (책 한 권 분량)",
+      strengths: ["도구 연동", "멀티모달", "빠른 처리"],
+      strengthsDetail: "도구 연동이 필요한 에이전트 작업과 이미지·영상을 다루는 멀티모달 작업을 빠르고 저렴하게 처리합니다. 속도와 비용을 함께 챙겨야 하는 자동화 시나리오에 적합합니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만 토큰",
+      costTier: "낮음", useCases: ["외부 도구 연동 자동화", "이미지·영상 내용 파악"],
+    },
+  },
+  {
+    id: "AIO-008", platformId: "ai-orchestration", title: "EXAONE 4.5 (LG AI)",
+    summary: "계약서, 도면, 재무제표 등 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있습니다.",
+    description: "계약서, 도면, 재무제표, 스캔 문서처럼 표와 서식이 섞인 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있으며 한국어 처리가 강합니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["산업 문서", "시각적 이해", "한국어"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 8, company: [],
+    modelMeta: {
+      provider: "LG AI", modelName: "EXAONE 4.5",
+      contextWindow: "문서 여러 장 (수십 페이지)",
+      strengths: ["산업 문서", "시각적 이해", "한국어"],
+      strengthsDetail: "계약서, 도면, 재무제표, 스캔 문서처럼 표와 서식이 섞인 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있으며 한국어 처리가 강합니다. 국내 업무 문서 분석에 우선 검토할 모델입니다.",
+      tokenUsageNote: "문서 10페이지(이미지 포함) 분석 시 약 1.5만 토큰",
+      costTier: "낮음", useCases: ["스캔 문서·도면 판독", "표 중심 서류 분석"],
+    },
+  },
+  {
+    id: "AIO-009", platformId: "ai-orchestration", title: "Solar Pro 3 (Upstage)",
+    summary: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다.",
+    description: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다. 응답이 빠르고 비용이 낮아 한국어 중심의 일상 문서 업무에 부담 없이 사용할 수 있습니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["한국어 문서", "빠른 응답", "저비용"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 7, company: [],
+    modelMeta: {
+      provider: "Upstage", modelName: "Solar Pro 3",
+      contextWindow: "문서 여러 장 (수십 페이지)",
+      strengths: ["한국어 문서", "빠른 응답", "저비용"],
+      strengthsDetail: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다. 응답이 빠르고 비용이 낮아 한국어 중심의 일상 문서 업무에 부담 없이 사용할 수 있습니다.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만 토큰",
+      costTier: "낮음", useCases: ["한국어 문서 요약·작성", "사내 문서 기반 질의응답"],
+    },
+  },
+  {
+    id: "AIO-010", platformId: "ai-orchestration", title: "웍스 대표 모델",
+    summary: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다.",
+    description: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다. 현재 GPT-5.4를 기반으로 하며, 웍스 정책에 따라 항상 최신 모델로 수시 교체됩니다.",
+    status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
+    tags: ["사내 기본", "최신 유지", "고민 불필요"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 44, company: [],
+    modelMeta: {
+      provider: "웍스 대표 모델", modelName: "현재 GPT-5.4 기반",
+      contextWindow: "매우 긴 문서 (책 한 권 분량)",
+      strengths: ["사내 기본", "최신 유지", "고민 불필요"],
+      strengthsDetail: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다. 현재 GPT-5.4를 기반으로 하며, 웍스 정책에 따라 항상 최신 모델로 수시 교체됩니다. 세부 특성은 GPT-5.4 (OpenAI) 카드를 참고하세요.",
+      tokenUsageNote: "문서 10페이지 요약 시 약 1.1만~1.3만 토큰",
+      costTier: "보통", useCases: ["일반 업무 전반 (기본 선택지)"],
     },
   },
   {
@@ -348,7 +426,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "양식 제출 → Teams 알림 플로우",
     summary: "Microsoft Forms 제출 시 담당자에게 Teams 메시지 및 이메일 동시 발송",
     description: "Microsoft Forms에서 양식이 제출되면 담당자에게 Teams 메시지와 이메일을 동시에 발송하여 빠른 처리가 가능하도록 지원합니다.",
-    status: "운영 중", dept: "인사팀", owner: "김민지", ownerEmail: "minji.kim@kolmar.co.kr",
+    status: "사용 가능", dept: "인사팀", owner: "김민지", ownerEmail: "minji.kim@kolmar.co.kr",
     tags: ["Forms", "Teams", "알림"],
     specificUrl: "", updatedAt: "2025.06.15", likes: 8, company: [],
     flowType: "이벤트 발생 시 자동 실행", connectorTier: "기본 커넥터만 사용",
@@ -360,7 +438,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "팀 주간 보고서 Teams 자동 게시",
     summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동으로 게시",
     description: "매주 월요일 SharePoint 문서 라이브러리를 확인하여 최신 주간 보고서를 Teams 채널에 링크와 요약을 포함해 자동으로 게시합니다.",
-    status: "운영 중", dept: "기획팀", owner: "이지원", ownerEmail: "jiwon.lee@kolmar.co.kr",
+    status: "사용 가능", dept: "기획팀", owner: "이지원", ownerEmail: "jiwon.lee@kolmar.co.kr",
     tags: ["Teams", "SharePoint", "주간보고서"],
     specificUrl: "", updatedAt: "2025.07.04", likes: 15, company: [],
     flowType: "예약 실행 (매주 월요일)", connectorTier: "기본 커넥터만 사용",
@@ -372,7 +450,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "원료 수요 예측 모델",
     summary: "과거 생산·판매 데이터를 기반으로 월별 원료 수요를 예측하는 시계열 모델",
     description: "과거 생산 및 판매 데이터를 분석하여 향후 월별 원료 수요를 예측합니다. 구매팀의 재고 계획 수립에 활용됩니다.",
-    status: "실험 중", dept: "구매팀", owner: "이재훈", ownerEmail: "jaehoon.lee@kolmar.co.kr",
+    status: "준비 중", dept: "구매팀", owner: "이재훈", ownerEmail: "jaehoon.lee@kolmar.co.kr",
     tags: ["수요예측", "시계열", "구매"],
     specificUrl: "", updatedAt: "2025.06.20", likes: 9, company: ["KKM", "KBH"],
     mlType: "시계열 예측 (Time-Series)",
@@ -387,7 +465,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     title: "원가 분석 자동화 스크립트",
     summary: "ERP 원가 데이터를 읽어 제품별 원가 분석 리포트를 자동 생성하는 Python 스크립트",
     description: "ERP에서 원가 데이터를 추출하여 제품별 원가 구조를 분석하고 Excel 리포트를 자동 생성합니다. 재무팀의 월별 원가 검토 업무 시간을 단축합니다.",
-    status: "프로토타입", dept: "재무팀", owner: "오현진", ownerEmail: "hyunjin.oh@kolmar.co.kr",
+    status: "준비 중", dept: "재무팀", owner: "오현진", ownerEmail: "hyunjin.oh@kolmar.co.kr",
     tags: ["원가분석", "Python", "ERP"],
     specificUrl: "", updatedAt: "2025.06.21", likes: 6, company: ["KMG"],
     devTool: "ChatGPT",
@@ -490,7 +568,7 @@ export default function PlatformItemDetailPage() {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, background: STATUS_COLOR[item.status]?.bg, color: STATUS_COLOR[item.status]?.color, padding: "3px 10px", borderRadius: 20 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, background: STATUS_COLOR[item.status as PlatformItemStatus]?.bg, color: STATUS_COLOR[item.status as PlatformItemStatus]?.fg, padding: "3px 10px", borderRadius: 20 }}>
                   {item.status}
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 700, background: platform.bg, color: platform.color, padding: "3px 10px", borderRadius: 20 }}>
@@ -694,8 +772,15 @@ export default function PlatformItemDetailPage() {
                   </div>
                 )}
 
-                <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #F1F5F9" }}>
-                  <span onClick={() => navigate(`/projects?q=${encodeURIComponent(platform.name)}`)} style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
+                <div style={{ marginTop: 16, padding: "10px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 11, color: "#92400E", lineHeight: 1.6 }}>
+                  * 추론(Thinking) 모드를 켜면 사고 과정 토큰이 추가되어 표기된 사용량보다 늘어날 수 있습니다.
+                  {item.modelMeta.provider === "웍스 대표 모델" && (
+                    <> 웍스 정책에 따라 기반 모델이 수시 교체됩니다.</>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #F1F5F9" }}>
+                  <span onClick={() => navigate(`/projects?platform=ai-orchestration`)} style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
                     다른 AI 모델과 비교해보기 →
                   </span>
                 </div>

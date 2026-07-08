@@ -2,39 +2,11 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS } from "../../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
 import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 
-// ===== 유형별 상태 값 =====
-const WORKFLOW_STATUSES: string[] = ["운영 중", "테스트 중", "일시 중지"];
-const ASSISTANT_STATUSES: string[] = ["사용 가능", "준비 중", "운영 중지"];
-const AGENT_STATUSES: string[] = ["사용 가능", "일부 제한", "지원 종료 예정"];
-const ML_STATUSES: string[] = ["운영 중", "실험 중", "운영 중지"];
-const VIBE_STATUSES: string[] = ["사용 중", "프로토타입", "운영 중지"];
-
-const STATUS_OPTIONS_BY_KIND = (kind: PlatformId): string[] => {
-  if (kind === "n8n" || kind === "pa") return WORKFLOW_STATUSES;
-  if (kind === "assistant") return ASSISTANT_STATUSES;
-  if (kind === "ai-orchestration") return AGENT_STATUSES;
-  if (kind === "ml") return ML_STATUSES;
-  return VIBE_STATUSES;
-};
-
-const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  "운영 중": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 가능": { bg: "#D1FAE5", color: "#065F46" },
-  "사용 중": { bg: "#D1FAE5", color: "#065F46" },
-  "테스트 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "실험 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "프로토타입": { bg: "#DBEAFE", color: "#1E40AF" },
-  "준비 중": { bg: "#DBEAFE", color: "#1E40AF" },
-  "일시 중지": { bg: "#FEF3C7", color: "#92400E" },
-  "일부 제한": { bg: "#FEF3C7", color: "#92400E" },
-  "운영 중지": { bg: "#FEE2E2", color: "#991B1B" },
-  "지원 종료 예정": { bg: "#FEE2E2", color: "#991B1B" },
-};
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
@@ -373,7 +345,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     summary: "협력사가 제출한 정산서를 ERP 데이터와 자동 대조",
     description: "매월 말 협력사로부터 수신되는 정산서를 ERP 발주 데이터와 자동으로 대조하여 불일치 항목을 표시합니다.",
     dept: "구매팀", submittedBy: "박성훈", submittedAt: "2025.06.20",
-    status: "테스트 중",
+    status: "준비 중",
     triggerAction: "Schedule Trigger(매월 말일) → ERP API 조회 → 정산서 파싱 → 대조 → 불일치 시 Teams 알림",
     nodes: ["Schedule Trigger", "HTTP Request", "Code", "IF"], connectedApps: ["Microsoft Teams"],
     expectedTimeSaved: "월 4시간", difficulty: "보통", specificUrl: "https://n8n.kolmar.co.kr/workflow/014",
@@ -398,7 +370,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
     dept: "구매팀", submittedBy: "최유진", submittedAt: "2025.06.25",
-    status: "테스트 중",
+    status: "준비 중",
     flowType: "이벤트 발생 시 자동 실행", connectorTier: "기본 커넥터만 사용",
     triggerAction: "Form 제출 → Dataverse 조회 → 조건 분기 → 결재 처리",
     connectedApps: ["SharePoint", "Dataverse", "Approvals"],
@@ -450,7 +422,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
     dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2025.06.26",
-    status: "실험 중",
+    status: "준비 중",
     mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장",
     performanceSummary: "정확도 92.3%, 재현율 89.7%",
     devTool: "PyTorch", sourceRepo: "gitlab.kolmar.co.kr/ml/ingredient-classifier",
@@ -661,7 +633,7 @@ export default function AdminReview() {
                   )}
                   <FieldRow label="항목 상태">
                     <div style={{ marginTop: 8 }}>
-                      <SingleSelectTag options={STATUS_OPTIONS_BY_KIND(merged.kind)} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
+                      <SingleSelectTag options={STATUS_ORDER} value={(edit as any).status ?? merged.status} onChange={v => setEdit("status" as any, v)} disabled={isDisabled} />
                     </div>
                   </FieldRow>
                 </SectionBlock>
