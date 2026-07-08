@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -7,8 +6,46 @@ import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
 
 /* ============================================================
+   디자인 토큰 (모듈 레벨)
+   ============================================================ */
+
+const T = {
+  ink: "#0B1220",
+  slate700: "#334155",
+  slate500: "#64748B",
+  slate400: "#94A3B8",
+  line: "#E6EAF0",
+  blue: "#2563EB",
+  blueDeep: "#1D4ED8",
+  surface: "#FFFFFF",
+  canvas: "#F7F9FC",
+  radiusLg: 16,
+  radiusMd: 12,
+  shadowCard: "0 1px 2px rgba(11, 18, 32, 0.04), 0 8px 24px rgba(11, 18, 32, 0.05)",
+  shadowHover: "0 2px 4px rgba(11, 18, 32, 0.05), 0 16px 36px rgba(11, 18, 32, 0.10)",
+} as const;
+
+/** 호버·모션은 인라인 스타일로 불가하므로 클래스 1회 주입 (모듈 레벨 상수) */
+const GLOBAL_CSS = `
+  .axab-lift { transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s cubic-bezier(.2,.8,.2,1); }
+  .axab-lift:hover { transform: translateY(-3px); box-shadow: ${T.shadowHover}; }
+  .axab-type:hover .axab-arrow { opacity: 1; transform: translateX(0); }
+  .axab-arrow { opacity: 0; transform: translateX(-4px); transition: opacity .18s ease, transform .18s ease; }
+  .axab-cta-primary { transition: transform .18s ease, box-shadow .18s ease; }
+  .axab-cta-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(37, 99, 235, .38); }
+  .axab-cta-ghost { transition: border-color .18s ease, color .18s ease; }
+  .axab-cta-ghost:hover { border-color: #94A3B8 !important; }
+`;
+
+/* ============================================================
    데이터 정의 (모듈 레벨)
    ============================================================ */
+
+const HERO_FACTS = [
+  { k: "29", v: "개 관계사" },
+  { k: "6", v: "가지 자산 유형" },
+  { k: "4", v: "단계 표준 상태" },
+];
 
 const PROBLEM_SOLUTION = [
   {
@@ -31,9 +68,9 @@ const PROBLEM_SOLUTION = [
     no: "03",
     icon: "question",
     problem: "무엇을 써야 할지 모름",
-    problemDesc: "AI 모델과 도구가 많아질수록 선택이 더 어려워집니다.",
+    problemDesc: "AI 모델과 도구가 많아질수록 선택은 더 어려워집니다.",
     solution: "질문에 답하는 콘텐츠",
-    solutionDesc: "\"나는 어떤 Agent를 써야 할까\"에 카탈로그가 직접 답합니다.",
+    solutionDesc: "\u201C나는 어떤 Agent를 써야 할까\u201D에 카탈로그가 직접 답합니다.",
   },
   {
     no: "04",
@@ -58,24 +95,24 @@ const TYPE_ONELINE: Record<PlatformId, string> = {
   n8n: "사내 n8n 서버에서 상시 실행되는 워크플로우 자동화",
   pa: "Microsoft 환경(클라우드·개인 PC)에서 실행되는 자동화",
   assistant: "HK GPT 모델에 프롬프트를 입혀 만든, 복사해 쓸 수 있는 맞춤 비서",
-  "ai-orchestration": "\"나는 어떤 모델을 써야 할까\"에 답하는 AI 모델 카탈로그",
+  "ai-orchestration": "\u201C나는 어떤 모델을 써야 할까\u201D에 답하는 AI 모델 카탈로그",
   ml: "독립적으로 개발·운영되는 머신러닝·통계 모델",
   vibe: "AI 코딩 도구로 직원이 직접 만든 프로그램",
 };
 
 const CONCEPT_CARDS = [
   {
-    q: "나는 어떤 Agent를 써야 할까?",
+    q: "나는 어떤 Agent를\n써야 할까?",
     type: "AI Agent",
-    desc: "모델별로 무엇을 잘하는지, 한 번 쓰면 얼마나 드는지(처리 가능한 글 분량 · 1회 사용량 · 비용 등급)를 비교해 답합니다.",
+    desc: "모델별로 무엇을 잘하는지, 한 번 쓰면 얼마나 드는지 — 처리 가능한 글 분량, 1회 사용량, 비용 등급으로 비교해 답합니다.",
   },
   {
-    q: "이런 프롬프트를 쓰니 편하더라",
+    q: "이런 프롬프트를 쓰니\n편하더라",
     type: "나만의 비서",
     desc: "그대로 복사해 바로 쓸 수 있는 프롬프트 원문과, 어떤 Agent를 썼고 어떤 환경이 필요한지까지 함께 공유합니다.",
   },
   {
-    q: "내가 만든 프로그램을 공유합니다",
+    q: "내가 만든 프로그램을\n공유합니다",
     type: "Vibe Coding",
     desc: "어떤 문제를, 어떤 도구로, 어떻게 해결했는지 — 동료의 제작 이야기를 사례로 소개합니다.",
   },
@@ -83,10 +120,10 @@ const CONCEPT_CARDS = [
 
 const STATUS_STEPS = [
   // TODO: 상태 통일 작업(platformTypes.ts STATUS_ORDER/STATUS_COLOR) 반영 시 공용 상수로 교체
-  { label: "사용 가능", desc: "지금 바로 쓸 수 있어요", fg: "#059669", bg: "#ECFDF5", bd: "#A7F3D0" },
-  { label: "준비 중", desc: "개발·테스트 중이에요", fg: "#2563EB", bg: "#EFF6FF", bd: "#BFDBFE" },
-  { label: "일부 제한", desc: "조건부로 쓸 수 있어요", fg: "#D97706", bg: "#FFFBEB", bd: "#FDE68A" },
-  { label: "사용 중지", desc: "더 이상 운영하지 않아요", fg: "#DC2626", bg: "#FEF2F2", bd: "#FECACA" },
+  { label: "사용 가능", desc: "지금 바로 쓸 수 있어요", fg: "#059669", bg: "#F0FDF7" },
+  { label: "준비 중", desc: "개발·테스트 중이에요", fg: "#2563EB", bg: "#F3F7FE" },
+  { label: "일부 제한", desc: "조건부로 쓸 수 있어요", fg: "#D97706", bg: "#FFFAF0" },
+  { label: "사용 중지", desc: "더 이상 운영하지 않아요", fg: "#DC2626", bg: "#FEF5F5" },
 ];
 
 const FLOW_STEPS = [
@@ -119,23 +156,37 @@ const FAQ_ITEMS = [
    모듈 레벨 서브컴포넌트 (페이지 함수 내부 정의 금지)
    ============================================================ */
 
-function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+/** 에디토리얼형 섹션 헤더 — 번호 + 헤어라인 + 좌측 정렬 타이틀 */
+function SectionHeading({ index, eyebrow, title, sub }: {
+  index: string; eyebrow: string; title: string; sub?: string;
+}) {
   return (
-    <div style={{ textAlign: "center", marginBottom: 36 }}>
-      <div style={{
-        display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
-        color: "#2563EB", textTransform: "uppercase", marginBottom: 12,
-      }}>
-        {eyebrow}
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+        <span style={{
+          fontSize: 12, fontWeight: 800, color: T.blue,
+          fontVariantNumeric: "tabular-nums", letterSpacing: "0.04em",
+        }}>
+          {index}
+        </span>
+        <span style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: "0.14em",
+          color: T.slate400, textTransform: "uppercase",
+        }}>
+          {eyebrow}
+        </span>
+        <span style={{ flex: 1, height: 1, background: T.line }} />
       </div>
       <h2 style={{
-        fontSize: 28, fontWeight: 800, color: "#0F172A",
-        letterSpacing: "-0.02em", margin: "0 0 10px", lineHeight: 1.3,
+        fontSize: 26, fontWeight: 800, color: T.ink,
+        letterSpacing: "-0.02em", margin: sub ? "0 0 8px" : 0, lineHeight: 1.3,
       }}>
         {title}
       </h2>
       {sub && (
-        <p style={{ fontSize: 14, color: "#64748B", margin: 0, lineHeight: 1.7 }}>{sub}</p>
+        <p style={{ fontSize: 14, color: T.slate500, margin: 0, lineHeight: 1.7, maxWidth: 560 }}>
+          {sub}
+        </p>
       )}
     </div>
   );
@@ -143,8 +194,8 @@ function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: strin
 
 function WhyIcon({ name }: { name: string }) {
   const common = {
-    width: 22, height: 22, viewBox: "0 0 24 24", fill: "none",
-    stroke: "#FCA5A5", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
+    width: 20, height: 20, viewBox: "0 0 24 24", fill: "none",
+    stroke: "#F87171", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
   };
   switch (name) {
     case "scatter":
@@ -186,79 +237,81 @@ function WhyIcon({ name }: { name: string }) {
   }
 }
 
+/** Problem → Solution 카드 — 좌측 세로 스플릿, 절제된 대비 */
 function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
   return (
-    <div style={{
-      background: "#fff", borderRadius: 14, overflow: "hidden",
-      border: "1.5px solid #E2E8F0",
-      boxShadow: "0 4px 18px rgba(15, 23, 42, 0.06)",
-      display: "flex", flexDirection: "column",
-    }}>
+    <div
+      className="axab-lift"
+      style={{
+        background: T.surface, borderRadius: T.radiusLg, overflow: "hidden",
+        borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
+        boxShadow: T.shadowCard, display: "flex", flexDirection: "column",
+      }}
+    >
+      {/* PROBLEM 존 */}
       <div style={{
         position: "relative",
-        background: "linear-gradient(150deg, #0F172A 0%, #1E293B 100%)",
-        padding: "22px 22px 26px",
+        background: "linear-gradient(150deg, #0E1526 0%, #1A2438 100%)",
+        padding: "20px 22px 22px",
       }}>
         <div style={{
-          position: "absolute", top: 8, right: 16,
-          fontSize: 56, fontWeight: 900, color: "rgba(148, 163, 184, 0.14)",
+          position: "absolute", top: 10, right: 18,
+          fontSize: 48, fontWeight: 900, color: "rgba(148, 163, 184, 0.10)",
           letterSpacing: "-0.04em", lineHeight: 1, userSelect: "none",
+          fontVariantNumeric: "tabular-nums",
         }}>
           {item.no}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <div style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: "rgba(239, 68, 68, 0.14)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(248, 113, 113, 0.10)",
+            border: "1px solid rgba(248, 113, 113, 0.22)",
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>
             <WhyIcon name={item.icon} />
           </div>
           <div style={{
             fontSize: 10, fontWeight: 800, color: "#F87171",
-            letterSpacing: "0.14em", textTransform: "uppercase",
+            letterSpacing: "0.16em", textTransform: "uppercase",
           }}>
             Problem
           </div>
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: "#F8FAFC", marginBottom: 6, letterSpacing: "-0.01em", position: "relative" }}>
+        <div style={{
+          fontSize: 16.5, fontWeight: 800, color: "#F8FAFC",
+          marginBottom: 6, letterSpacing: "-0.01em", position: "relative",
+        }}>
           {item.problem}
         </div>
-        <div style={{ fontSize: 12.5, color: "#94A3B8", lineHeight: 1.65, position: "relative" }}>
+        <div style={{ fontSize: 12.5, color: "#8C9AB1", lineHeight: 1.65, position: "relative" }}>
           {item.problemDesc}
         </div>
       </div>
 
-      <div style={{ position: "relative", height: 0 }}>
+      {/* SOLUTION 존 */}
+      <div style={{ position: "relative", padding: "22px 22px 22px", flex: 1 }}>
         <div style={{
-          position: "absolute", left: "50%", top: -17, transform: "translateX(-50%)",
-          width: 34, height: 34, borderRadius: "50%",
-          background: "#2563EB", border: "3px solid #fff",
-          boxShadow: "0 3px 10px rgba(37, 99, 235, 0.35)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="4" x2="12" y2="20" />
-            <polyline points="6 14 12 20 18 14" />
+          position: "absolute", top: 0, left: 22, right: 22, height: 2,
+          background: `linear-gradient(90deg, ${T.blue}, rgba(37, 99, 235, 0))`,
+        }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.blue} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="13 6 19 12 13 18" />
           </svg>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: T.blue,
+            letterSpacing: "0.16em", textTransform: "uppercase",
+          }}>
+            Solution
+          </div>
         </div>
-      </div>
-
-      <div style={{
-        background: "linear-gradient(180deg, #EFF6FF 0%, #FFFFFF 100%)",
-        padding: "28px 22px 22px", flex: 1,
-      }}>
-        <div style={{
-          fontSize: 10, fontWeight: 800, color: "#2563EB",
-          letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 10,
-        }}>
-          Solution
-        </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 6, letterSpacing: "-0.01em" }}>
+        <div style={{ fontSize: 16.5, fontWeight: 800, color: T.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
           {item.solution}
         </div>
-        <div style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.65 }}>
+        <div style={{ fontSize: 12.5, color: T.slate500, lineHeight: 1.65 }}>
           {item.solutionDesc}
         </div>
       </div>
@@ -268,7 +321,7 @@ function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
 
 function TypeIcon({ id, color }: { id: PlatformId; color: string }) {
   const common = {
-    width: 20, height: 20, viewBox: "0 0 24 24", fill: "none",
+    width: 19, height: 19, viewBox: "0 0 24 24", fill: "none",
     stroke: color, strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
   };
   switch (id) {
@@ -329,78 +382,125 @@ function TypeCard({ id, name, color, bg, onClick }: {
   return (
     <button
       onClick={onClick}
+      className="axab-lift axab-type"
       style={{
-        textAlign: "left", background: "#fff", borderRadius: 12,
-        borderTop: "1.5px solid #E2E8F0", borderRight: "1.5px solid #E2E8F0",
-        borderBottom: "1.5px solid #E2E8F0", borderLeft: `4px solid ${color}`,
+        textAlign: "left", background: T.surface, borderRadius: T.radiusMd,
+        borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
         padding: "18px 18px 16px", cursor: "pointer",
-        boxShadow: "0 2px 10px rgba(15, 23, 42, 0.04)",
-        display: "flex", flexDirection: "column", gap: 10, fontFamily: "inherit",
+        boxShadow: T.shadowCard,
+        display: "flex", flexDirection: "column", gap: 11, fontFamily: "inherit",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 9, background: bg,
+          width: 38, height: 38, borderRadius: 10, background: bg,
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}>
           <TypeIcon id={id} color={color} />
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.01em" }}>{name}</div>
-          <div style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: "0.06em", marginTop: 2 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: T.ink, letterSpacing: "-0.01em" }}>
+            {name}
+          </div>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: T.slate400,
+            letterSpacing: "0.08em", marginTop: 3, textTransform: "uppercase",
+          }}>
             {GROUP_LABEL[id]}
           </div>
         </div>
+        <span className="axab-arrow" style={{ display: "inline-flex", flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="13 6 19 12 13 18" />
+          </svg>
+        </span>
       </div>
-      <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{TYPE_ONELINE[id]}</div>
+      <div style={{ fontSize: 12.5, color: T.slate500, lineHeight: 1.65 }}>
+        {TYPE_ONELINE[id]}
+      </div>
     </button>
   );
 }
 
-function ConceptCard({ item }: { item: (typeof CONCEPT_CARDS)[number] }) {
+function ConceptCard({ item, accentIndex }: { item: (typeof CONCEPT_CARDS)[number]; accentIndex: number }) {
+  const accents = ["#2563EB", "#7C3AED", "#0891B2"];
+  const accent = accents[accentIndex % accents.length];
   return (
-    <div style={{
-      background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12,
-      padding: "22px 20px", display: "flex", flexDirection: "column", gap: 10,
-      boxShadow: "0 2px 10px rgba(15, 23, 42, 0.04)",
-    }}>
+    <div
+      className="axab-lift"
+      style={{
+        background: T.surface, borderRadius: T.radiusLg,
+        borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
+        padding: "24px 22px", display: "flex", flexDirection: "column",
+        boxShadow: T.shadowCard, position: "relative", overflow: "hidden",
+      }}
+    >
       <div style={{
-        alignSelf: "flex-start", fontSize: 10.5, fontWeight: 700, color: "#2563EB",
-        background: "#EFF6FF", borderRadius: 12, padding: "3px 10px",
+        position: "absolute", top: 0, left: 0, right: 0, height: 3,
+        background: `linear-gradient(90deg, ${accent}, ${accent}00)`,
+      }} />
+      <div style={{
+        fontSize: 40, fontWeight: 900, color: accent, opacity: 0.16,
+        lineHeight: 1, marginBottom: 4, userSelect: "none",
+        fontFamily: "Georgia, serif",
+      }}>
+        &ldquo;
+      </div>
+      <div style={{
+        fontSize: 17, fontWeight: 800, color: T.ink, lineHeight: 1.45,
+        letterSpacing: "-0.01em", marginBottom: 12, whiteSpace: "pre-line", flex: 1,
+      }}>
+        {item.q}
+      </div>
+      <div style={{
+        alignSelf: "flex-start", fontSize: 10.5, fontWeight: 700, color: accent,
+        background: `${accent}12`, borderRadius: 12, padding: "3px 10px", marginBottom: 10,
       }}>
         {item.type}
       </div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", lineHeight: 1.45, letterSpacing: "-0.01em" }}>
-        "{item.q}"
+      <div style={{ fontSize: 12.5, color: T.slate500, lineHeight: 1.7 }}>
+        {item.desc}
       </div>
-      <div style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.7 }}>{item.desc}</div>
     </div>
   );
 }
 
-function FaqRow({ q, a }: { q: string; a: string }) {
+function FaqRow({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+    <div style={{ borderBottom: isLast ? "none" : `1px solid ${T.line}` }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
           width: "100%", textAlign: "left", background: "transparent", border: "none",
-          padding: "16px 18px", cursor: "pointer", display: "flex",
+          padding: "18px 4px", cursor: "pointer", display: "flex",
           alignItems: "center", justifyContent: "space-between", gap: 12, fontFamily: "inherit",
         }}
       >
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{q}</span>
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8"
-          strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-          style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.18s ease" }}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <span style={{ fontSize: 14, fontWeight: 700, color: open ? T.blue : T.ink, transition: "color .15s ease" }}>
+          {q}
+        </span>
+        <span style={{
+          width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+          background: open ? T.blue : "#F1F5F9",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "background .18s ease",
+        }}>
+          <svg
+            width="13" height="13" viewBox="0 0 24 24" fill="none"
+            stroke={open ? "#fff" : T.slate400} strokeWidth="2.4" strokeLinecap="round"
+            style={{ transform: open ? "rotate(45deg)" : "none", transition: "transform .18s ease" }}
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </span>
       </button>
       {open && (
-        <div style={{ padding: "0 18px 16px", fontSize: 12.5, color: "#475569", lineHeight: 1.75 }}>
+        <div style={{ padding: "0 4px 20px", fontSize: 13, color: T.slate500, lineHeight: 1.8, maxWidth: 640 }}>
           {a}
         </div>
       )}
@@ -416,94 +516,143 @@ export default function AboutPage() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: T.canvas, minHeight: "100vh", color: T.ink }}>
+      <style>{GLOBAL_CSS}</style>
 
       <Navbar />
 
-      {/* HERO — 라이트 톤 (랜딩과 통일) */}
+      {/* HERO — 라이트 톤, 도트 그리드 텍스처 */}
       <section style={{
-        background: "linear-gradient(165deg, #EFF6FF 0%, #FFFFFF 55%, #F0FDFA 100%)",
-        padding: "68px 32px 60px", textAlign: "center",
+        background: "#FFFFFF",
+        padding: "76px 32px 0", textAlign: "center",
         position: "relative", overflow: "hidden",
-        borderBottom: "1px solid #E2E8F0",
+        borderBottom: `1px solid ${T.line}`,
       }}>
+        {/* 도트 그리드 배경 */}
         <div style={{
-          position: "absolute", top: -140, left: "50%", transform: "translateX(-50%)",
-          width: 680, height: 680, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(37, 99, 235, 0.10) 0%, rgba(37, 99, 235, 0) 62%)",
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(rgba(37, 99, 235, 0.10) 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
+          maskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 100%)",
           pointerEvents: "none",
         }} />
 
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
           <div style={{
-            display: "inline-block", fontSize: 11, fontWeight: 700, letterSpacing: "0.18em",
-            color: "#2563EB", background: "rgba(37, 99, 235, 0.08)",
-            border: "1px solid rgba(37, 99, 235, 0.2)", borderRadius: 20,
-            padding: "5px 16px", marginBottom: 22, textTransform: "uppercase",
+            display: "inline-flex", alignItems: "center", gap: 8,
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.16em",
+            color: T.blue, background: "rgba(37, 99, 235, 0.06)",
+            border: "1px solid rgba(37, 99, 235, 0.18)", borderRadius: 20,
+            padding: "6px 16px", marginBottom: 26, textTransform: "uppercase",
           }}>
-            Kolmar Group · AX Platform
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.blue }} />
+            Kolmar Group
           </div>
 
           <div style={{
-            fontSize: 42, fontWeight: 900, color: "#0F172A",
-            letterSpacing: "-0.03em", lineHeight: 1.18, marginBottom: 14,
+            fontSize: 46, fontWeight: 900, color: T.ink,
+            letterSpacing: "-0.035em", lineHeight: 1.14, marginBottom: 18,
           }}>
-            콜마그룹 AX Platform
+            그룹의 자동화·AI 자산,
+            <br />
+            <span style={{
+              background: `linear-gradient(100deg, ${T.blue}, #0891B2)`,
+              WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+            }}>
+              AX Platform
+            </span>
+            에서 만나세요
           </div>
 
-          <h1 style={{
-            fontSize: 19, fontWeight: 700, color: "#334155",
-            letterSpacing: "-0.01em", margin: "0 0 14px", lineHeight: 1.55,
+          <p style={{
+            fontSize: 15, color: T.slate500, lineHeight: 1.75,
+            maxWidth: 520, margin: "0 auto 32px",
           }}>
-            그룹의 자동화·AI 자산을 한곳에 모은 카탈로그입니다
-          </h1>
-
-          <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 30px" }}>
-            누가, 무엇을, 어떻게 쓰고 있는지 — 탐색하고, 따라 쓰고, 내 것을 공유하세요.
+            누가, 무엇을, 어떻게 쓰고 있는지 — 탐색하고, 따라 쓰고,
+            내 것을 공유하는 그룹 단일 카탈로그입니다.
           </p>
 
-          <div>
-            <button onClick={() => navigate("/projects")} style={{
-              background: "#2563EB", color: "#fff", border: "none", borderRadius: 8,
-              padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-              marginRight: 10, boxShadow: "0 4px 14px rgba(37, 99, 235, 0.28)",
-            }}>
+          <div style={{ marginBottom: 44 }}>
+            <button
+              onClick={() => navigate("/projects")}
+              className="axab-cta-primary"
+              style={{
+                background: T.blue, color: "#fff", border: "none", borderRadius: 9,
+                padding: "13px 30px", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                marginRight: 10, boxShadow: "0 4px 14px rgba(37, 99, 235, 0.30)",
+              }}
+            >
               자산 탐색하기
             </button>
-            <button onClick={() => navigate("/projects/new")} style={{
-              background: "#fff", color: "#0F172A", border: "1.5px solid #E2E8F0", borderRadius: 8,
-              padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-            }}>
+            <button
+              onClick={() => navigate("/projects/new")}
+              className="axab-cta-ghost"
+              style={{
+                background: "#fff", color: T.ink, borderTop: `1.5px solid ${T.line}`,
+                borderRight: `1.5px solid ${T.line}`, borderBottom: `1.5px solid ${T.line}`,
+                borderLeft: `1.5px solid ${T.line}`, borderRadius: 9,
+                padding: "13px 30px", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}
+            >
               내 자산 등록하기
             </button>
+          </div>
+
+          {/* 팩트 스트립 */}
+          <div style={{
+            display: "inline-flex", background: "#FFFFFF",
+            borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+            borderLeft: `1px solid ${T.line}`, borderBottom: "none",
+            borderRadius: "14px 14px 0 0", overflow: "hidden",
+            boxShadow: "0 -2px 16px rgba(11, 18, 32, 0.04)",
+          }}>
+            {HERO_FACTS.map((f, i) => (
+              <div key={i} style={{
+                padding: "16px 34px 18px",
+                borderLeft: i === 0 ? "none" : `1px solid ${T.line}`,
+              }}>
+                <span style={{
+                  fontSize: 24, fontWeight: 900, color: T.ink,
+                  letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums",
+                }}>
+                  {f.k}
+                </span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: T.slate500, marginLeft: 5 }}>
+                  {f.v}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <div style={{ maxWidth: 880, margin: "0 auto", padding: "56px 32px 48px" }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "72px 32px 56px" }}>
 
-        {/* 왜 AX Platform인가 — Problem → Solution 2×2 */}
-        <div style={{ marginBottom: 64 }}>
+        {/* 01 — 왜 AX Platform인가 */}
+        <div style={{ marginBottom: 88 }}>
           <SectionHeading
+            index="01"
             eyebrow="Why AX Platform"
             title="왜 AX Platform인가요?"
             sub="현장의 네 가지 문제를, 네 가지 방식으로 해결합니다."
           />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
             {PROBLEM_SOLUTION.map((ps) => (
               <WhyCard key={ps.no} item={ps} />
             ))}
           </div>
         </div>
 
-        {/* 무엇을 다루나 — 4대 그룹 · 6가지 유형 */}
-        <div style={{ marginBottom: 64 }}>
+        {/* 02 — 무엇을 다루나 */}
+        <div style={{ marginBottom: 88 }}>
           <SectionHeading
+            index="02"
             eyebrow="What We Cover"
             title="무엇을 다루나요?"
-            sub={"자산은 기술이 아니라 \"쓰려면 어디로 가야 하는가\"를 기준으로 나눕니다."}
+            sub={"자산은 기술이 아니라 \u201C쓰려면 어디로 가야 하는가\u201D를 기준으로 나눕니다."}
           />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 14 }}>
             {PLATFORMS.map((p) => (
               <TypeCard
                 key={p.id}
@@ -516,125 +665,161 @@ export default function AboutPage() {
             ))}
           </div>
           <div style={{
-            background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10,
-            padding: "14px 18px", fontSize: 12.5, color: "#64748B", lineHeight: 1.7,
+            display: "flex", alignItems: "flex-start", gap: 10,
+            background: "#FFFFFF", borderTop: `1px dashed #CBD5E1`,
+            borderRight: `1px dashed #CBD5E1`, borderBottom: `1px dashed #CBD5E1`,
+            borderLeft: `1px dashed #CBD5E1`, borderRadius: 10,
+            padding: "14px 16px", fontSize: 12.5, color: T.slate500, lineHeight: 1.7,
           }}>
-            <strong style={{ color: "#475569" }}>이런 것은 다루지 않아요</strong> — 일반 IT 프로젝트,
-            시스템 구축·개선 과제(MES·SRM·ERP 등), 플랫폼 인프라 구축, BI
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.slate400} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+              <circle cx="12" cy="12" r="9" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+            <span>
+              <strong style={{ color: T.slate700, fontWeight: 700 }}>다루지 않는 것</strong>
+              &nbsp;— 일반 IT 프로젝트, 시스템 구축·개선 과제(MES·SRM·ERP 등), 플랫폼 인프라 구축, BI
+            </span>
           </div>
         </div>
 
-        {/* 질문에서 출발하는 콘텐츠 */}
-        <div style={{ marginBottom: 64 }}>
+        {/* 03 — 질문에서 출발하는 콘텐츠 */}
+        <div style={{ marginBottom: 88 }}>
           <SectionHeading
+            index="03"
             eyebrow="Content Concept"
             title="질문에서 출발합니다"
             sub="모든 콘텐츠는 여러분이 실제로 품는 질문에 답하는 형식입니다."
           />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
             {CONCEPT_CARDS.map((c, i) => (
-              <ConceptCard key={i} item={c} />
+              <ConceptCard key={i} item={c} accentIndex={i} />
             ))}
           </div>
         </div>
 
-        {/* 상태는 신호등처럼 */}
-        <div style={{ marginBottom: 64 }}>
+        {/* 04 — 상태는 신호등처럼 */}
+        <div style={{ marginBottom: 88 }}>
           <SectionHeading
+            index="04"
             eyebrow="Status"
             title="상태는 신호등처럼"
             sub="모든 자산의 상태는 네 가지로 통일되어 있어 한눈에 판단할 수 있습니다."
           />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-            {STATUS_STEPS.map((s) => (
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+            background: T.surface, borderRadius: T.radiusLg, overflow: "hidden",
+            borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+            borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
+            boxShadow: T.shadowCard,
+          }}>
+            {STATUS_STEPS.map((s, i) => (
               <div key={s.label} style={{
-                background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12,
-                padding: "16px 14px", textAlign: "center",
+                padding: "22px 18px",
+                background: s.bg,
+                borderLeft: i === 0 ? "none" : `1px solid ${T.line}`,
               }}>
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  fontSize: 13, fontWeight: 800, color: s.fg, marginBottom: 6,
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.fg, display: "inline-block" }} />
-                  {s.label}
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+                  <span style={{
+                    width: 9, height: 9, borderRadius: "50%", background: s.fg,
+                    boxShadow: `0 0 0 3px ${s.fg}22`, display: "inline-block",
+                  }} />
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: s.fg }}>{s.label}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: "#64748B", lineHeight: 1.6 }}>{s.desc}</div>
+                <div style={{ fontSize: 11.5, color: T.slate500, lineHeight: 1.6 }}>{s.desc}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 어떻게 이용하나 — 탐색→확인→등록→공유 */}
-        <div style={{ marginBottom: 56 }}>
+        {/* 05 — 어떻게 이용하나 */}
+        <div style={{ marginBottom: 88 }}>
           <SectionHeading
+            index="05"
             eyebrow="How It Works"
             title="어떻게 이용하나요?"
           />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, position: "relative", marginBottom: 16 }}>
-            <div style={{ position: "absolute", top: 26, left: "12.5%", right: "12.5%", height: 2, background: "#E2E8F0", zIndex: 0 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, position: "relative", marginBottom: 18 }}>
+            <div style={{
+              position: "absolute", top: 25, left: "12.5%", right: "12.5%", height: 2,
+              background: `linear-gradient(90deg, ${T.blue}, #93C5FD)`,
+              opacity: 0.35, zIndex: 0,
+            }} />
             {FLOW_STEPS.map((f, i) => (
               <div key={i} style={{ position: "relative", padding: "0 14px" }}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: "50%", background: "#2563EB", color: "#fff",
+                  width: 50, height: 50, borderRadius: "50%",
+                  background: T.surface, color: T.blue,
+                  borderTop: `2px solid ${T.blue}`, borderRight: `2px solid ${T.blue}`,
+                  borderBottom: `2px solid ${T.blue}`, borderLeft: `2px solid ${T.blue}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 800, margin: "0 auto 16px", position: "relative", zIndex: 1,
+                  fontSize: 14, fontWeight: 800, margin: "0 auto 16px",
+                  position: "relative", zIndex: 1, fontVariantNumeric: "tabular-nums",
+                  boxShadow: "0 2px 10px rgba(37, 99, 235, 0.14)",
                 }}>
                   {f.step}
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{f.title}</div>
-                  <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.6 }}>{f.desc}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.ink, marginBottom: 6 }}>{f.title}</div>
+                  <div style={{ fontSize: 12, color: T.slate500, lineHeight: 1.65 }}>{f.desc}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ textAlign: "center", fontSize: 12, color: "#94A3B8" }}>
+          <div style={{ textAlign: "center", fontSize: 12, color: T.slate400 }}>
             AI Agent 유형은 관리자가 카탈로그로 직접 관리합니다.
           </div>
         </div>
 
-        {/* FAQ */}
-        <div style={{ marginBottom: 56 }}>
-          <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* 06 — FAQ */}
+        <div style={{ marginBottom: 72 }}>
+          <SectionHeading index="06" eyebrow="FAQ" title="자주 묻는 질문" />
+          <div style={{
+            background: T.surface, borderRadius: T.radiusLg, padding: "6px 22px",
+            borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+            borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
+            boxShadow: T.shadowCard,
+          }}>
             {FAQ_ITEMS.map((f, i) => (
-              <FaqRow key={i} q={f.q} a={f.a} />
+              <FaqRow key={i} q={f.q} a={f.a} isLast={i === FAQ_ITEMS.length - 1} />
             ))}
           </div>
         </div>
 
-        {/* Phase 2 예고 */}
-        <div style={{ background: "#0F172A", borderRadius: 12, padding: "22px 24px", marginBottom: 48 }}>
-          <div style={{
-            fontSize: 11, fontWeight: 700, color: "#93C5FD",
-            letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
-          }}>
-            Next Phase
-          </div>
-          <div style={{ fontSize: 13, color: "#CBD5E1", lineHeight: 1.8 }}>
-            <strong style={{ color: "#93C5FD" }}>AX 검색 AI</strong>가 도입될 예정입니다.
-            질문만으로 가장 적합한 자산과 담당자를 즉시 찾아드립니다.
-          </div>
-        </div>
-
-        {/* CTA 배너 */}
+        {/* CTA — Next Phase 통합 배너 */}
         <div style={{
-          background: "linear-gradient(120deg, #2563EB 0%, #1D4ED8 55%, #0891B2 100%)",
-          borderRadius: 14, padding: "34px 28px", textAlign: "center",
-          boxShadow: "0 8px 24px rgba(37, 99, 235, 0.25)",
+          position: "relative", overflow: "hidden",
+          background: "linear-gradient(135deg, #0E1526 0%, #14213B 60%, #16324F 100%)",
+          borderRadius: 18, padding: "42px 36px", textAlign: "center",
+          boxShadow: "0 12px 32px rgba(11, 18, 32, 0.22)",
         }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-0.01em", marginBottom: 8 }}>
-            지금 우리 회사의 자산부터 둘러보세요
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: "radial-gradient(rgba(147, 197, 253, 0.14) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+            maskImage: "radial-gradient(ellipse 60% 90% at 50% 100%, #000 20%, transparent 100%)",
+            WebkitMaskImage: "radial-gradient(ellipse 60% 90% at 50% 100%, #000 20%, transparent 100%)",
+            pointerEvents: "none",
+          }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#F8FAFC", letterSpacing: "-0.015em", marginBottom: 10 }}>
+              지금 우리 회사의 자산부터 둘러보세요
+            </div>
+            <div style={{ fontSize: 13.5, color: "#93A5C0", marginBottom: 26, lineHeight: 1.7 }}>
+              이미 만들어진 도구가 여러분을 기다리고 있습니다.
+              <br />
+              곧 <strong style={{ color: "#93C5FD", fontWeight: 700 }}>AX 검색 AI</strong>가 질문만으로 가장 적합한 자산과 담당자를 찾아드립니다.
+            </div>
+            <button
+              onClick={() => navigate("/projects")}
+              className="axab-cta-primary"
+              style={{
+                background: "#FFFFFF", color: T.blueDeep, border: "none", borderRadius: 9,
+                padding: "13px 32px", fontSize: 14, fontWeight: 800, cursor: "pointer",
+              }}
+            >
+              자산 탐색하기
+            </button>
           </div>
-          <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", marginBottom: 22, lineHeight: 1.6 }}>
-            이미 만들어진 도구가 여러분을 기다리고 있습니다.
-          </div>
-          <button onClick={() => navigate("/projects")} style={{
-            background: "#fff", color: "#1D4ED8", border: "none", borderRadius: 8,
-            padding: "12px 30px", fontSize: 14, fontWeight: 800, cursor: "pointer",
-          }}>
-            자산 탐색하기
-          </button>
         </div>
       </div>
 
