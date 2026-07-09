@@ -35,7 +35,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
   { id: "AST-002", platformId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", description: "", status: "사용 가능", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["회의록", "요약", "Teams연동"], specificUrl: "https://assistant.kolmar.co.kr/agents/meeting-summary", updatedAt: "2025.06.14", likes: 18 },
   { id: "AST-003", platformId: "assistant", title: "코드 리뷰 어시스턴트", summary: "GitHub PR에 자동으로 코드 리뷰 코멘트를 남기는 봇", description: "", status: "준비 중", dept: "IT개발팀", company: [], owner: "정태영", ownerEmail: "taeyoung.jung@kolmar.co.kr", tags: ["코드리뷰", "GitHub", "개발도구"], specificUrl: "https://assistant.kolmar.co.kr/agents/code-review", updatedAt: "2025.06.19", likes: 10 },
   { id: "AST-004", platformId: "assistant", title: "원료 안전성 문의 봇", summary: "원료의 MSDS·규제 정보를 빠르게 조회하는 연구원용 봇", description: "", status: "준비 중", dept: "메이크업연구소", company: ["KKM"], owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr", tags: ["원료", "MSDS", "규제정보"], specificUrl: "https://assistant.kolmar.co.kr/agents/ingredient-safety", updatedAt: "2025.06.20", likes: 5 },
-  // AI Agent 카탈로그 (10건) — DeepSeek: 도입 확정 시 추가 (중국어 업무 대응, status 일부 제한으로 등록 예정)
+  // AI Agent 카탈로그 (11건)
   { id: "AIO-001", platformId: "ai-orchestration", title: "GPT-5.4 (OpenAI)", summary: "범용 업무 전반에 무난한 기본 선택지입니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["범용", "빠른 응답", "문서 작성"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 38, modelMeta: { provider: "OpenAI", contextWindow: "매우 긴 문서 (책 한 권 분량)", strengths: ["범용", "빠른 응답", "문서 작성"], costTier: "보통" } },
   { id: "AIO-002", platformId: "ai-orchestration", title: "GPT-5.4 Mini (OpenAI)", summary: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["저비용", "반복 작업", "코딩 보조"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 22, modelMeta: { provider: "OpenAI", contextWindow: "문서 여러 장 (수십 페이지)", strengths: ["저비용", "반복 작업", "코딩 보조"], costTier: "낮음" } },
   { id: "AIO-003", platformId: "ai-orchestration", title: "Claude Opus 4.8 (Anthropic)", summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["복잡한 추론", "에이전트 코딩", "다단계 분석"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 29, modelMeta: { provider: "Anthropic", contextWindow: "매우 긴 문서 (책 한 권 분량)", strengths: ["복잡한 추론", "에이전트 코딩", "다단계 분석"], costTier: "높음" } },
@@ -46,6 +46,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
   { id: "AIO-008", platformId: "ai-orchestration", title: "EXAONE 4.5 (LG AI)", summary: "계약서, 도면, 재무제표 등 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있습니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["산업 문서", "시각적 이해", "한국어"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 8, modelMeta: { provider: "LG AI", contextWindow: "문서 여러 장 (수십 페이지)", strengths: ["산업 문서", "시각적 이해", "한국어"], costTier: "낮음" } },
   { id: "AIO-009", platformId: "ai-orchestration", title: "Solar Pro 3 (Upstage)", summary: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["한국어 문서", "빠른 응답", "저비용"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 7, modelMeta: { provider: "Upstage", contextWindow: "문서 여러 장 (수십 페이지)", strengths: ["한국어 문서", "빠른 응답", "저비용"], costTier: "낮음" } },
   { id: "AIO-010", platformId: "ai-orchestration", title: "웍스 대표 모델", summary: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다.", description: "", status: "사용 가능", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["사내 기본", "최신 유지", "고민 불필요"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 44, modelMeta: { provider: "웍스 대표 모델", contextWindow: "매우 긴 문서 (책 한 권 분량)", strengths: ["사내 기본", "최신 유지", "고민 불필요"], costTier: "보통" } },
+  { id: "AIO-011", platformId: "ai-orchestration", title: "DeepSeek R2 (DeepSeek)", summary: "중국어 문서 번역·분석에 최적화된 고성능 오픈소스 모델입니다.", description: "", status: "일부 제한", dept: "DX전략팀", company: [], owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr", tags: ["중국어", "번역", "오픈소스"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.06.01", likes: 6, modelMeta: { provider: "DeepSeek", contextWindow: "매우 긴 문서 (책 한 권 분량)", strengths: ["중국어 번역", "저비용", "오픈소스"], costTier: "낮음" }, statusNote: "개인정보·영업비밀 포함 문서 입력 금지. 외부 서버로 데이터가 전송되므로 반드시 비공개 정보 제거 후 사용 (IT보안 정책 2025.05)" },
   {
     id: "ML-001", platformId: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", description: "",
     status: "준비 중", dept: "메이크업연구소", company: ["KKM"], owner: "이수연", ownerEmail: "suyeon.lee@kolmar.co.kr",
@@ -90,6 +91,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
     status: "일부 제한", dept: "품질관리팀", company: ["KKM", "KMW"], owner: "이민호", ownerEmail: "minho.lee@kolmar.co.kr",
     tags: ["이미지분류", "불량검출", "CNN"], specificUrl: "", updatedAt: "2025.07.06", likes: 16,
     mlType: "분류 (Classification)", performanceSummary: "정확도 96.2% (테스트셋 기준)",
+    statusNote: "KKM·KMW 생산 라인 카메라에만 연동됨. 신규 라인 적용 전 카메라 스펙 검증 필요 (품질팀 요청)",
   },
   {
     id: "ML-004", platformId: "ml", title: "처방 성분 상호작용 예측 모델", summary: "의약품 성분 조합의 부작용 가능성을 예측하는 분류 모델", description: "",
@@ -121,6 +123,21 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
     status: "사용 가능", dept: "IT인프라팀", company: ["KKM"], owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr",
     tags: ["ECM", "파일관리", "생산성"], specificUrl: "", updatedAt: "2025.07.04", likes: 24,
     devTool: "Claude Code", outputType: "Windows 실행 프로그램",
+  },
+  // 일부 제한 항목
+  { id: "N8N-009", platformId: "n8n", title: "SAP 전표 오류 실시간 알림", summary: "SAP 전표 처리 중 오류 감지 시 담당자에게 즉시 Teams 알림 발송", description: "", status: "일부 제한", dept: "재무팀", company: ["KKM"], owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["SAP", "ERP오류", "Teams알림"], specificUrl: "https://n8n.kolmar.co.kr/workflow/009", updatedAt: "2025.05.20", likes: 4, statusNote: "SAP 연동 권한이 KKM 법인에만 허용됨. 타 계열사 확장은 SAP 관리자 권한 신청 및 IT 심사 후 지원 예정" },
+  { id: "PA-007", platformId: "pa", title: "임직원 경비 청구 자동 검증", summary: "제출된 경비 청구서의 항목·금액을 사규 기준으로 자동 검증하고 이상 건 재무팀에 알림", description: "", status: "일부 제한", dept: "재무팀", company: [], owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr", tags: ["경비청구", "내부통제", "자동검증"], specificUrl: "https://make.powerautomate.com/environments/kolmar/flows/pa-007", updatedAt: "2025.06.10", likes: 9, statusNote: "5만 원 초과 건 및 해외 출장비는 수동 검토 필수. 전면 자동화 승인은 내부 감사팀 검토 진행 중" },
+  { id: "AST-008", platformId: "assistant", title: "구매 단가 협상 전략 봇", summary: "공급사 견적서를 입력하면 과거 단가 이력과 비교해 협상 포인트와 전략을 제안", description: "", status: "일부 제한", dept: "구매팀", company: ["KKM", "KBH"], owner: "이재훈", ownerEmail: "jaehoon.lee@kolmar.co.kr", tags: ["구매협상", "단가분석", "공급사관리"], specificUrl: "https://assistant.kolmar.co.kr/agents/purchase-strategy", updatedAt: "2025.06.28", likes: 7, statusNote: "시장 단가 기준 데이터가 월 1회 갱신되어 최근 시황 반영이 늦을 수 있음. 고액 협상 건은 구매팀 확인 권장" },
+  // 사용 중지 항목
+  { id: "N8N-010", platformId: "n8n", title: "구 Slack 장애 알림 자동화", summary: "시스템 장애 감지 시 Slack 채널에 자동 알림을 발송하던 워크플로우", description: "", status: "사용 중지", dept: "IT인프라팀", company: ["KKM"], owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["Slack", "장애알림", "레거시"], specificUrl: "", updatedAt: "2024.09.01", likes: 2, statusNote: "2024년 9월 사내 협업 도구 Teams 전환 이후 운영 중단. 동일 기능의 Teams 버전(N8N-001)으로 이전 완료" },
+  { id: "PA-008", platformId: "pa", title: "수기 설비 점검 기록 디지털화", summary: "종이 설비 점검 체크리스트를 스캔해 SharePoint 지정 폴더에 자동으로 저장하던 플로우", description: "", status: "사용 중지", dept: "IT인프라팀", company: ["KMW"], owner: "이서현", ownerEmail: "seohyun.lee@kolmar.co.kr", tags: ["설비점검", "SharePoint", "레거시"], specificUrl: "", updatedAt: "2025.03.15", likes: 1, statusNote: "설비관리 전용 모바일 점검 앱 도입(2025.03)으로 대체 완료. 기존 스캔 데이터는 SharePoint 아카이브에 보관" },
+  { id: "AST-009", platformId: "assistant", title: "초기 법무 계약 검토 봇 (v1)", summary: "계약서 위험 조항을 식별하던 초기 법무 보조 봇 (현 AST-001의 전신)", description: "", status: "사용 중지", dept: "법무팀", company: [], owner: "강현우", ownerEmail: "hyunwoo.kang@kolmar.co.kr", tags: ["계약서검토", "법무", "레거시"], specificUrl: "", updatedAt: "2025.12.01", likes: 3, statusNote: "최신 모델 기반 법무 검토 보조 봇(AST-001)으로 완전 대체. 2025년 12월 서비스 종료 및 데이터 이관 완료" },
+  {
+    id: "VIBE-006", platformId: "vibe", title: "Excel VBA 주간 원가 정산 도구", summary: "ChatGPT가 작성한 VBA 매크로로 주간 원가 데이터를 자동 집계하던 도구", description: "",
+    status: "사용 중지", dept: "재무팀", company: ["KMG"], owner: "오현진", ownerEmail: "hyunjin.oh@kolmar.co.kr",
+    tags: ["원가정산", "VBA", "레거시"], specificUrl: "", updatedAt: "2025.10.01", likes: 2,
+    devTool: "ChatGPT", outputType: "Excel VBA 매크로",
+    statusNote: "보안팀 매크로 실행 정책 강화(2025.10)로 사용 금지 처리. n8n 기반 원가 자동화 워크플로우(VIBE-002 후속)로 이관",
   },
 ];
 
@@ -506,11 +523,24 @@ export default function ProjectListPage() {
                     </div>
 
                     <div style={{
-                      fontSize: 12, color: "#64748B", lineHeight: 1.5, marginBottom: 12,
+                      fontSize: 12, color: "#64748B", lineHeight: 1.5, marginBottom: item.statusNote ? 6 : 12,
                       display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                     }}>
                       {item.summary}
                     </div>
+
+                    {item.statusNote && (
+                      <div style={{
+                        fontSize: 11, lineHeight: 1.5, marginBottom: 8,
+                        padding: "4px 8px", borderRadius: 6,
+                        background: item.status === "사용 중지" ? "#F8FAFC" : "#FFFBEB",
+                        color: item.status === "사용 중지" ? "#94A3B8" : "#92400E",
+                        border: `1px solid ${item.status === "사용 중지" ? "#E2E8F0" : "#FDE68A"}`,
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                      }}>
+                        {item.status === "사용 중지" ? "종료 " : "제한 "}{item.statusNote}
+                      </div>
+                    )}
 
                     {item.platformId === "ai-orchestration" && item.modelMeta ? (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>

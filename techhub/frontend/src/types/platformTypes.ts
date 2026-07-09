@@ -117,6 +117,9 @@ export type PlatformItem = {
   devTool?: string;
   sourceRepo?: string;
   outputType?: string;
+
+  // 상태 사유 — "일부 제한" / "사용 중지" 항목에 제한·중단 이유 기재
+  statusNote?: string;
 };
 
 export const countAvailable = (items: PlatformItem[]): number =>
