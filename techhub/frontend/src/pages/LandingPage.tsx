@@ -1,11 +1,13 @@
-﻿// ===== pages/LandingPage.tsx =====
+// ===== pages/LandingPage.tsx =====
 /* ============================================================
-   AX Platform 랜딩 페이지 — MSN/뉴스 포털형 재설계 v2
-   2026-07-07: 히어로 쇼케이스 3카드 신설, 레이아웃 재구성
+   AX Platform 랜딩 페이지 — 포털형 재설계 v3
+   2026-07-09: 헤더 검색바 축소, 실시간 인기 TOP5 헤더 호버 바 이동,
+               유형별 둘러보기·업무별 추천 지표 카드 바로 아래 전폭 배치,
+               우측 사이드바 버튼 전용으로 축소 + sticky 적용
 
    자동 순환 주기
-   - 메인 피드 탭(최신/인기): 7초, 수동 클릭 시 12초간 정지 후 재개
-   - 인기 TOP 5 하이라이트: 2.5초
+   - 메인 피드 탭(최신/인기): 7초, 수동 클릭 시 12초 정지 후 재개
+   - 실시간 인기 TOP5 하이라이트: 2.5초 (헤더 호버 바로 위치 이동)
    - 업무별 추천 스포트라이트: 5초, 수동 클릭 시 10초 정지
    - 히어로 카드 1 (동료 핫 아이템): 6초
    - 히어로 카드 2 (나만의 비서): 8초
@@ -23,7 +25,6 @@ import type { PlatformId, PlatformItemStatus } from "../types/platformTypes";
 // TODO: 실제 접속 주소 확정 시 교체
 const HK_CALLING_URL = "http://172.17.20.203:3001/n8n";
 
-
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> =
   Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }]));
 
@@ -35,16 +36,16 @@ const DOMAIN_COLOR: Record<Domain, { grad: string; color: string }> = {
   "생산": { grad: "linear-gradient(135deg, #1C6BFF, #4E9BFF)", color: "#1C6BFF" },
   "연구": { grad: "linear-gradient(135deg, #12B8C8, #4ED6E0)", color: "#0891B2" },
   "재무": { grad: "linear-gradient(135deg, #22C060, #6FDD97)", color: "#0B7A43" },
-  "HR": { grad: "linear-gradient(135deg, #9C5CF6, #C29BFB)", color: "#7C3AED" },
-  "IT": { grad: "linear-gradient(135deg, #475569, #7A8BA3)", color: "#334155" },
+  "HR":   { grad: "linear-gradient(135deg, #9C5CF6, #C29BFB)", color: "#7C3AED" },
+  "IT":   { grad: "linear-gradient(135deg, #475569, #7A8BA3)", color: "#334155" },
 };
 
 // TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체
 const STAT_CARDS = [
-  { value: 208, label: "전체 AX 항목", grad: "linear-gradient(135deg, #FF9F43, #FF7E5F)" },
-  { value: 84, label: "바로 쓸 수 있는 도구", grad: "linear-gradient(135deg, #1C6BFF, #4E9BFF)" },
-  { value: 14, label: "이번 달 신규", grad: "linear-gradient(135deg, #12B8C8, #4ED6E0)" },
-  { value: 47, label: "우리 회사 등록", grad: "linear-gradient(135deg, #22C060, #6FDD97)" },
+  { value: 208, label: "전체 AX 항목",        grad: "linear-gradient(135deg, #FF9F43, #FF7E5F)" },
+  { value: 84,  label: "바로 쓸 수 있는 도구", grad: "linear-gradient(135deg, #1C6BFF, #4E9BFF)" },
+  { value: 14,  label: "이번 달 신규",         grad: "linear-gradient(135deg, #12B8C8, #4ED6E0)" },
+  { value: 47,  label: "우리 회사 등록",       grad: "linear-gradient(135deg, #22C060, #6FDD97)" },
 ];
 
 type FeedItem = {
@@ -92,49 +93,39 @@ const PLATFORM_COUNTS: Record<PlatformId, number> = {
   n8n: 62, pa: 31, assistant: 48, "ai-orchestration": 12, ml: 23, vibe: 32,
 };
 
-const recentItems = [...ALL_ITEMS].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
+const recentItems  = [...ALL_ITEMS].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
 const popularItems = [...ALL_ITEMS].sort((a, b) => b.likes - a.likes).slice(0, 6);
-const top5 = [...ALL_ITEMS].sort((a, b) => b.views - a.views).slice(0, 5);
+const top5         = [...ALL_ITEMS].sort((a, b) => b.views - a.views).slice(0, 5);
 const itemsByDomain = (d: Domain) => ALL_ITEMS.filter(i => i.domain === d).slice(0, 3);
 
 const FEED_TABS = [
-  { id: "recent" as const, label: "최신 등록" },
+  { id: "recent"  as const, label: "최신 등록" },
   { id: "popular" as const, label: "인기 항목" },
 ];
 
 // ===== 히어로 쇼케이스 데이터 =====
 
 type PeerHotItem = {
-  company: string;
-  department: string;
-  itemId: string;
-  itemName: string;
-  platformId: PlatformId;
-  likes: number;
-  summary: string;
+  company: string; department: string; itemId: string; itemName: string;
+  platformId: PlatformId; likes: number; summary: string;
 };
 
 // TODO: 실제 연동 시 GET /api/v1/stats/peer-hot 응답으로 교체
 const PEER_HOT_ITEMS: PeerHotItem[] = [
-  { company: "HK이노엔",    department: "IT",    itemId: "N8N-001", itemName: "긴급 메일 자동 전달",     platformId: "n8n",              likes: 34, summary: "긴급 키워드 메일 수신 시 팀장에게 즉시 자동 전달" },
-  { company: "콜마비앤에이치", department: "인사",  itemId: "AST-002", itemName: "회의록 요약 봇",          platformId: "assistant",        likes: 28, summary: "Teams 녹취록 업로드하면 핵심 결정사항 자동 정리" },
-  { company: "콜마생활건강", department: "재무",  itemId: "N8N-003", itemName: "일일 매출 리포트",        platformId: "n8n",              likes: 21, summary: "매일 오전 전일 매출 요약을 경영진에게 자동 발송" },
-  { company: "한국콜마",    department: "영업",  itemId: "VIBE-001", itemName: "판매 리포트 자동화",      platformId: "vibe",             likes: 19, summary: "ERP 데이터로 매일 아침 판매 실적 요약 리포트 생성" },
-  { company: "콜마글로벌",  department: "구매",  itemId: "ML-002",  itemName: "원료 수요 예측",          platformId: "ml",               likes: 17, summary: "과거 데이터로 월별 원료 수요를 예측하는 시계열 모델" },
-  { company: "HK이노엔",    department: "법무",  itemId: "AST-001", itemName: "법무 검토 보조 봇",       platformId: "assistant",        likes: 33, summary: "계약서 위험 조항 자동 식별하고 검토 의견 제시" },
-  { company: "콜마바이오텍", department: "IT",    itemId: "AIO-001", itemName: "GPT-5.4 (OpenAI)",           platformId: "ai-orchestration", likes: 29, summary: "코드 생성·문서 작성·분석에 활용하는 범용 AI 모델" },
-  { company: "무석콜마",    department: "생산",  itemId: "N8N-004", itemName: "품질 이슈 에스컬레이션", platformId: "n8n",              likes: 14, summary: "품질 이상 감지 시 관련 부서에 즉시 Teams 알림" },
-  { company: "미국콜마",    department: "마케팅", itemId: "AIO-004", itemName: "Claude Sonnet 4.6 (Anthropic)", platformId: "ai-orchestration", likes: 22, summary: "일상 업무 전반에 균형 잡힌 Anthropic Claude 모델" },
+  { company: "HK이노엔",     department: "IT",    itemId: "N8N-001", itemName: "긴급 메일 자동 전달",         platformId: "n8n",              likes: 34, summary: "긴급 키워드 메일 수신 시 팀장에게 즉시 자동 전달" },
+  { company: "콜마비앤에이치", department: "인사",  itemId: "AST-002", itemName: "회의록 요약 봇",              platformId: "assistant",        likes: 28, summary: "Teams 녹취록 업로드하면 핵심 결정사항 자동 정리" },
+  { company: "콜마생활건강",  department: "재무",  itemId: "N8N-003", itemName: "일일 매출 리포트",            platformId: "n8n",              likes: 21, summary: "매일 오전 전일 매출 요약을 경영진에게 자동 발송" },
+  { company: "한국콜마",     department: "영업",  itemId: "VIBE-001", itemName: "판매 리포트 자동화",          platformId: "vibe",             likes: 19, summary: "ERP 데이터로 매일 아침 판매 실적 요약 리포트 생성" },
+  { company: "콜마글로벌",   department: "구매",  itemId: "ML-002",  itemName: "원료 수요 예측",              platformId: "ml",               likes: 17, summary: "과거 데이터로 월별 원료 수요를 예측하는 시계열 모델" },
+  { company: "HK이노엔",     department: "법무",  itemId: "AST-001", itemName: "법무 검토 보조 봇",           platformId: "assistant",        likes: 33, summary: "계약서 위험 조항 자동 식별하고 검토 의견 제시" },
+  { company: "콜마바이오텍",  department: "IT",    itemId: "AIO-001", itemName: "GPT-5.4 (OpenAI)",           platformId: "ai-orchestration", likes: 29, summary: "코드 생성·문서 작성·분석에 활용하는 범용 AI 모델" },
+  { company: "무석콜마",     department: "생산",  itemId: "N8N-004", itemName: "품질 이슈 에스컬레이션",      platformId: "n8n",              likes: 14, summary: "품질 이상 감지 시 관련 부서에 즉시 Teams 알림" },
+  { company: "미국콜마",     department: "마케팅", itemId: "AIO-004", itemName: "Claude Sonnet 4.6 (Anthropic)", platformId: "ai-orchestration", likes: 22, summary: "일상 업무 전반에 균형 잡힌 Anthropic Claude 모델" },
 ];
 
 type AssistantShowcase = {
-  itemId: string;
-  headline: string;
-  promptTeaser: string;
-  agentUsed: string;
-  environment: string;
-  owner: string;
-  path: string;
+  itemId: string; headline: string; promptTeaser: string;
+  agentUsed: string; environment: string; owner: string; path: string;
 };
 
 const ASSISTANT_SHOWCASE: AssistantShowcase[] = [
@@ -168,12 +159,7 @@ const ASSISTANT_SHOWCASE: AssistantShowcase[] = [
 ];
 
 type VibeShowcase = {
-  itemId: string;
-  problem: string;
-  solution: string;
-  tool: string;
-  owner: string;
-  path: string;
+  itemId: string; problem: string; solution: string; tool: string; owner: string; path: string;
 };
 
 const VIBE_SHOWCASE: VibeShowcase[] = [
@@ -281,6 +267,119 @@ function FeedCard({ item, onClick }: { item: FeedItem; onClick: () => void }) {
   );
 }
 
+// ===== TopViewedBar — 실시간 인기 호버 확장 바 =====
+function TopViewedBar({ items, activeIdx, onNavigate }: {
+  items: FeedItem[];
+  activeIdx: number;
+  onNavigate: (path: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const currentRank = activeIdx % items.length;
+  const activeItem  = items[currentRank];
+
+  return (
+    <div
+      style={{ position: "relative", flexShrink: 0 }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      {/* 접힌 상태 — 알약형 바 */}
+      <div style={{
+        width: 300,
+        height: 40,
+        borderRadius: 20,
+        background: "#fff",
+        borderTop: "1.5px solid #EBEEF3",
+        borderRight: "1.5px solid #EBEEF3",
+        borderBottom: "1.5px solid #EBEEF3",
+        borderLeft: "1.5px solid #EBEEF3",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 14px",
+        gap: 10,
+        cursor: "default",
+        overflow: "hidden",
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", flexShrink: 0, whiteSpace: "nowrap" }}>
+          실시간 인기
+        </span>
+        <div
+          key={activeIdx}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            animation: "axFadeIn 0.4s ease",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#1A1F27",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {currentRank + 1}위 · {activeItem.title}
+        </div>
+        <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
+          <EyeIcon size={10} /> {activeItem.views.toLocaleString()}
+        </span>
+      </div>
+
+      {/* 호버 패널 — TOP 5 전체 */}
+      {open && (
+        <div style={{
+          position: "absolute",
+          top: "calc(100% + 6px)",
+          right: 0,
+          width: 320,
+          background: "#fff",
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(26,31,39,0.14)",
+          zIndex: 50,
+          padding: "10px 12px",
+        }}>
+          {items.map((item, i) => {
+            const active = i === currentRank;
+            const s = SOURCE_STYLE[item.kind];
+            return (
+              <div
+                key={item.id}
+                onClick={() => onNavigate(item.path)}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#F4F6F9"; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = active ? "#F0F6FF" : "transparent"; }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "9px 10px", borderRadius: 9, cursor: "pointer", marginBottom: 2,
+                  background: active ? "#F0F6FF" : "transparent",
+                  transition: "background 0.3s",
+                }}
+              >
+                <span style={{
+                  width: 20, fontSize: 14, fontWeight: 800, flexShrink: 0, textAlign: "center",
+                  color: i < 3 ? "#1C6BFF" : "#AEB6C2",
+                }}>{i + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 12.5, fontWeight: active ? 700 : 600, color: "#1A1F27",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{item.title}</div>
+                  <div style={{ fontSize: 10.5, color: "#697386", marginTop: 2 }}>
+                    {s.label} · {item.dept}
+                  </div>
+                </div>
+                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
+                  <EyeIcon size={10} /> {item.views.toLocaleString()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== 메인 컴포넌트 =====
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -336,28 +435,34 @@ export default function LandingPage() {
     navigate(search.trim() ? `/projects?q=${encodeURIComponent(search.trim())}` : "/projects");
   };
 
-  // 카드 1: 같은 부서, 다른 관계사 항목 필터 (없으면 전체 폴백)
+  // 카드 1: 같은 부서 다른 관계사 항목 필터 (없으면 전체 폴백)
   const filteredPeerItems = (user?.department && user.company)
     ? PEER_HOT_ITEMS.filter(p => p.department === user.department && p.company !== user.company)
     : [];
-  const peerItems = filteredPeerItems.length > 0 ? filteredPeerItems : PEER_HOT_ITEMS;
+  const peerItems      = filteredPeerItems.length > 0 ? filteredPeerItems : PEER_HOT_ITEMS;
   const isPeerFallback = filteredPeerItems.length === 0;
-  const peerItem = peerItems[peerIdx % peerItems.length];
-  const pStyle = SOURCE_STYLE[peerItem.platformId];
+  const peerItem       = peerItems[peerIdx % peerItems.length];
+  const pStyle         = SOURCE_STYLE[peerItem.platformId];
 
-  const assistantItem = ASSISTANT_SHOWCASE[assistantIdx % ASSISTANT_SHOWCASE.length];
-  const vibeItem = VIBE_SHOWCASE[vibeIdx % VIBE_SHOWCASE.length];
+  const assistantItem  = ASSISTANT_SHOWCASE[assistantIdx % ASSISTANT_SHOWCASE.length];
+  const vibeItem       = VIBE_SHOWCASE[vibeIdx % VIBE_SHOWCASE.length];
+
   const spotlightDomain = DOMAINS[domainIdx];
-  const spotlightItems = itemsByDomain(spotlightDomain);
-  const feedItems = feedTab === "recent" ? recentItems : popularItems;
+  const spotlightItems  = itemsByDomain(spotlightDomain);
+  const feedItems       = feedTab === "recent" ? recentItems : popularItems;
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
       <Navbar />
 
-      {/* [A] 상단 인사 + 검색 */}
+      {/* ── [A] 헤더: 인사 + 검색바(축소) + 실시간 인기 호버 바 ── */}
       <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "18px 32px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{
+          maxWidth: 1180, margin: "0 auto",
+          display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
+        }}>
+
+          {/* 인사 블록 */}
           <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>
               {user ? `${user.name}님, 반갑습니다` : "반갑습니다"}
@@ -367,7 +472,11 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSearchSubmit} style={{ flex: 1, minWidth: 280, position: "relative" }}>
+          {/* 검색바 (고정 폭) */}
+          <form
+            onSubmit={handleSearchSubmit}
+            style={{ maxWidth: 380, minWidth: 260, width: 380, position: "relative" }}
+          >
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -378,7 +487,7 @@ export default function LandingPage() {
                 border: "1.5px solid #EBEEF3", borderRadius: 24, outline: "none",
               }}
               onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
-              onBlur={e => (e.target.style.borderColor = "#EBEEF3")}
+              onBlur={e  => (e.target.style.borderColor = "#EBEEF3")}
             />
             <button type="submit" style={{
               position: "absolute", right: 5, top: 5, bottom: 5,
@@ -386,45 +495,173 @@ export default function LandingPage() {
               borderRadius: 20, padding: "0 18px", fontSize: 12, fontWeight: 700, cursor: "pointer",
             }}>검색</button>
           </form>
+
+          {/* 실시간 인기 호버 바 (우측 끝) */}
+          <div style={{ marginLeft: "auto" }}>
+            <TopViewedBar items={top5} activeIdx={rankIdx} onNavigate={navigate} />
+          </div>
+
         </div>
       </div>
 
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 32px 56px" }}>
 
-        {/* [B] 지표 4카드 */}
+        {/* ── [B] 지표 4카드 ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 22 }}>
           {STAT_CARDS.map((s, i) => (
-            <div key={i} onClick={() => navigate(i === 1 ? "/projects?status=available" : "/projects")} style={{
-              background: s.grad, borderRadius: 14, padding: "18px 20px",
-              color: "#fff", cursor: "pointer",
-              boxShadow: "0 6px 16px rgba(26,31,39,0.10)",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}>
+            <div
+              key={i}
+              onClick={() => navigate(i === 1 ? "/projects?status=available" : "/projects")}
+              style={{
+                background: s.grad, borderRadius: 14, padding: "18px 20px",
+                color: "#fff", cursor: "pointer",
+                boxShadow: "0 6px 16px rgba(26,31,39,0.10)",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}
+            >
               <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.95 }}>{s.label}</span>
               <span style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em" }}>{s.value}</span>
             </div>
           ))}
         </div>
 
-        {/* 2-컬럼 메인 그리드 (좌: C+D / 우: E) */}
-        <div className="ax-main-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: 18, marginBottom: 22, alignItems: "stretch" }}>
+        {/* ── [C] 유형별 둘러보기 ── */}
+        <div style={{
+          background: "#fff", borderRadius: 14, padding: "20px 22px", marginBottom: 22,
+          borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+          borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+        }}>
+          <SectionTitle title="유형별 둘러보기" action="전체 보기" onAction={() => navigate("/projects")} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+            {PLATFORMS.map(p => (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/projects?platform=${p.id}`)}
+                style={{
+                  borderRadius: 12, padding: "16px 14px", cursor: "pointer", background: p.bg,
+                  borderTop: "1.5px solid transparent", borderRight: "1.5px solid transparent",
+                  borderBottom: "1.5px solid transparent", borderLeft: "1.5px solid transparent",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderTopColor    = p.color;
+                  e.currentTarget.style.borderRightColor  = p.color;
+                  e.currentTarget.style.borderBottomColor = p.color;
+                  e.currentTarget.style.borderLeftColor   = p.color;
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderTopColor    = "transparent";
+                  e.currentTarget.style.borderRightColor  = "transparent";
+                  e.currentTarget.style.borderBottomColor = "transparent";
+                  e.currentTarget.style.borderLeftColor   = "transparent";
+                  e.currentTarget.style.transform = "none";
+                }}
+              >
+                <div style={{ fontSize: 24, fontWeight: 800, color: p.color, letterSpacing: "-0.02em", marginBottom: 4 }}>
+                  {PLATFORM_COUNTS[p.id]}
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#1A1F27", marginBottom: 3 }}>{p.name}</div>
+                <div style={{ fontSize: 10.5, color: "#697386", lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {p.shortDesc}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {/* 좌 컬럼: C (히어로 3카드) + D (피드) */}
+        {/* ── [D] 업무별 추천 — 전폭 가로형 ── */}
+        <div style={{
+          background: "#fff", borderRadius: 14, padding: "20px 22px", marginBottom: 22,
+          borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+          borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+        }}>
+          {/* 헤더: 타이틀 + 도메인 탭 + 전체 링크 */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.01em", flexShrink: 0 }}>업무별 추천</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {DOMAINS.map((d, i) => (
+                  <button key={d} onClick={() => selectDomain(i)} style={{
+                    padding: "5px 13px", borderRadius: 16, border: "none", cursor: "pointer",
+                    fontSize: 11.5, fontWeight: 700,
+                    background: i === domainIdx ? DOMAIN_COLOR[d].grad : "#F4F6F9",
+                    color: i === domainIdx ? "#fff" : "#697386",
+                    transition: "all 0.25s",
+                  }}>{d}</button>
+                ))}
+              </div>
+              <span onClick={() => navigate("/projects")} style={{ fontSize: 12, color: "#1C6BFF", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+                전체 →
+              </span>
+            </div>
+          </div>
+
+          {/* 추천 항목 3열 그리드 */}
+          <div key={spotlightDomain} style={{ animation: "axFadeIn 0.35s ease" }}>
+            {spotlightItems.length === 0 ? (
+              <div style={{ fontSize: 12, color: "#AEB6C2", padding: "20px 0", textAlign: "center" }}>
+                아직 등록된 항목이 없습니다. 첫 등록의 주인공이 되어보세요.
+              </div>
+            ) : (
+              <div className="ax-domain-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {spotlightItems.map(item => {
+                  const s = SOURCE_STYLE[item.kind];
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => navigate(item.path)}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#F4F6F9")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      style={{
+                        padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+                        borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+                        borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+                        transition: "background 0.15s",
+                        display: "flex", flexDirection: "column",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                        <span style={{
+                          fontSize: 13, fontWeight: 700, color: "#1A1F27",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        }}>{item.title}</span>
+                      </div>
+                      <div style={{
+                        fontSize: 11.5, color: "#697386", lineHeight: 1.5, marginBottom: 10, flex: 1,
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                      }}>{item.summary}</div>
+                      <div style={{ fontSize: 10.5, color: "#AEB6C2", marginTop: "auto" }}>{s.label} · {item.dept}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── [E] 2-컬럼 메인 그리드: 좌(히어로+피드) / 우(사이드바) ── */}
+        <div className="ax-main-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 18, alignItems: "start" }}>
+
+          {/* 좌 컬럼 */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
-            {/* [C] 히어로 쇼케이스 3카드 */}
+            {/* 히어로 쇼케이스 3카드 */}
             <div className="ax-hero-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
 
               {/* 카드 1: 동료들의 선택 */}
               <div
                 onClick={() => navigate(`/${peerItem.platformId}/${peerItem.itemId}`)}
-                style={{
-                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
-                  cursor: "pointer", transition: "border-color 0.2s",
-                }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = "#EBEEF3")}
+                style={{
+                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
+                  borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+                  borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+                  display: "flex", flexDirection: "column", height: 300,
+                  cursor: "pointer", transition: "border-color 0.2s",
+                }}
               >
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   {isPeerFallback ? "그룹사에서 지금 핫한 항목" : "우리 부서 동료들의 선택"}
@@ -453,13 +690,15 @@ export default function LandingPage() {
               {/* 카드 2: 나만의 비서 쇼케이스 */}
               <div
                 onClick={() => navigate(assistantItem.path)}
-                style={{
-                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
-                  cursor: "pointer", transition: "border-color 0.2s",
-                }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = "#EBEEF3")}
+                style={{
+                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
+                  borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+                  borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+                  display: "flex", flexDirection: "column", height: 300,
+                  cursor: "pointer", transition: "border-color 0.2s",
+                }}
               >
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   이런 프롬프트를 쓰니 편하더라
@@ -487,13 +726,15 @@ export default function LandingPage() {
               {/* 카드 3: Vibe Coding 쇼케이스 */}
               <div
                 onClick={() => navigate(vibeItem.path)}
-                style={{
-                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
-                  border: "1px solid #EBEEF3", display: "flex", flexDirection: "column", height: 300,
-                  cursor: "pointer", transition: "border-color 0.2s",
-                }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = "#B4CCFF")}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = "#EBEEF3")}
+                style={{
+                  background: "#fff", borderRadius: 14, padding: "18px 18px 14px",
+                  borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+                  borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+                  display: "flex", flexDirection: "column", height: 300,
+                  cursor: "pointer", transition: "border-color 0.2s",
+                }}
               >
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
                   내가 만든 프로그램 공유
@@ -516,8 +757,12 @@ export default function LandingPage() {
 
             </div>
 
-            {/* [D] 최신 등록 / 인기 항목 피드 */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "20px 22px", border: "1px solid #EBEEF3" }}>
+            {/* 최신 등록 / 인기 항목 피드 */}
+            <div style={{
+              background: "#fff", borderRadius: 14, padding: "20px 22px",
+              borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+              borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+            }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", gap: 6 }}>
                   {FEED_TABS.map(tab => (
@@ -554,16 +799,19 @@ export default function LandingPage() {
 
           </div>
 
-          {/* [E] 우측 사이드바 */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* 버튼 + 바로가기 영역 */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EBEEF3" }}>
+          {/* 우측 사이드바 — 버튼 전용, sticky */}
+          <div style={{ position: "sticky", top: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{
+              background: "#fff", borderRadius: 14, padding: "18px 20px",
+              borderTop: "1px solid #EBEEF3", borderRight: "1px solid #EBEEF3",
+              borderBottom: "1px solid #EBEEF3", borderLeft: "1px solid #EBEEF3",
+            }}>
               <button onClick={() => navigate("/projects/new")} style={{
                 width: "100%", background: "#1C6BFF", color: "#fff", border: "none",
                 borderRadius: 10, padding: "12px 0", fontSize: 13, fontWeight: 700,
                 cursor: "pointer", marginBottom: 8,
               }}>AX 항목 등록하기</button>
+
               <button onClick={() => navigate("/projects")} style={{
                 width: "100%", background: "#fff", color: "#1C6BFF",
                 borderTop: "1.5px solid #CFE0FF", borderRight: "1.5px solid #CFE0FF",
@@ -571,6 +819,7 @@ export default function LandingPage() {
                 borderRadius: 10, padding: "12px 0", fontSize: 13, fontWeight: 700,
                 cursor: "pointer", marginBottom: 12,
               }}>상세 탐색</button>
+
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() => window.open(HK_CALLING_URL, "_blank", "noopener,noreferrer")}
@@ -583,6 +832,7 @@ export default function LandingPage() {
                     borderRadius: 8, padding: "8px 0", fontSize: 11.5, fontWeight: 700, cursor: "pointer",
                   }}
                 >HK콜링이</button>
+
                 <span
                   title="AX 허브 통합 검색 AI — 2단계 오픈 예정"
                   style={{
@@ -598,132 +848,9 @@ export default function LandingPage() {
                 </span>
               </div>
             </div>
-
-            {/* 실시간 인기 TOP 5 */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EBEEF3" }}>
-              <SectionTitle title="실시간 조회 TOP 5" />
-              {top5.map((item, i) => {
-                const active = i === rankIdx;
-                const s = SOURCE_STYLE[item.kind];
-                return (
-                  <div key={item.id} onClick={() => navigate(item.path)} style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "9px 10px",
-                    borderRadius: 9, cursor: "pointer", marginBottom: 2,
-                    background: active ? "#F0F6FF" : "transparent",
-                    transition: "background 0.3s",
-                  }}>
-                    <span style={{
-                      width: 20, fontSize: 14, fontWeight: 800, flexShrink: 0, textAlign: "center",
-                      color: i < 3 ? "#1C6BFF" : "#AEB6C2",
-                    }}>{i + 1}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 12.5, fontWeight: active ? 700 : 600, color: "#1A1F27",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      }}>{item.title}</div>
-                      <div style={{
-                        fontSize: 10.5, color: "#697386", marginTop: 2,
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                        opacity: active ? 1 : 0, transition: "opacity 0.25s",
-                      }}>
-                        {s.label} · {item.dept}
-                      </div>
-                    </div>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
-                      <EyeIcon size={10} /> {item.views.toLocaleString()}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 업무별 추천 */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EBEEF3", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-              <SectionTitle title="업무별 추천" action="전체" onAction={() => navigate("/projects")} />
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
-                {DOMAINS.map((d, i) => (
-                  <button key={d} onClick={() => selectDomain(i)} style={{
-                    padding: "5px 13px", borderRadius: 16, border: "none", cursor: "pointer",
-                    fontSize: 11.5, fontWeight: 700,
-                    background: i === domainIdx ? DOMAIN_COLOR[d].grad : "#F4F6F9",
-                    color: i === domainIdx ? "#fff" : "#697386",
-                    transition: "all 0.25s",
-                  }}>{d}</button>
-                ))}
-              </div>
-              <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-                <div key={spotlightDomain} style={{ animation: "axFadeIn 0.35s ease" }}>
-                  {spotlightItems.length === 0 ? (
-                    <div style={{ fontSize: 12, color: "#AEB6C2", padding: "12px 0", textAlign: "center" }}>
-                      아직 등록된 항목이 없습니다. 첫 등록의 주인공이 되어보세요.
-                    </div>
-                  ) : spotlightItems.map(item => {
-                    const s = SOURCE_STYLE[item.kind];
-                    return (
-                      <div key={item.id} onClick={() => navigate(item.path)} style={{
-                        padding: "9px 10px", borderRadius: 9, cursor: "pointer", marginBottom: 2,
-                      }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#F4F6F9")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: "#1A1F27", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {item.title}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 10.5, color: "#AEB6C2", paddingLeft: 13 }}>{s.label} · {item.dept}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
           </div>
-        </div>
 
-        {/* [F] 유형별 둘러보기 */}
-        <div style={{ background: "#fff", borderRadius: 14, padding: "20px 22px", border: "1px solid #EBEEF3" }}>
-          <SectionTitle title="유형별 둘러보기" action="전체 보기" onAction={() => navigate("/projects")} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
-            {PLATFORMS.map(p => (
-              <div
-                key={p.id}
-                onClick={() => navigate(`/projects?platform=${p.id}`)}
-                style={{
-                  borderRadius: 12, padding: "16px 14px", cursor: "pointer", background: p.bg,
-                  borderTop: "1.5px solid transparent", borderRight: "1.5px solid transparent",
-                  borderBottom: "1.5px solid transparent", borderLeft: "1.5px solid transparent",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderTopColor = p.color;
-                  e.currentTarget.style.borderRightColor = p.color;
-                  e.currentTarget.style.borderBottomColor = p.color;
-                  e.currentTarget.style.borderLeftColor = p.color;
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderTopColor = "transparent";
-                  e.currentTarget.style.borderRightColor = "transparent";
-                  e.currentTarget.style.borderBottomColor = "transparent";
-                  e.currentTarget.style.borderLeftColor = "transparent";
-                  e.currentTarget.style.transform = "none";
-                }}
-              >
-                <div style={{ fontSize: 24, fontWeight: 800, color: p.color, letterSpacing: "-0.02em", marginBottom: 4 }}>
-                  {PLATFORM_COUNTS[p.id]}
-                </div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#1A1F27", marginBottom: 3 }}>{p.name}</div>
-                <div style={{ fontSize: 10.5, color: "#697386", lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                  {p.shortDesc}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
-
       </div>
 
       <style>{`
@@ -732,8 +859,9 @@ export default function LandingPage() {
           to   { opacity: 1; }
         }
         @media (max-width: 1200px) {
-          .ax-main-grid { grid-template-columns: 1fr !important; }
-          .ax-hero-grid { grid-template-columns: 1fr !important; }
+          .ax-main-grid   { grid-template-columns: 1fr !important; }
+          .ax-hero-grid   { grid-template-columns: 1fr !important; }
+          .ax-domain-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
