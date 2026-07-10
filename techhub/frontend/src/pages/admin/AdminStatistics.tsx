@@ -516,6 +516,48 @@ export default function AdminStatistics() {
             </div>
           </div>
 
+          {/* 후기 많은 항목 TOP 5 */}
+          {(() => {
+            const TOP5_REVIEWS = [
+              { id: "N8N-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",            reviewCount: 18, avgLikes: 7.2 },
+              { id: "AST-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",   reviewCount: 14, avgLikes: 8.5 },
+              { id: "AIO-002", title: "Claude (문서 분석 특화)",        kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1 },
+              { id: "PA-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",           reviewCount:  8, avgLikes: 5.9 },
+              { id: "ML-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",           reviewCount:  6, avgLikes: 4.8 },
+            ];
+            const maxReview = Math.max(...TOP5_REVIEWS.map(r => r.reviewCount), 1);
+            return (
+              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px", marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>
+                  후기 많은 항목 TOP 5 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500, marginLeft: 8 }}>누적 후기 수 기준</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {TOP5_REVIEWS.map((item, i) => {
+                    const pct = Math.round((item.reviewCount / maxReview) * 100);
+                    return (
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: i < 3 ? "#0F172A" : "#CBD5E1", width: 20, textAlign: "center", flexShrink: 0 }}>{i + 1}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</span>
+                            <span style={{ fontSize: 10, color: "#94A3B8", flexShrink: 0, fontFamily: "var(--font-mono)" }}>{item.id}</span>
+                          </div>
+                          <div style={{ background: "#F1F5F9", borderRadius: 4, height: 7, overflow: "hidden" }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: "#2563EB", borderRadius: 4 }} />
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>{item.reviewCount}</div>
+                          <div style={{ fontSize: 10, color: "#94A3B8" }}>평균 ♥ {item.avgLikes}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 탐색 키워드 빈도 */}
           <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>탐색 키워드 빈도 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500, marginLeft: 8 }}>사용자가 검색한 상위 키워드</span></div>

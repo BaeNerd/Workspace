@@ -5,68 +5,263 @@
 
 ---
 
+## 코딩 컨벤션 (필수 준수)
+
+| 규칙 | 내용 |
+|------|------|
+| 서브컴포넌트 위치 | 컴포넌트 함수 **외부(모듈 레벨)**에 정의. 함수 내부 정의 금지. |
+| 스타일 객체 위치 | 컴포넌트 함수 **외부(모듈 레벨)**에 정의. |
+| `border` 혼용 금지 | 같은 요소에 `border` 축약형과 방향별 `border-*` 속성 혼용 금지. |
+| 내부 식별자 변경 금지 | `PlatformItem`, `platformId`, `platformScope`, `PLATFORMS` 등 변경 금지. |
+| 파일 단위 저장 | 부분 diff가 아닌 수정 완료된 전체 파일로 저장. |
+| 인라인 오류 UI | 오류·확인 UI는 인라인으로 처리. 팝업·모달 신설 금지. |
+| `import type` | 타입 전용 import는 `import type` 분리 (`verbatimModuleSyntax`). |
+
+---
+
+## 역할(Role) 3단계 모델
+
+| 역할 | 식별자 | 설명 | 접근 가능 페이지 |
+|------|--------|------|-----------------|
+| 일반 사용자 | `"user"` | 플랫폼 탐색·신청·후기 작성 | `/projects`, `/my-status`, 상세 페이지, `ProjectRegisterPage` |
+| 관계사 관리자 | `"companyAdmin"` | 담당 관계사의 1차 검토 + 제한된 목록 관리 | `/admin/review` (1차대기 항목만), `/admin/projects` (삭제만 가능) |
+| 최고 관리자 | `"admin"` | 전체 승인·통계·조직 관리 | `/admin/*` 전체 |
+
+### CurrentUser 타입 (`src/context/AuthContext.tsx`)
+
+```ts
+type CurrentUser = {
+  name: string;
+  email: string;
+  dept: string;
+  title: string;
+  role: Role;               // "user" | "companyAdmin" | "admin"
+  company: string;          // 소속 관계사 코드 (예: "KKM")
+  isGroupViewer: boolean;
+  department?: string;      // 업무 분야 — 히어로 카드 매칭용
+  managedCompany?: string;  // CompanyAdmin 전용: 담당 관계사 코드
+} | null;
+```
+
+### ProtectedRoute 사용법
+
+```tsx
+// Admin만 접근
+<ProtectedRoute requireAdmin>…</ProtectedRoute>
+
+// Admin + CompanyAdmin 모두 접근
+<ProtectedRoute requireAdmin allowCompanyAdmin>…</ProtectedRoute>
+```
+
+| 라우트 | requireAdmin | allowCompanyAdmin |
+|--------|-------------|-------------------|
+| `/admin` | ✓ | — |
+| `/admin/review` | ✓ | ✓ |
+| `/admin/projects` | ✓ | ✓ |
+| `/admin/taxonomy` | ✓ | — |
+| `/admin/org` | ✓ | — |
+| `/admin/users` | ✓ | — |
+| `/admin/statistics` | ✓ | — |
+| `/admin/platforms` | ✓ | — |
+
+---
+
+## 2단계 승인 흐름 (ApprovalStage)
+
+```
+[사용자 신청]
+      ↓
+"1차대기"  ─── CompanyAdmin 반려 ──→ "반려"
+      │
+      ↓ CompanyAdmin 1차 승인
+"2차대기"  ─── Admin 반려 ──────→ "반려"
+      │
+      ↓ Admin 최종 승인
+"게시됨"
+      │
+      ↓ Admin 중지
+"중지"
+```
+
+### ApprovalStage 타입 (`src/types/platformTypes.ts`)
+
+```ts
+export type ApprovalStage = "1차대기" | "2차대기" | "게시됨" | "반려" | "중지";
+```
+
+### ApprovalRecord 타입
+
+```ts
+export type ApprovalRecord = {
+  stage: ApprovalStage;
+  at: string;     // 처리 일시 (예: "2026.07.10")
+  by: string;     // 처리자 이름
+  note?: string;  // 반려 사유 등 선택적 메모
+};
+```
+
+### 단계별 배지 색상
+
+| 단계 | 배경색 | 글자색 |
+|------|--------|--------|
+| 1차대기 | `#FBF3E4` | `#B4802E` |
+| 2차대기 | `#E8F0FE` | `#2563C9` |
+| 게시됨 | `#E6F5EC` | `#1F7A46` |
+| 반려 | `#EDF0F4` | `#4B5768` |
+| 중지 | `#EDF0F4` | `#4B5768` |
+
+### 역할별 승인 행동
+
+| 역할 | 보이는 항목 | 승인 결과 단계 | 반려 결과 단계 |
+|------|------------|---------------|---------------|
+| CompanyAdmin | `1차대기` + 담당 관계사 항목 | `2차대기` | `반려` |
+| Admin | `2차대기` 전체 | `게시됨` | `반려` |
+
+---
+
+## 활용 후기 흐름 (PlatformReview)
+
+### PlatformReview 타입
+
+```ts
+export type PlatformReview = {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  itemKind: PlatformId;
+  author: string;
+  dept: string;
+  text: string;
+  createdAt: string;   // "YYYY.MM.DD"
+  likes: number;
+};
+```
+
+### 흐름
+
+```
+[게시됨 항목 상세 페이지 — 후기 탭]
+  ↓ 사용자 텍스트 입력 + 등록
+  ↓ PlatformReview 생성
+
+[MyStatusPage — "내가 남긴 후기" 섹션]
+  ← 내 계정 필터
+
+[AdminStatistics — "후기 많은 항목 TOP 5"]
+  ← reviewCount 기준 정렬
+
+[AdminDashboard — "누적 활용 후기" KPI]
+  ← 전체 합계
+```
+
+---
+
+## localStorage 키 명세
+
+| 키 | 타입 | 설명 |
+|----|------|------|
+| `ax_recent_viewed` | `string` (JSON) | 최근 본 항목 ID 배열. 최대 10개, 최신 항목이 앞에 위치. |
+
+```ts
+// PlatformItemDetailPage.tsx — useEffect 내부
+const prev: string[] = JSON.parse(localStorage.getItem("ax_recent_viewed") ?? "[]");
+const next = [id, ...prev.filter(x => x !== id)].slice(0, 10);
+localStorage.setItem("ax_recent_viewed", JSON.stringify(next));
+```
+
+---
+
+## 항목 노출 정책
+
+### 관계사 범위 (`platformScope`)
+
+| 값 | 의미 |
+|----|------|
+| `"unset"` | 신청자가 범위를 지정하지 않음. AdminReview에서 승인 전 반드시 지정 필요. |
+| `"company-wide"` | 전사 공용. 모든 관계사 사용자에게 노출. |
+| `"specific"` | `company[]` 배열에 명시된 관계사 사용자에게만 노출. |
+
+### CompanyAdmin 항목 가시성
+
+- `company.length === 0` (전사 공용) → 항목 표시
+- `company.includes(managedCo)` (담당 관계사 포함) → 항목 표시
+- 위 두 조건 모두 불충족 → 항목 비표시
+
+### 관계사 노출 관리 (AdminOrg 섹션 1)
+
+- `visible: true`인 관계사만 일반 사용자 목록·필터·통계에 노출.
+- `isGroupViewer: true` 보유자는 비노출 관계사도 조회 가능.
+- 비노출 처리해도 기존 항목 데이터는 삭제되지 않음.
+
+---
+
 ## 디렉터리 트리
+
+```
 techhub/
-├── docker-compose.yml          # postgres + backend 서비스 정의
-├── .env                        # 백엔드 환경변수 (DB URL 등)
-├── .env.example
+├── docker-compose.yml
+├── .env / .env.example
+├── STRUCTURE.md              ← 이 문서
 │
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── main.py                 # 직접 실행용 진입점 (uvicorn)
+│   ├── main.py
 │   └── app/
-│       ├── main.py             # FastAPI 앱 생성 및 라우터 등록
+│       ├── main.py
 │       ├── core/
-│       │   ├── config.py       # 환경변수 → Settings 객체
-│       │   └── database.py     # SQLAlchemy(미정) 엔진 / 세션 팩토리
+│       │   ├── config.py
+│       │   └── database.py
 │       ├── api/routes/
-│       │   └── health.py       # GET /health
-│       ├── models/             # SQLAlchemy(미정) 모델 (현재 빈 패키지)
-│       └── schemas/            # Pydantic 스키마 (현재 빈 패키지)
+│       │   └── health.py
+│       ├── models/
+│       └── schemas/
 │
 └── frontend/
-├── index.html
-├── vite.config.ts
-├── package.json
-├── tsconfig*.json
-├── .env.local              # VITE_API_URL=http://localhost:8000
-└── src/
-├── main.tsx            # ReactDOM.createRoot 진입점
-├── App.tsx             # 라우트 테이블 + AuthProvider 래퍼
-├── lib/
-│   └── api.ts          # fetch 래퍼 (get/post/put/delete)
-├── context/
-│   ├── AuthContext.tsx # 전역 인증 상태 (user, login, logout, isAdmin, isGroupViewer)
-│   └── useAuth.ts      # useAuth 훅 (useContext(AuthContext))
-├── types/
-│   └── platformTypes.ts # PlatformId(6종), Platform, PlatformItem 등 플랫폼 공용 타입
-├── mocks/
-│   └── statsMockData.ts # 통계·대시보드 공용 mock 데이터·범위 집계 헬퍼 (DEMO 전용, 백엔드 연동 시 폐기)
-├── components/
-│   ├── Navbar.tsx      # 일반 사용자용 상단 네비게이션
-│   ├── AdminNavbar.tsx # 관리자 페이지용 상단 네비게이션
-│   ├── AdminSidebar.tsx# 관리자 좌측 사이드바 (useLocation 활성 감지)
-│   ├── Footer.tsx      # 공통 푸터
-│   └── ProtectedRoute.tsx # 로그인/관리자 권한 라우트 가드
-└── pages/
-├── LandingPage.tsx
-├── LoginPage.tsx
-├── AboutPage.tsx
-├── ProjectListPage.tsx         # AX 플랫폼 탐색 (/projects)
-├── PlatformItemDetailPage.tsx  # 6개 플랫폼 타입 항목 상세
-├── ProjectRegisterPage.tsx     # AX 항목 등록 신청 (/projects/new)
-├── MyStatusPage.tsx
-├── EditRequestPage.tsx
-└── admin/
-├── AdminDashboard.tsx
-├── AdminReview.tsx
-├── AdminProjectManage.tsx
-├── AdminTaxonomy.tsx
-├── AdminOrg.tsx
-├── AdminUsers.tsx
-├── AdminStatistics.tsx
-└── AdminPlatforms.tsx
+    ├── index.html
+    ├── vite.config.ts
+    ├── package.json
+    ├── tsconfig*.json
+    ├── .env.local            # VITE_API_URL=http://localhost:8000
+    └── src/
+        ├── main.tsx
+        ├── App.tsx           # 라우트 테이블 + AuthProvider
+        ├── lib/
+        │   └── api.ts
+        ├── context/
+        │   ├── AuthContext.tsx
+        │   └── useAuth.ts
+        ├── types/
+        │   └── platformTypes.ts
+        ├── mocks/
+        │   └── statsMockData.ts
+        ├── components/
+        │   ├── Navbar.tsx
+        │   ├── AdminNavbar.tsx
+        │   ├── AdminSidebar.tsx
+        │   ├── Footer.tsx
+        │   ├── ProtectedRoute.tsx
+        │   ├── N8nFlowPreview.tsx
+        │   └── ScrollToTop.tsx
+        └── pages/
+            ├── LandingPage.tsx
+            ├── LoginPage.tsx
+            ├── AboutPage.tsx
+            ├── ProjectListPage.tsx
+            ├── PlatformItemDetailPage.tsx
+            ├── ProjectRegisterPage.tsx
+            ├── MyStatusPage.tsx
+            ├── EditRequestPage.tsx
+            └── admin/
+                ├── AdminDashboard.tsx
+                ├── AdminReview.tsx
+                ├── AdminProjectManage.tsx
+                ├── AdminTaxonomy.tsx
+                ├── AdminOrg.tsx
+                ├── AdminUsers.tsx
+                ├── AdminStatistics.tsx
+                └── AdminPlatforms.tsx
+```
 
 ---
 
@@ -75,160 +270,150 @@ techhub/
 ### 공개 페이지 (인증 불필요)
 
 #### `LandingPage.tsx` — `/`
-- **역할**: 플랫폼 홈. Hero 섹션 + 통계 + 최근 등록 AX 항목 6개 카드. 검색창에서 `/projects?q=...`로 이동.
-- **주요 state**
-  - `hovered: number | null` — 항목 카드 hover 인덱스
-  - `search: string` — Hero 검색 입력값
+
+3존(Zone) 레이아웃:
+
+| 존 | 설명 | 주요 요소 |
+|----|------|----------|
+| **히어로 존** | 로그인 사용자 맞춤 카드 + CTA + compact 검색바 | 히어로 카드, 검색바 |
+| **유형별 존** | 6개 플랫폼 유형별 항목 탐색 (전폭 가로 스크롤) | PlatformSection × 6 |
+| **업무별 존** | 업무 도메인별 항목 탐색 (전폭 가로 스크롤) | DomainSection |
+
+- **TOP5 헤더 호버 바**: 조회수 기준 TOP5 항목이 헤더 영역에 표시. 마우스 오버 시 플랫폼 색상 배경 바(bar) 표시.
+- **주요 state**: `hovered: number | null`, `search: string`
 
 #### `LoginPage.tsx` — `/login`
-- **역할**: Microsoft SSO 로그인 화면. `?redirect=` 쿼리로 로그인 후 복귀 경로 수신. 데모 단계에서는 SSO 버튼이 관리자 계정으로 로그인하고, 그 아래 접이식 데모 계정 전환 UI로 일반 사용자 계정을 선택할 수 있다.
-- **데모 계정 프리셋** (`DEMO_ACCOUNTS`, DEMO 전용 — 실제 SSO 연동 시 이 영역 전량 제거)
-  - 관리자 (`role: "admin"`) — 전체 데이터 관리·집계
-  - 일반 사용자 (`role: "user"`) — 등록 신청만 가능, 관리자 화면 접근 불가
-  - 관리자 계정 선택 시 `/admin`으로, 그 외에는 `redirect` 경로로 이동
-- **주요 state**
-  - `loading: boolean` — SSO 요청 진행 중 여부
-  - `demoOpen: boolean` — 데모 계정 선택 영역 펼침 여부
-- **AuthContext 사용**: `login()` — 사용자 세션 저장
+
+- Microsoft SSO 로그인 화면. `?redirect=` 쿼리로 복귀 경로 수신.
+- 데모 단계: SSO 버튼 클릭 → 관리자 계정 로그인, 접이식 데모 계정 전환 UI.
+- **데모 계정 프리셋** (`DEMO_ACCOUNTS`, DEMO 전용):
+  - `role: "admin"` — 전체 관리
+  - `role: "companyAdmin"` + `managedCompany` — 담당 관계사 1차 검토
+  - `role: "user"` — 등록 신청만 가능
+- admin → `/admin` 이동, 그 외 → `redirect` 경로.
 
 #### `AboutPage.tsx` — `/about`
-- **역할**: 플랫폼 소개 페이지. 문제 정의 → 작동 방식(4단계) → 핵심 가치 → Phase 2 로드맵 → CTA.
-- **주요 state**: 없음 (정적 콘텐츠)
+
+정적 소개 페이지. 문제 정의 → 작동 방식(4단계) → 핵심 가치 → Phase 2 로드맵 → CTA.
 
 #### `ProjectListPage.tsx` — `/projects`
-- **역할**: AX 플랫폼 탐색. 좌측 필터 사이드바(플랫폼 종류·상태·관계사)와 상단 검색·정렬. URL 쿼리스트링(`?q=`)과 검색어 동기화.
-- **상태 필터**: `STATUS_ORDER` 기반 5-chip 행 (전체 + 4개 보편 상태). `?status=available` 등 URL 파라미터 지원.
-- **STATUS_COLOR**: `platformTypes.ts`에서 임포트. 4개 보편 상태에 `{ fg, bg }` 색상 매핑.
-- **주요 state**
-  - `search: string` — 검색어 (URL 쿼리스트링과 동기화)
-  - `source: "전체" | PlatformId` — 플랫폼 필터 (6종 + 전체)
-  - `status: string` — 운영 상태 필터 (source 변경 시 유효하지 않은 값은 "전체"로 초기화)
-  - `company: string` — 관계사 필터
-  - `sort: "최신순" | "인기순" | "이름순" | "부서순"` — 정렬 기준 (최신순 기본)
-  - `sidebarOpen: boolean` — 필터 사이드바 열림 여부 (기본 닫힘)
-  - `hovered: number | null` — 카드 hover 인덱스
-- **파생 값**: `filtered` — `useMemo`로 계산한 필터·정렬 결과 (`PlatformItem[]`)
 
-#### `PlatformItemDetailPage.tsx` — `/n8n/:itemId` `/pa/:itemId` `/assistant/:itemId` `/ai-orchestration/:itemId` `/ml/:itemId` `/vibe/:itemId`
-- **역할**: AX 항목(n8n 워크플로우·Power Automate 플로우·나만의 비서 에이전트·AI Agent 모델·ML 모델·Vibe Coding) 상세 보기. 플랫폼 종류에 따라 다른 섹션을 조건부 렌더링. 좋아요·댓글·복사 기능.
-- **URL param**: `itemId` (`useParams`). `useLocation`이나 경로 파싱으로 `platformId` 도출.
+AX 플랫폼 탐색. 좌측 필터 사이드바(플랫폼 종류·상태·관계사) + 상단 검색·정렬.
+
+- **상태 필터**: `STATUS_ORDER` 기반 5-chip 행.
+- **`?status=available`** 등 URL 파라미터 지원.
+- **주요 state**: `search`, `source`, `status`, `company`, `sort`, `sidebarOpen`, `hovered`
+
+#### `PlatformItemDetailPage.tsx` — `/n8n/:itemId` 외 5개 경로
+
+AX 항목 상세. 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓글·복사.
+
+- **localStorage**: 방문 시 `ax_recent_viewed`에 itemId 추가 (최대 10개).
+- **후기 탭**: 게시된 항목에서 `PlatformReview` 등록 가능.
 
 ---
 
 ### 인증 필요 페이지 (`ProtectedRoute`)
 
 #### `ProjectRegisterPage.tsx` — `/projects/new`
-- **역할**: 신규 AX 항목 등록 신청. 4단계 스텝 폼 (유형 선택 → 기본정보 → 플랫폼별 상세 → 담당자·링크 → 최종확인).
-- **등록 가능 유형**: `PlatformId` 6종 — n8n, pa(Power Automate), assistant(나만의 비서), ai-orchestration(AI Agent), ml, vibe
+
+4단계 스텝 폼. 유형 선택 → 기본정보 → 플랫폼별 상세 → 담당자·링크 → 최종확인.
+
+- n8n: N8nFlowPreview + JSON 업로드.
 - **내부 컴포넌트** (모듈 레벨): `Section`, `Field`, `Tag`, `RowRemoveButton`, `TimeSavedInput`, `CompanyMultiSelect`, `ChipInput`
-- **주요 state**
-  - `step: 0–4` — 현재 스텝
-  - `kind: PlatformId | null` — 선택된 항목 유형
-  - `form: FormState` — 전체 폼 데이터
-    - `title, summary, description` — 기본정보
-    - `status` — 운영 상태
-    - `triggerAction, nodes[], connectedApps[], specificUrl` — 워크플로우형(n8n·pa·assistant) 전용
-    - `timeSavedValue, timeSavedPeriod` — 예상 절감 시간 (워크플로우형)
-    - `provider, contextWindow, strengths, costTier` — AI Agent 전용
-    - `mlType, trainingDataDesc, performanceSummary` — ML 전용
-    - `devTool, sourceRepo, outputType` — ML/Vibe 공용
-    - `platformCompanies: string[]`, `platformScope: "unset" | "company-wide" | "specific"` — 소속/대상 관계사
-    - `contacts: Contact[]` — 담당자 목록
-    - `links: LinkItem[]` — 외부 링크 목록
-  - `saving / saved: boolean` — 제출 진행·완료 여부
-- **Step 2 분기**: 워크플로우형(n8n·pa·assistant) → 동작 정보·커넥터/노드 구성·예상 효과 / AI Agent → 모델 사양 / ML → ML 모델 정보 / Vibe → Vibe Coding 정보
 
 #### `MyStatusPage.tsx` — `/my-status`
-- **역할**: 내가 등록 신청한 AX 항목 목록. 승인/대기/반려 탭 필터. 승인 항목은 운영 상태 직접 변경 가능. 반려 항목은 재제출 또는 삭제 가능.
-- **내부 컴포넌트** (모듈 레벨):
-  - `StatusChanger` — 승인된 항목의 상태 변경 드롭다운. `STATUS_BY_KIND[kind]`로 유형별 선택지 제한. `TERMINAL_STATUSES = {"운영 중지", "지원 종료 예정"}`에 속하면 잠김 안내.
-  - `KindSummaryChips` — 카드에 표시되는 유형별 요약 칩 (n8n·pa: 난이도·예상 절감시간 / assistant: 공개 범위 / ai-orchestration: 제공사·비용등급 / ml: ML 유형 / vibe: 개발 도구)
-- **주요 state**
-  - `filter: "전체" | "승인" | "대기" | "반려"` — 목록 필터
-  - `expanded / resubmit / deleteConfirm: string | null` — 패널 열림 항목 ID
-  - `deleted: string[]` — 로컬에서 제거된 항목 ID
-  - `statusOverrides: Record<string, string>` — 승인 항목 상태 변경값 로컬 저장
-- **승인 항목 클릭**: 플랫폼 경로(`PLATFORMS.path`)로 상세 페이지 이동
+
+내가 등록한 AX 항목 상태 조회. `ApprovalStage` 기반 5탭 필터(전체/1차대기/2차대기/게시됨/반려).
+
+- **`ApprovalIndicator`** (모듈 레벨 컴포넌트): 4단계 수평 인디케이터.
+  - `APPROVAL_STEPS: [null/"신청 완료", "1차대기"/"1차 검토", "2차대기"/"2차 검토", "게시됨"/"게시 완료"]`
+  - `STAGE_STEP_INDEX: { "1차대기": 1, "2차대기": 2, "게시됨": 3, "반려": -1, "중지": -1 }`
+  - 완료 단계: 초록 ✓ / 현재 단계: 파란 원 / 미래 단계: 회색 원.
+  - 반려·중지: 단계 인디케이터 대신 컬러 배너 표시.
+- **"내가 남긴 후기" 섹션**: 하단에 `MOCK_MY_REVIEWS` 표시. 플랫폼 배지 + 제목 + 내용 + 날짜 + 좋아요 수.
+- **주요 state**: `filter`, `expanded`, `deleted`, `statusOverrides`
 
 #### `EditRequestPage.tsx` — `/edit-request/:id`
-- **역할**: 게시된 AX 항목 정보 수정 신청. 수정할 필드를 체크박스로 선택 후 변경 내용과 사유 입력.
-- **수정 가능 필드**: `COMMON_FIELDS`(제목·한 줄 요약·상세 설명·상태) + `EXTRA_FIELDS_BY_KIND[current.kind]`로 유형별 전용 필드 추가. n8n·pa: 트리거·동작·실행 URL / assistant: 공유 프롬프트·비서 소개 / ai-orchestration: 강점·모델 URL / ml: 핵심 성능·학습 데이터 / vibe: 결과물 형태·접속 URL.
-- **상태 필드**: `<select>` 렌더링 + `STATUS_BY_KIND[current.kind]`에서 옵션 주입.
-- **주요 state**
-  - `selectedFields: string[]` — 수정 신청 대상 필드 키 목록
-  - `changes: Record<string, string>` — 필드별 변경 내용
-  - `reason: string` — 수정 사유
-  - `submitting / submitted: boolean` — 제출 진행·완료 여부
-- **URL param**: `id` (`useParams`)
+
+게시된 항목 수정 신청. 체크박스로 수정할 필드 선택 + 변경 내용 + 사유 입력.
 
 ---
 
-### 관리자 전용 페이지 (`RequireAdmin`)
+### 관리자 전용 페이지
 
-모든 관리자 페이지는 `<AdminNavbar />` + `<AdminSidebar />` 레이아웃을 공유합니다.
+모든 관리자 페이지는 `<AdminNavbar />` + `<AdminSidebar />` 레이아웃 공유.
 
 #### `AdminDashboard.tsx` — `/admin`
-- **역할**: 관리자 메인 대시보드. 핵심 지표(전체 등록물·승인 대기·이번 달 신규·운영 중 도구), 대기 목록, 최근 승인 목록, 월별 출처별 누적 추이, 출처 구성, 도메인 분포.
-- **권한**: 모든 관리자가 전체 데이터를 조회·집계. (`useAuth` 미사용 — `canEdit = true`)
-- **공용 데이터**: `mocks/statsMockData.ts`에서 `scopedCompanies`, `aggregateSourceTotal`, `aggregateMonthly`, `aggregateDomain`, `monthTotal` import
-- **경로 정합성**: 최근 승인 항목 클릭 시 `PLATFORMS.path` 기준으로 상세 경로 이동
+
+KPI 5개 (`repeat(5, 1fr)` 그리드):
+
+| KPI | 설명 |
+|-----|------|
+| 전체 등록물 | 전체 항목 수 |
+| 승인 대기 | 현재 대기 중인 항목 수 |
+| 이번 달 신규 | 당월 신규 등록 수 |
+| 운영 중 도구 | 게시됨 항목 수 |
+| 누적 활용 후기 | 전체 항목 합산 후기 수 |
+
+- 대기 목록, 최근 승인 목록, 월별 출처별 누적 추이, 출처 구성, 도메인 분포.
 
 #### `AdminReview.tsx` — `/admin/review`
-- **역할**: AX 항목을 단일 대기열로 통합 검토. 관리자가 정보를 직접 수정한 후 승인/반려.
-- **내부 타입**: `ReviewPlatformItem` (`kind: PlatformId`) — 워크플로우형·AI Agent·ML·Vibe 각 전용 필드 포함. `company: string[]`, `platformScope`
-- **권한**: `canEdit = true` — 모든 관리자가 전체 항목 처리 가능 (`useAuth` 미사용)
-- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`, `TimeSavedInput`
-- **주요 state**
-  - `items: ReviewItem[]`, `selected: string`, `done: string[]`
-  - `edits: Record<string, Partial<ReviewItem>>` — 관리자 수정 누적 맵
-  - `filter / sourceFilter` — 목록 필터
-  - `rejectOpen / rejectReason` — 반려 사유 입력
-- **예상 절감 시간**: `timeSavedValue`·`timeSavedPeriod`를 임시 키로 보관, 승인 시 `serializeTimeSaved`로 `expectedTimeSaved`에 직렬화
+
+AX 항목 2단계 승인 검토.
+
+- **역할별 접근**: `allowCompanyAdmin` 라우트 가드 적용.
+- **CompanyAdmin**: `1차대기` + 담당 관계사 항목만 표시. 좌측 패널에 orange "1차 검토 담당" 배지.
+- **Admin**: `2차대기` 항목 표시. 좌측 패널에 blue "최종 승인 담당 (2차)" 배지.
+- **`canActOnCurrent`**: Admin이면 `approvalStage === "2차대기"`, CompanyAdmin이면 `approvalStage === "1차대기"` 조건 충족 시만 버튼 활성.
+- **승인 버튼**: Admin → 초록(`#059669`) "최종 승인 (게시)" / CompanyAdmin → 파란(`#2563EB`) "1차 승인 → 관리자 검토 요청".
+- **n8n JSON**: "✓ JSON 첨부됨" + 다운로드 버튼 표시. WorkflowEditor/WorkflowDiagram 없음.
+- **승인 이력**: `approvalHistory.length > 0`이면 이력 블록 표시.
+- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ChipEditor`, `CompanyMultiSelect`
 
 #### `AdminProjectManage.tsx` — `/admin/projects`
-- **역할**: 승인된 AX 항목 전체 관리. 검색·필터링, 인라인 편집, 상태 변경, 삭제, 관리자 직접 등록.
-- **내부 타입**: `ManagedPlatformItem` (`kind: PlatformId`) — 6개 플랫폼 타입 전용 필드 포함
-- **권한**: `canEdit = true` — 모든 관리자가 전체 항목 관리 가능 (`useAuth` 미사용)
-- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `TagSelect`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`, `TimeSavedInput`
-- **주요 state**
-  - `items: ManagedItem[]`, `selected: string`
-  - `editMode / isNew: boolean`, `editData: ManagedItem | null`
-  - `timeSavedValue / timeSavedPeriod` — 예상 절감 시간 편집 상태 (editData와 분리)
-  - `deleteConfirm / search / filterStatus / sourceFilter`
-- **신규 등록**: `startNew(kind: PlatformId)` — 6개 플랫폼 타입별 빈 항목 생성
+
+승인된 AX 항목 전체 관리.
+
+- **역할별 접근**: `allowCompanyAdmin` 라우트 가드 적용.
+- **CompanyAdmin**: 담당 관계사 항목만 표시 (`company.length === 0 || company.includes(managedCo)`). 좌측 패널에 orange 배지. 삭제만 가능.
+- **Admin 전용**: ★ 하이라이트 토글, ✦ 금주의 발견 토글, 수정, 직접 등록 버튼.
+- **`isWeeklyDiscover`**: 한 항목만 true, 나머지는 false (단일 선택).
+- **n8n FieldRow**: "✓ JSON 첨부됨" + 다운로드 버튼 / "JSON 없음". WorkflowEditor 없음.
+- **내부 컴포넌트** (모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`, `TimeSavedInput`
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy`
-- **역할**: AX 항목 분류체계 관리. 탭별 항목 추가/삭제/편집. 출처(SourceKind = PlatformId) 탭에는 6개 플랫폼 종류가 포함되며, "project" 탭은 없다.
-- **IMPORT_DEST_OPTIONS**: `difficulty`·`appHints` 항목 설명이 "n8n · PA" 기준. `pa` 탭에 `appHints` 추가. `assistant` 탭은 `[]` — 표준화 대상 분류 없음.
-- **주요 state**
-  - `activeTab: TabId` — 현재 선택된 분류 탭
-  - `taxonomy: Record<string, Category>` — 전체 분류체계 데이터
-  - `freeTags: FreeTag[]` — 자유 태그 목록
+
+AX 항목 분류체계 관리. 탭별 항목 추가/삭제/편집.
 
 #### `AdminOrg.tsx` — `/admin/org`
-- **역할**: 부서/조직 관리 + 관계사별 AX Platform 노출 관리. 섹션 1(관계사 노출 관리) / 섹션 2(부서 관리). 부서 CRUD, 관계사 단위 아코디언, Teams 연동 미리보기.
+
+조직 관리 3개 섹션:
+
+1. **섹션 1 — 관계사 노출 관리**: 관계사별 플랫폼 노출 on/off.
+2. **섹션 2 — 부서 관리**: 부서 CRUD, 관계사 단위 아코디언.
+3. **섹션 3 — 관계사 관리자(CompanyAdmin) 지정**: 각 관계사에 CompanyAdmin 이메일·이름 지정. 인라인 편집(팝업 없음).
+   - `CompanyAdminAssignment: { companyCode, adminEmail, adminName }`
+   - 지정/변경 버튼 클릭 → 인라인 입력 활성화 → 저장/취소.
+
 - **내부 컴포넌트** (모듈 레벨): `CompanyVisibilityDropdown`
 
 #### `AdminUsers.tsx` — `/admin/users`
-- **역할**: 사용자 권한 관리. 탭 3개 — 관리자 권한 부여/회수, 등록자 현황, 활동 로그.
-- **권한 모델**: `role: "admin" | "user"` 2단계. 별도 adminScope/managedCompanies 없음.
-  - 관리자 부여 UI: SSO 사용자 검색 후 `role: "admin"` 부여. 전사관리자 최소 1명 유지 가드.
-  - 등록자 현황: 플랫폼 항목 통합 집계
-  - 활동 로그: 출처 칩 표시
+
+사용자 권한 관리. 탭 3개 — 관리자 권한 부여/회수 / 등록자 현황 / 활동 로그.
 
 #### `AdminStatistics.tsx` — `/admin/statistics`
-- **역할**: 통계 대시보드. 기간 선택에 따른 플랫폼 종류별 등록 현황·등록 추이, 4그룹 상태 분포, 도메인·부서 분포, 절감 효과 요약, 3-column 분석 섹션.
-- **권한**: 모든 관리자가 전체 집계 조회. (`useAuth` 미사용)
-- **공용 데이터**: `mocks/statsMockData.ts`에서 `STAT_COMPANIES`, `scopedCompanies`, `aggregateMonthly`, `aggregateSourceTotal`, `aggregateDomain`, `monthTotal` import
-- **상태 4그룹**: `STATUS_META` — 정상 운영(#059669) / 검증·개발(#2563EB) / 제한(#D97706) / 종료(#EF4444). 각 항목에 `sub` 필드로 해당 그룹에 속하는 상태값 명시.
-- **활성 항목 계산**: `status[0].count + status[1].count` (정상 운영 + 검증·개발만 포함).
-- **3-column 분석**: 난이도 분포(n8n·PA 기준) / 비용 구간 분포(AI Agent 기준, 3단계: 낮음·보통·높음) / ML 모델 유형 분포(ML 기준). 구 "기술 스택 TOP 8"·"시스템 유형 분포" 섹션 제거.
-- **주요 state**: `periodMode`, `period`, `pickYear`, `pickMonth` — 조회 기간
+
+통계 대시보드.
+
+- **후기 많은 항목 TOP 5**: `reviewCount` 기준. 순위 + 항목명 + ID + 비율 바 차트 + 수량 + 평균 좋아요.
+- **탐색 키워드 빈도**: TOP5 블록 다음에 위치.
+- **상태 4그룹**: 정상운영 / 검증·개발 / 제한 / 종료.
+- **3-column 분석**: 난이도(n8n·PA) / 비용 구간(AI Agent) / ML 모델 유형.
 
 #### `AdminPlatforms.tsx` — `/admin/platforms`
-- **역할**: AX 플랫폼 메타데이터 관리. 6개 플랫폼 항목의 이름·설명·경로·색상·아이콘 등 메타 정보 CRUD.
-- **권한**: 모든 관리자 편집 가능
-- **내부 상수**: `ICON_OPTIONS`(아이콘 선택지), `COLOR_PRESETS`(색상 프리셋)
+
+6개 플랫폼 메타데이터(이름·설명·경로·색상·아이콘) CRUD.
 
 ---
 
@@ -236,45 +421,54 @@ techhub/
 
 | 파일 | 역할 |
 |------|------|
-| `Navbar.tsx` | 일반 페이지 상단 고정 네비게이션. "AX 플랫폼 바로가기" 드롭다운(`EXTERNAL_PLATFORMS` — n8n·나만의 비서·AI Agent·Power Automate·ML 모델·Vibe Coding 6개). n8n은 실제 링크, 나머지는 "준비 중" 비활성. 로그인 시 아바타 클릭 → 드롭다운 메뉴. 관리자에게만 별 아이콘 링크 노출. |
-| `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. 로고 + 관리자 뱃지 + 사용자 이니셜 + 로그아웃. |
-| `AdminSidebar.tsx` | 관리자 좌측 사이드바. `useLocation`으로 현재 경로 자동 감지 → 활성 메뉴 강조. `pendingCount` prop으로 검토 대기 뱃지 표시. |
+| `Navbar.tsx` | 일반 사용자용 상단 고정 네비게이션. AX 플랫폼 바로가기 드롭다운. 관리자에게만 별 아이콘 노출. |
+| `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. 로고 + 관리자 뱃지 + 이니셜 + 로그아웃. |
+| `AdminSidebar.tsx` | 관리자 좌측 사이드바. `useLocation`으로 활성 메뉴 감지. `pendingCount` prop으로 검토 대기 뱃지. |
 | `Footer.tsx` | 공통 푸터. |
-| `ProtectedRoute.tsx` | 라우트 가드. `requireAdmin` prop 없으면 미인증 시 `/login?redirect=<pathname>`으로 이동. `requireAdmin` 있으면 비관리자 시 `/projects`로 이동. |
+| `ProtectedRoute.tsx` | 라우트 가드. `requireAdmin` + `allowCompanyAdmin` props. |
+| `N8nFlowPreview.tsx` | SVG 기반 n8n 워크플로우 시각화 (ProjectRegisterPage 전용). |
+| `ScrollToTop.tsx` | 라우트 변경 시 스크롤 최상단 이동. |
+
+### ProtectedRoute 구현
+
+```tsx
+export default function ProtectedRoute({
+  children,
+  requireAuth = true,
+  requireAdmin = false,
+  allowCompanyAdmin = false,
+}: ProtectedRouteProps) {
+  const { user, loading, isAdmin, isCompanyAdmin } = useAuth();
+  const location = useLocation();
+
+  if (loading) return null;
+  if (requireAuth && !user)
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  if (requireAdmin) {
+    const hasAccess = isAdmin || (allowCompanyAdmin && isCompanyAdmin);
+    if (!hasAccess) return <Navigate to="/projects" replace />;
+  }
+  return <>{children}</>;
+}
+```
 
 ---
 
 ## 인증 흐름 (`AuthContext.tsx` + `useAuth.ts`)
 
 ```
-CurrentUser {
-  name, email, dept, title,
-  role: "user" | "admin",
-  company: string,          // 소속 관계사 코드
-  isGroupViewer: boolean,   // 그룹 전체보기 권한
-}
-
-AuthProvider (context/AuthContext.tsx)
+AuthProvider
 ├── user: CurrentUser | null
 ├── loading: boolean
 ├── login(user) → setUser + sessionStorage 저장 (데모)
 ├── logout()   → setUser(null) + sessionStorage 삭제
-├── isAdmin    → user.role === "admin"
-└── isGroupViewer → user.isGroupViewer
-
-useAuth() (context/useAuth.ts)
-→ useContext(AuthContext) 래퍼. Provider 외부 사용 시 throw.
+├── isAdmin         → user.role === "admin"
+├── isCompanyAdmin  → user.role === "companyAdmin"
+└── isGroupViewer   → user.isGroupViewer
 ```
 
-- **데모 모드**: 앱 진입 시 `sessionStorage("demo_user")`를 읽어 새로고침에도 로그인 유지
-- **실제 연동 시**: `GET /api/v1/auth/me` 호출로 세션 확인 예정
-
-### 관리자 권한체계
-
-- **역할 단계**: User / Admin 2단계.
-  - `role: "admin"` — 전사 기준 전체 항목 관리·승인·집계 가능.
-  - `role: "user"` — 등록 신청만 가능, 관리자 화면 접근 불가.
-- **불변 규칙**: 관리자 최소 1명 유지 (AdminUsers에서 마지막 admin 회수 차단).
+- **데모 모드**: 앱 진입 시 `sessionStorage("demo_user")`를 읽어 새로고침에도 로그인 유지.
+- **실제 연동 시**: `GET /api/v1/auth/me` 호출로 세션 확인 예정.
 
 ---
 
@@ -282,51 +476,43 @@ useAuth() (context/useAuth.ts)
 
 | 타입/상수 | 설명 |
 |---|---|
-| `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe"` (6종) |
-| `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon). `accessUrl: string \| null` — pa·ml·vibe는 아직 URL 미확정 |
-| `PlatformItemStatus` | 4개 보편 상태 유니온 — `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"`. `STATUS_ORDER`, `STATUS_COLOR`({fg,bg}), `LEGACY_STATUS_MAP`, `normalizeStatus`, `STATUS_QUERY_KEY`, `countAvailable` 헬퍼 포함. |
-| `PlatformItem` | AX 항목 공용 타입. `company: string[]` — 소속 관계사 코드(비어있으면 전사 공용). `platformScope`. `expectedTimeSaved?: string`. 워크플로우형 전용 필드(nodes·connectedApps 등), AI Agent 전용(modelMeta), ML 전용(mlType·trainingDataDesc·performanceSummary), ML/Vibe 공용(devTool·sourceRepo·outputType) 포함. |
-| `PLATFORMS` | 6개 플랫폼 메타 배열. 출처 색상·경로의 단일 기준(source of truth). |
+| `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe"` (6종, 변경 금지) |
+| `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
+| `PlatformItemStatus` | `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"` |
+| `STATUS_ORDER` | PlatformItemStatus 4종 배열 (변경 금지) |
+| `STATUS_COLOR` | `Record<PlatformItemStatus, { fg, bg }>` (변경 금지) |
+| `ApprovalStage` | `"1차대기" \| "2차대기" \| "게시됨" \| "반려" \| "중지"` |
+| `ApprovalRecord` | `{ stage, at, by, note? }` — 승인 이력 1건 |
+| `PlatformReview` | `{ id, itemId, itemTitle, itemKind, author, dept, text, createdAt, likes }` |
+| `PlatformItem` | AX 항목 공용 타입. `company: string[]`, `platformScope`, `expectedTimeSaved?`, 플랫폼별 전용 필드 포함. |
+| `PLATFORMS` | 6개 플랫폼 메타 배열. 출처 색상·경로의 SSOT (변경 금지) |
 | `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키) |
+
+### 예상 절감 시간 모델 (`expectedTimeSaved`)
+
+```
+입력: 수치 + 주기(일/주/월/년)
+직렬화: "<주기> N시간" 표준 문자열 (예: "주 3시간")
+연간 환산 계수: PERIOD_ANNUAL_FACTOR = { 일: 365, 주: 52, 월: 12, 년: 1 }
+역직렬화: AdminStatistics.parseTimeSaved() → 연간 시간 수치
+```
 
 ---
 
 ## 공용 Mock 모듈 (`mocks/statsMockData.ts`)
 
-> AdminStatistics.tsx / AdminDashboard.tsx가 공유하는 관계사 차원 더미와 범위 집계 헬퍼.  
-> **DEMO 전용 — 백엔드 연동 시 전량 폐기.**
+> AdminStatistics / AdminDashboard 공유 더미. **DEMO 전용 — 백엔드 연동 시 폐기.**
 
 | 항목 | 설명 |
 |---|---|
-| `SourceKey` (type) | `PlatformId` — 6종 플랫폼 타입. "project" 없음. |
-| `MonthPoint` (type) | 월별 포인트. 6개 플랫폼 필드(n8n·pa·assistant·"ai-orchestration"·ml·vibe). `key`·`m`·`month` 동시 제공. |
-| `STAT_COMPANIES` / `StatCompany` | 더미 기준 관계사 코드. |
-| `COMPANY_NAME` | 관계사 코드 → 표시명 매핑. |
-| `MONTH_SERIES_BY_COMPANY` | 관계사별 월×출처 시계열. |
-| `SOURCE_TOTAL_BY_COMPANY` | 관계사별 누적 출처 합계. |
-| `DOMAIN_LABELS` / `DOMAIN_BY_COMPANY` | 도메인 라벨 + 관계사별 수치. |
-| `scopedCompanies(scope)` | `scope === null`이면 전체, 배열이면 해당 관계사만 반환. |
-| `aggregateMonthly` / `aggregateSourceTotal` / `aggregateDomain` | 범위 내 관계사 합산 헬퍼. |
-| `monthTotal(m)` | 월 포인트의 출처 합계. |
+| `SourceKey` | `PlatformId` — 6종 |
+| `MonthPoint` | 월별 포인트. 6개 플랫폼 필드 |
+| `STAT_COMPANIES` / `StatCompany` | 더미 기준 관계사 코드 |
+| `scopedCompanies(scope)` | `null` → 전체, 배열 → 해당 관계사만 |
+| `aggregateMonthly` / `aggregateSourceTotal` / `aggregateDomain` | 범위 내 관계사 합산 |
+| `monthTotal(m)` | 월 포인트의 출처 합계 |
 
-- **타입 import 주의**: `SourceKey`·`MonthPoint`·`StatCompany`는 반드시 `import type`으로 분리. 값 import와 섞으면 `verbatimModuleSyntax` 위반.
-
----
-
-## 플랫폼 포지셔닝 — 그룹 AX 확산
-
-Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 모으는 저장소로 포지셔닝됩니다.
-
-- **6대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션), ML 모델, Vibe Coding
-- **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 이를 발견·재사용하는 카탈로그 계층을 구분.
-- **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.
-
-### 예상 절감 시간 데이터 모델 (`expectedTimeSaved`)
-
-- **입력 정규화**: "수치 + 주기(일/주/월/년)" 입력으로 정규화. `"<주기> N시간"` 표준 문자열로 직렬화(예: `"주 3시간"`).
-  - **연간 환산 계수**: `PERIOD_ANNUAL_FACTOR = { 일: 365, 주: 52, 월: 12, 년: 1 }`
-  - **입력 위젯**: `TimeSavedInput`(모듈 레벨 컴포넌트) — 주기 선택 + 수치 입력 + 연간 환산 안내
-- **집계 방식**: AdminStatistics의 `parseTimeSaved()`가 표준 문자열을 연간 환산 시간으로 파싱.
+타입 import 주의: `SourceKey`, `MonthPoint`, `StatCompany`는 `import type` 분리 필수.
 
 ---
 
@@ -339,32 +525,38 @@ api.put<T>(path, body)
 api.delete<T>(path)
 ```
 
-- `VITE_API_URL` 환경변수 기반 (`http://localhost:8000`)
-- 현재 모든 페이지는 목업(mock) 데이터 사용 — `// TODO: 실제 연동 시 ...` 주석으로 교체 지점 표시
+- `VITE_API_URL` 환경변수 기반 (`http://localhost:8000`).
+- 현재 모든 페이지는 Mock 데이터 사용.
 
----
-
-## 주요 API 엔드포인트 (연동 예정)
+### 주요 예정 엔드포인트
 
 | 메서드 | 경로 | 대응 페이지 |
 |--------|------|------------|
-| `GET` | `/api/v1/platform-items` | ProjectListPage (AX 항목 탐색) |
-| `POST` | `/api/v1/platform-items` | ProjectRegisterPage (AX 항목 등록, body에 kind·expectedTimeSaved 포함) |
-| `POST` | `/api/v1/platform-items/:id/edit-requests` | EditRequestPage |
+| `GET` | `/api/v1/platform-items` | ProjectListPage |
+| `POST` | `/api/v1/platform-items` | ProjectRegisterPage |
 | `GET` | `/api/v1/platforms/:platformId/items/:itemId` | PlatformItemDetailPage |
+| `POST` | `/api/v1/platform-items/:id/reviews` | PlatformItemDetailPage (후기 등록) |
 | `GET` | `/api/v1/my/platform-items` | MyStatusPage |
-| `PATCH` | `/api/v1/platform-items/:id/status` | MyStatusPage (상태 변경) |
+| `GET` | `/api/v1/my/reviews` | MyStatusPage (내 후기) |
 | `GET` | `/api/v1/admin/review-queue` | AdminReview |
-| `PATCH` | `/api/v1/admin/platform-items/:id/approve` | AdminReview (body에 company·platformScope·expectedTimeSaved 포함) |
+| `PATCH` | `/api/v1/admin/platform-items/:id/approve` | AdminReview |
 | `PATCH` | `/api/v1/admin/platform-items/:id/reject` | AdminReview |
 | `GET` | `/api/v1/admin/platform-items` | AdminProjectManage |
 | `PUT` | `/api/v1/admin/platform-items/:id` | AdminProjectManage |
-| `GET` | `/api/v1/admin/taxonomy` | AdminTaxonomy |
-| `GET` | `/api/v1/admin/departments` | AdminOrg |
-| `GET` | `/api/v1/admin/companies?visible=true` | AdminOrg, AdminReview, AdminProjectManage, ProjectRegisterPage |
+| `PATCH` | `/api/v1/admin/platform-items/:id/highlight` | AdminProjectManage |
+| `GET` | `/api/v1/admin/companies` | AdminOrg |
+| `PUT` | `/api/v1/admin/companies/:code/admin` | AdminOrg (CompanyAdmin 지정) |
 | `GET` | `/api/v1/admin/users` | AdminUsers |
-| `GET` | `/api/v1/admin/platforms` | AdminPlatforms |
-| `PUT` | `/api/v1/admin/platforms` | AdminPlatforms |
 | `GET` | `/api/v1/admin/stats/*` | AdminStatistics, AdminDashboard |
 | `GET` | `/api/v1/auth/me` | AuthContext |
 | `POST` | `/api/v1/auth/logout` | AuthContext |
+
+---
+
+## 플랫폼 포지셔닝
+
+Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 모으는 저장소입니다.
+
+- **6대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션), ML 모델, Vibe Coding
+- **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
+- **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.

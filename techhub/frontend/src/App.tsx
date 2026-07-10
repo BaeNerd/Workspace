@@ -53,8 +53,8 @@ export default function App() {
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/review" element={<ProtectedRoute requireAdmin><AdminReview /></ProtectedRoute>} />
-          <Route path="/admin/projects" element={<ProtectedRoute requireAdmin><AdminProjectManage /></ProtectedRoute>} />
+          <Route path="/admin/review" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminReview /></ProtectedRoute>} />
+          <Route path="/admin/projects" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminProjectManage /></ProtectedRoute>} />
           <Route path="/admin/taxonomy" element={<ProtectedRoute requireAdmin><AdminTaxonomy /></ProtectedRoute>} />
           <Route path="/admin/org" element={<ProtectedRoute requireAdmin><AdminOrg /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />

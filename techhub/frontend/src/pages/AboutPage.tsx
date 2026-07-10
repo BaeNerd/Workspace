@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { PLATFORMS } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
+import { CONTENT_MAX_WIDTH } from "../styles/layout";
 
 /* ============================================================
    디자인 토큰 (모듈 레벨)
@@ -12,13 +13,13 @@ import type { PlatformId } from "../types/platformTypes";
 const T = {
   ink: "#0B1220",
   slate700: "#334155",
-  slate500: "#64748B",
+  slate500: "#697386",
   slate400: "#94A3B8",
-  line: "#E6EAF0",
-  blue: "#2563EB",
+  line: "#EBEEF3",
+  blue: "#1C6BFF",
   blueDeep: "#1D4ED8",
   surface: "#FFFFFF",
-  canvas: "#F7F9FC",
+  canvas: "#F4F6F9",
   radiusLg: 16,
   radiusMd: 12,
   shadowCard: "0 1px 2px rgba(11, 18, 32, 0.04), 0 8px 24px rgba(11, 18, 32, 0.05)",
@@ -32,7 +33,7 @@ const GLOBAL_CSS = `
   .axab-type:hover .axab-arrow { opacity: 1; transform: translateX(0); }
   .axab-arrow { opacity: 0; transform: translateX(-4px); transition: opacity .18s ease, transform .18s ease; }
   .axab-cta-primary { transition: transform .18s ease, box-shadow .18s ease; }
-  .axab-cta-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(37, 99, 235, .38); }
+  .axab-cta-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(28, 107, 255, .38); }
   .axab-cta-ghost { transition: border-color .18s ease, color .18s ease; }
   .axab-cta-ghost:hover { border-color: #94A3B8 !important; }
 `;
@@ -121,7 +122,7 @@ const CONCEPT_CARDS = [
 const STATUS_STEPS = [
   // TODO: 상태 통일 작업(platformTypes.ts STATUS_ORDER/STATUS_COLOR) 반영 시 공용 상수로 교체
   { label: "사용 가능", desc: "지금 바로 쓸 수 있어요", fg: "#059669", bg: "#F0FDF7" },
-  { label: "준비 중", desc: "개발·테스트 중이에요", fg: "#2563EB", bg: "#F3F7FE" },
+  { label: "준비 중", desc: "개발·테스트 중이에요", fg: "#1C6BFF", bg: "#F3F7FE" },
   { label: "일부 제한", desc: "조건부로 쓸 수 있어요", fg: "#D97706", bg: "#FFFAF0" },
   { label: "사용 중지", desc: "더 이상 운영하지 않아요", fg: "#DC2626", bg: "#FEF5F5" },
 ];
@@ -280,7 +281,7 @@ function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
           </div>
         </div>
         <div style={{
-          fontSize: 16.5, fontWeight: 800, color: "#F8FAFC",
+          fontSize: 16.5, fontWeight: 800, color: "#F4F6F9",
           marginBottom: 6, letterSpacing: "-0.01em", position: "relative",
         }}>
           {item.problem}
@@ -294,7 +295,7 @@ function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
       <div style={{ position: "relative", padding: "22px 22px 22px", flex: 1 }}>
         <div style={{
           position: "absolute", top: 0, left: 22, right: 22, height: 2,
-          background: `linear-gradient(90deg, ${T.blue}, rgba(37, 99, 235, 0))`,
+          background: `linear-gradient(90deg, ${T.blue}, rgba(28, 107, 255, 0))`,
         }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.blue} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -425,7 +426,7 @@ function TypeCard({ id, name, color, bg, onClick }: {
 }
 
 function ConceptCard({ item, accentIndex }: { item: (typeof CONCEPT_CARDS)[number]; accentIndex: number }) {
-  const accents = ["#2563EB", "#7C3AED", "#0891B2"];
+  const accents = ["#1C6BFF", "#7C3AED", "#0891B2"];
   const accent = accents[accentIndex % accents.length];
   return (
     <div
@@ -531,7 +532,7 @@ export default function AboutPage() {
         {/* 도트 그리드 배경 */}
         <div style={{
           position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(rgba(37, 99, 235, 0.10) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(rgba(28, 107, 255, 0.10) 1px, transparent 1px)",
           backgroundSize: "26px 26px",
           maskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 100%)",
           WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 100%)",
@@ -542,8 +543,8 @@ export default function AboutPage() {
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 8,
             fontSize: 11, fontWeight: 700, letterSpacing: "0.16em",
-            color: T.blue, background: "rgba(37, 99, 235, 0.06)",
-            border: "1px solid rgba(37, 99, 235, 0.18)", borderRadius: 20,
+            color: T.blue, background: "rgba(28, 107, 255, 0.06)",
+            border: "1px solid rgba(28, 107, 255, 0.18)", borderRadius: 20,
             padding: "6px 16px", marginBottom: 26, textTransform: "uppercase",
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.blue }} />
@@ -580,7 +581,7 @@ export default function AboutPage() {
               style={{
                 background: T.blue, color: "#fff", border: "none", borderRadius: 9,
                 padding: "13px 30px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                marginRight: 10, boxShadow: "0 4px 14px rgba(37, 99, 235, 0.30)",
+                marginRight: 10, boxShadow: "0 4px 14px rgba(28, 107, 255, 0.30)",
               }}
             >
               자산 탐색하기
@@ -627,7 +628,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "72px 32px 56px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "72px 32px 56px" }}>
 
         {/* 01 — 왜 AX Platform인가 */}
         <div style={{ marginBottom: 88 }}>
@@ -754,7 +755,7 @@ export default function AboutPage() {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 14, fontWeight: 800, margin: "0 auto 16px",
                   position: "relative", zIndex: 1, fontVariantNumeric: "tabular-nums",
-                  boxShadow: "0 2px 10px rgba(37, 99, 235, 0.14)",
+                  boxShadow: "0 2px 10px rgba(28, 107, 255, 0.14)",
                 }}>
                   {f.step}
                 </div>
@@ -801,7 +802,7 @@ export default function AboutPage() {
             pointerEvents: "none",
           }} />
           <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#F8FAFC", letterSpacing: "-0.015em", marginBottom: 10 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#F4F6F9", letterSpacing: "-0.015em", marginBottom: 10 }}>
               지금 우리 회사의 자산부터 둘러보세요
             </div>
             <div style={{ fontSize: 13.5, color: "#93A5C0", marginBottom: 26, lineHeight: 1.7 }}>

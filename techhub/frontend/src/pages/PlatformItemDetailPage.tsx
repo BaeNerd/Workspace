@@ -19,13 +19,14 @@
    4. 실행 버튼 라벨을 유형별로 세분화.
    ============================================================ */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { PLATFORMS, STATUS_COLOR } from "../types/platformTypes";
-import type { PlatformItem, PlatformId, PlatformItemStatus } from "../types/platformTypes";
-import { WorkflowDiagram } from "../components/WorkflowDiagram";
+import type { PlatformItem, PlatformId, PlatformItemStatus, PlatformReview } from "../types/platformTypes";
+import N8nFlowPreview from "../components/N8nFlowPreview";
+import { CONTENT_MAX_WIDTH } from "../styles/layout";
 
 
 const COST_TIER_COLOR: Record<string, { bg: string; color: string }> = {
@@ -38,7 +39,7 @@ const POST_TAGS = ["공지", "Q&A", "이슈제보", "건의"] as const;
 type PostTag = typeof POST_TAGS[number];
 
 const POST_TAG_COLOR: Record<PostTag, { bg: string; color: string }> = {
-  "공지": { bg: "#DBEAFE", color: "#1E40AF" },
+  "공지": { bg: "#E8F0FE", color: "#1E40AF" },
   "Q&A": { bg: "#FEF3C7", color: "#92400E" },
   "이슈제보": { bg: "#FEE2E2", color: "#991B1B" },
   "건의": { bg: "#F5F3FF", color: "#6D28D9" },
@@ -731,6 +732,39 @@ const MOCK_POSTS_BY_ITEM: Record<string, Post[]> = {
   ],
 };
 
+// 항목별 mock 활용 후기 (실 연동 시 GET /api/v1/platform-items/:id/reviews)
+const MOCK_REVIEWS_BY_ITEM: Record<string, PlatformReview[]> = {
+  "N8N-001": [
+    { id: "r1", itemId: "N8N-001", itemTitle: "신규 입사자 계정 자동 생성", itemKind: "n8n", author: "박성민", dept: "IT인프라팀", text: "입사자 계정 생성 시간이 1시간에서 5분으로 줄었습니다. 실수도 없어졌어요.", createdAt: "2025.06.10", likes: 8 },
+    { id: "r2", itemId: "N8N-001", itemTitle: "신규 입사자 계정 자동 생성", itemKind: "n8n", author: "김은지", dept: "인사팀", text: "HR 시스템과 연동이 잘 돼서 입사 당일부터 바로 사용 가능합니다.", createdAt: "2025.06.18", likes: 5 },
+    { id: "r3", itemId: "N8N-001", itemTitle: "신규 입사자 계정 자동 생성", itemKind: "n8n", author: "이준호", dept: "경영지원팀", text: "팀원 모두가 편리하게 사용 중입니다. 초기 세팅만 잘 되면 완전 자동화!", createdAt: "2025.06.22", likes: 3 },
+  ],
+  "AST-001": [
+    { id: "r4", itemId: "AST-001", itemTitle: "계약서 AI 검토 비서", itemKind: "assistant", author: "강현우", dept: "법무팀", text: "영문 계약서 검토 시간이 반으로 줄었습니다. 주요 조항 누락 여부도 잘 짚어줍니다.", createdAt: "2025.06.12", likes: 11 },
+    { id: "r5", itemId: "AST-001", itemTitle: "계약서 AI 검토 비서", itemKind: "assistant", author: "오세은", dept: "구매팀", text: "계약 조건 비교 시 매우 유용합니다. 다만 법적 판단은 직접 확인이 필요합니다.", createdAt: "2025.06.20", likes: 6 },
+  ],
+};
+
+// n8n 데모용 워크플로우 JSON (item.workflowJson 없는 항목 폴백)
+const MOCK_N8N_WORKFLOW = JSON.stringify({
+  name: "데모 워크플로우",
+  nodes: [
+    { id: "1", name: "Manual Trigger", type: "n8n-nodes-base.manualTrigger", position: [100, 120] },
+    { id: "2", name: "HTTP Request", type: "n8n-nodes-base.httpRequest", position: [280, 120] },
+    { id: "3", name: "IF 조건", type: "n8n-nodes-base.if", position: [460, 120] },
+    { id: "4", name: "Teams 알림", type: "n8n-nodes-base.microsoftTeams", position: [640, 60] },
+    { id: "5", name: "Set 데이터", type: "n8n-nodes-base.set", position: [640, 180] },
+  ],
+  connections: {
+    "Manual Trigger": { main: [[{ node: "HTTP Request", type: "main", index: 0 }]] },
+    "HTTP Request": { main: [[{ node: "IF 조건", type: "main", index: 0 }]] },
+    "IF 조건": { main: [
+      [{ node: "Teams 알림", type: "main", index: 0 }],
+      [{ node: "Set 데이터", type: "main", index: 0 }],
+    ]},
+  },
+});
+
 export default function PlatformItemDetailPage() {
   const navigate = useNavigate();
   const { itemId } = useParams<{ itemId: string }>();
@@ -743,6 +777,16 @@ export default function PlatformItemDetailPage() {
   const [posts, setPosts] = useState<Post[]>(item ? (MOCK_POSTS_BY_ITEM[item.id] ?? []) : []);
   const [postText, setPostText] = useState("");
   const [postTag, setPostTag] = useState<PostTag>("Q&A");
+  const [reviews, setReviews] = useState<PlatformReview[]>(item ? (MOCK_REVIEWS_BY_ITEM[item.id] ?? []) : []);
+  const [reviewText, setReviewText] = useState("");
+
+  useEffect(() => {
+    if (!item?.id) return;
+    const raw = localStorage.getItem("ax_recent_viewed");
+    const arr: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    const updated = [item.id, ...arr.filter(id => id !== item.id)].slice(0, 10);
+    localStorage.setItem("ax_recent_viewed", JSON.stringify(updated));
+  }, [item?.id]);
 
   if (!item || !platform) {
     return (
@@ -773,17 +817,6 @@ export default function PlatformItemDetailPage() {
     ));
   };
 
-  const downloadWorkflow = () => {
-    const content = item.workflowJson ?? JSON.stringify(item.workflowDef ?? {}, null, 2);
-    const blob = new Blob([content], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${item.id.toLowerCase()}-workflow.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handlePost = () => {
     if (!postText.trim()) return;
     setPosts(prev => [{
@@ -793,22 +826,43 @@ export default function PlatformItemDetailPage() {
     setPostText("");
   };
 
+  const handleReview = () => {
+    if (!reviewText.trim()) return;
+    const r: PlatformReview = {
+      id: `local-${Date.now()}`, itemId: item.id, itemTitle: item.title, itemKind: item.platformId,
+      author: "김철수", dept: "IT개발팀", text: reviewText, createdAt: "2026.07.10", likes: 0,
+    };
+    setReviews(prev => [r, ...prev]);
+    setReviewText("");
+  };
+
+  const downloadWorkflow = () => {
+    const content = item.workflowJson ?? MOCK_N8N_WORKFLOW;
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${item.id.toLowerCase()}-workflow.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
       <Navbar />
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "10px 32px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94A3B8" }}>
-          <span onClick={() => navigate("/projects")} style={{ cursor: "pointer", color: "#2563EB", fontWeight: 500 }}>AX Platform</span>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "10px 32px" }}>
+        <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94A3B8" }}>
+          <span onClick={() => navigate("/projects")} style={{ cursor: "pointer", color: "#1C6BFF", fontWeight: 500 }}>AX Platform</span>
           <span>/</span>
-          <span onClick={() => navigate(`/projects?q=${encodeURIComponent(platform.name)}`)} style={{ cursor: "pointer", color: "#64748B" }}>{platform.name}</span>
+          <span onClick={() => navigate(`/projects?q=${encodeURIComponent(platform.name)}`)} style={{ cursor: "pointer", color: "#697386" }}>{platform.name}</span>
           <span>/</span>
-          <span style={{ color: "#0F172A", fontWeight: 600 }}>{item.title}</span>
+          <span style={{ color: "#1A1F27", fontWeight: 600 }}>{item.title}</span>
         </div>
       </div>
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "28px 32px 0" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "28px 32px 0" }}>
+        <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -825,7 +879,7 @@ export default function PlatformItemDetailPage() {
                   </>
                 )}
               </div>
-              <h1 style={{ fontSize: 26, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", marginBottom: 8, lineHeight: 1.3 }}>
+              <h1 style={{ fontSize: 26, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.02em", marginBottom: 8, lineHeight: 1.3 }}>
                 {item.title}
               </h1>
               <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.7, maxWidth: 640 }}>
@@ -835,14 +889,14 @@ export default function PlatformItemDetailPage() {
                 <div style={{
                   display: "flex", alignItems: "flex-start", gap: 10,
                   marginTop: 12, padding: "10px 14px", maxWidth: 640,
-                  background: item.status === "사용 중지" ? "#F8FAFC" : "#FFFBEB",
+                  background: item.status === "사용 중지" ? "#F4F6F9" : "#FFFBEB",
                   border: `1.5px solid ${item.status === "사용 중지" ? "#CBD5E1" : "#FDE68A"}`,
                   borderRadius: 8,
                 }}>
                   <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>
                     {item.status === "사용 중지" ? "⏹" : "⚠️"}
                   </span>
-                  <span style={{ fontSize: 13, lineHeight: 1.65, color: item.status === "사용 중지" ? "#64748B" : "#92400E" }}>
+                  <span style={{ fontSize: 13, lineHeight: 1.65, color: item.status === "사용 중지" ? "#697386" : "#92400E" }}>
                     <strong style={{ fontWeight: 700 }}>{item.status === "사용 중지" ? "운영 종료" : "이용 제한"} —</strong>{" "}
                     {item.statusNote}
                   </span>
@@ -852,19 +906,19 @@ export default function PlatformItemDetailPage() {
             <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
               <button onClick={toggleLike} style={{
                 background: liked ? "#FEF2F2" : "#fff",
-                border: `1.5px solid ${liked ? "#FCA5A5" : "#E2E8F0"}`,
+                border: `1.5px solid ${liked ? "#FCA5A5" : "#EBEEF3"}`,
                 borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600,
                 color: liked ? "#DC2626" : "#475569", cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
               }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={liked ? "#DC2626" : "none"} stroke={liked ? "#DC2626" : "#64748B"} strokeWidth="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={liked ? "#DC2626" : "none"} stroke={liked ? "#DC2626" : "#697386"} strokeWidth="2">
                   <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
                 {likeCount}
               </button>
               <button onClick={() => setActiveTab("contact")} style={{
                 background: "#fff", color: "#475569",
-                border: "1.5px solid #E2E8F0", borderRadius: 7,
+                border: "1.5px solid #EBEEF3", borderRadius: 7,
                 padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}>
                 담당자 연락
@@ -896,8 +950,8 @@ export default function PlatformItemDetailPage() {
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 padding: "10px 18px", fontSize: 13, fontWeight: 600,
                 background: "transparent", border: "none", cursor: "pointer",
-                color: activeTab === tab.id ? "#2563EB" : "#64748B",
-                borderBottom: activeTab === tab.id ? "2px solid #2563EB" : "2px solid transparent",
+                color: activeTab === tab.id ? "#1C6BFF" : "#697386",
+                borderBottom: activeTab === tab.id ? "2px solid #1C6BFF" : "2px solid transparent",
                 transition: "all 0.15s",
               }}>
                 {tab.label}
@@ -907,32 +961,32 @@ export default function PlatformItemDetailPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 32px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "28px 32px" }}>
 
         {activeTab === "overview" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
             <div>
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>설명</div>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>설명</div>
                 <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.9, whiteSpace: "pre-line" }}>
                   {item.description}
                 </div>
               </div>
 
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>출처</div>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>출처</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   <span style={{ fontSize: 12, background: platform.bg, color: platform.color, padding: "4px 12px", borderRadius: 6, fontWeight: 600 }}>
                     {platform.name}
                   </span>
-                  <span style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "4px 12px", borderRadius: 6, border: "1px solid #E2E8F0" }}>
+                  <span style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "4px 12px", borderRadius: 6, border: "1px solid #EBEEF3" }}>
                     {platform.shortDesc}
                   </span>
                 </div>
               </div>
 
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>대상 관계사</div>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>대상 관계사</div>
                 {isCompanyWide ? (
                   <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.7 }}>
                     특정 관계사로 한정되지 않은 <strong>전사 공용</strong> 항목입니다.
@@ -940,21 +994,67 @@ export default function PlatformItemDetailPage() {
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {companyFullNames(item.company ?? []).map((name, i) => (
-                      <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "4px 12px", borderRadius: 6, border: "1px solid #BFDBFE" }}>
+                      <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#E8F0FE", color: "#1E40AF", padding: "4px 12px", borderRadius: 6, border: "1px solid #BFDBFE" }}>
                         {name}
                       </span>
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* ===== 활용 후기 ===== */}
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px", marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>
+                  활용 후기 <span style={{ fontSize: 12, fontWeight: 500, color: "#94A3B8" }}>{reviews.length}</span>
+                </div>
+                {reviews.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "12px 0 8px", color: "#94A3B8", fontSize: 13 }}>
+                    아직 등록된 후기가 없습니다.
+                  </div>
+                )}
+                {reviews.map((r, ri) => (
+                  <div key={r.id} style={{ paddingBottom: 14, marginBottom: ri < reviews.length - 1 ? 14 : 0, borderBottom: ri < reviews.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#EBEEF3", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                        {r.author[0]}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#1A1F27" }}>{r.author}</span>
+                      <span style={{ fontSize: 11, color: "#94A3B8" }}>{r.dept}</span>
+                      <span style={{ fontSize: 11, color: "#CBD5E1", marginLeft: "auto" }}>{r.createdAt}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.8, paddingLeft: 32 }}>{r.text}</div>
+                  </div>
+                ))}
+                <div style={{ marginTop: reviews.length > 0 ? 16 : 8, paddingTop: reviews.length > 0 ? 14 : 0, borderTop: reviews.length > 0 ? "1px solid #F1F5F9" : "none" }}>
+                  <textarea
+                    value={reviewText}
+                    onChange={e => setReviewText(e.target.value)}
+                    placeholder="이 항목을 활용한 경험을 공유해 주세요."
+                    style={{
+                      width: "100%", boxSizing: "border-box", minHeight: 68,
+                      padding: "10px 12px", fontSize: 13, color: "#1A1F27",
+                      border: "1.5px solid #EBEEF3", borderRadius: 8, outline: "none",
+                      resize: "vertical", fontFamily: "inherit",
+                    }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                    <button onClick={handleReview} style={{
+                      background: "#1A1F27", color: "#fff", border: "none", borderRadius: 7,
+                      padding: "7px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>
+                      후기 등록
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {item.specificUrl && (
-                <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 12 }}>문서 및 링크</div>
+                <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "18px 18px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1F27", marginBottom: 12 }}>문서 및 링크</div>
                   <a href={item.specificUrl} target="_blank" rel="noreferrer" style={{
-                    fontSize: 12, color: "#2563EB", fontWeight: 500,
+                    fontSize: 12, color: "#1C6BFF", fontWeight: 500,
                     textDecoration: "none", display: "flex", alignItems: "center", gap: 6,
                   }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -965,11 +1065,11 @@ export default function PlatformItemDetailPage() {
                 </div>
               )}
 
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 10 }}>태그</div>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "18px 18px" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1F27", marginBottom: 10 }}>태그</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                   {item.tags.map((t, i) => (
-                    <span key={i} style={{ fontSize: 11, background: "#F8FAFC", color: "#64748B", padding: "3px 8px", borderRadius: 4, border: "1px solid #E2E8F0" }}>
+                    <span key={i} style={{ fontSize: 11, background: "#F4F6F9", color: "#697386", padding: "3px 8px", borderRadius: 4, border: "1px solid #EBEEF3" }}>
                       #{t}
                     </span>
                   ))}
@@ -984,20 +1084,20 @@ export default function PlatformItemDetailPage() {
 
             {/* ===== AI Agent — 모델 사양 ===== */}
             {item.platformId === "ai-orchestration" && item.modelMeta && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>강점 및 활용 방법</div>
-                <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 20, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>강점 및 활용 방법</div>
+                <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 20, background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                   {item.modelMeta.strengthsDetail || "등록된 설명이 없습니다."}
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>세부 모델명</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.modelMeta.modelName || item.modelMeta.provider}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.modelMeta.modelName || item.modelMeta.provider}</div>
                   </div>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>처리 가능한 글 분량</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.modelMeta.contextWindow}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.modelMeta.contextWindow}</div>
                   </div>
                 </div>
 
@@ -1041,7 +1141,7 @@ export default function PlatformItemDetailPage() {
                 </div>
 
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #F1F5F9" }}>
-                  <span onClick={() => navigate(`/projects?platform=ai-orchestration`)} style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>
+                  <span onClick={() => navigate(`/projects?platform=ai-orchestration`)} style={{ fontSize: 12, color: "#1C6BFF", fontWeight: 600, cursor: "pointer" }}>
                     다른 AI 모델과 비교해보기 →
                   </span>
                 </div>
@@ -1050,15 +1150,15 @@ export default function PlatformItemDetailPage() {
 
             {/* ===== 나만의 비서 — 비서 구성 ===== */}
             {item.platformId === "assistant" && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>공유 범위</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.shareScope || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.shareScope || "—"}</div>
                   </div>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>기반 모델</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.basedModel || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.basedModel || "—"}</div>
                   </div>
                 </div>
 
@@ -1071,7 +1171,7 @@ export default function PlatformItemDetailPage() {
 
                 <div style={{ marginBottom: 18 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>공유 프롬프트</div>
-                  <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     {item.sharedPrompt || "등록된 프롬프트가 없습니다."}
                   </div>
                 </div>
@@ -1088,7 +1188,7 @@ export default function PlatformItemDetailPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>예시 질문</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {item.sampleQuestions.map((q, i) => (
-                        <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "5px 12px", borderRadius: 20 }}>
+                        <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#E8F0FE", color: "#1E40AF", padding: "5px 12px", borderRadius: 20 }}>
                           {q}
                         </span>
                       ))}
@@ -1100,15 +1200,15 @@ export default function PlatformItemDetailPage() {
 
             {/* ===== Power Automate — 플로우 정보 ===== */}
             {item.platformId === "pa" && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>흐름 유형</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.flowType || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.flowType || "—"}</div>
                   </div>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>커넥터 등급</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.connectorTier || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.connectorTier || "—"}</div>
                   </div>
                 </div>
 
@@ -1124,7 +1224,7 @@ export default function PlatformItemDetailPage() {
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>사용된 커넥터</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {item.connectedApps.map((a, i) => (
-                        <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "5px 12px", borderRadius: 20 }}>
+                        <span key={i} style={{ fontSize: 12, fontWeight: 600, background: "#E8F0FE", color: "#1E40AF", padding: "5px 12px", borderRadius: 20 }}>
                           {a}
                         </span>
                       ))}
@@ -1136,15 +1236,15 @@ export default function PlatformItemDetailPage() {
 
             {/* ===== ML — 모델 정보 ===== */}
             {item.platformId === "ml" && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>모델 유형</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.mlType || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.mlType || "—"}</div>
                   </div>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>핵심 성능</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.performanceSummary || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.performanceSummary || "—"}</div>
                   </div>
                 </div>
 
@@ -1169,7 +1269,7 @@ export default function PlatformItemDetailPage() {
                 {item.sourceRepo && (
                   <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #F1F5F9" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>소스 저장소</div>
-                    <div style={{ fontSize: 13, color: "#2563EB" }}>{item.sourceRepo}</div>
+                    <div style={{ fontSize: 13, color: "#1C6BFF" }}>{item.sourceRepo}</div>
                   </div>
                 )}
               </div>
@@ -1177,49 +1277,47 @@ export default function PlatformItemDetailPage() {
 
             {/* ===== Vibe Coding — 산출물 정보 ===== */}
             {item.platformId === "vibe" && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>사용한 AI 도구</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.devTool || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.devTool || "—"}</div>
                   </div>
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "14px 16px" }}>
+                  <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 6 }}>결과물 형태</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>{item.outputType || "—"}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27" }}>{item.outputType || "—"}</div>
                   </div>
                 </div>
 
                 {item.sourceRepo && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>소스 저장소</div>
-                    <div style={{ fontSize: 13, color: "#2563EB" }}>{item.sourceRepo}</div>
+                    <div style={{ fontSize: 13, color: "#1C6BFF" }}>{item.sourceRepo}</div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* ===== n8n — 상세 동작(워크플로우 다이어그램) ===== */}
+            {/* ===== n8n — 워크플로우 다이어그램 ===== */}
             {item.platformId === "n8n" && (
-              <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px" }}>
+              <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>상세 동작</div>
-                  {(item.workflowJson || item.workflowDef) && (
-                    <button onClick={downloadWorkflow} style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6,
-                      padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                      </svg>
-                      JSON 다운로드
-                    </button>
-                  )}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27" }}>워크플로우 다이어그램</div>
+                  <button onClick={downloadWorkflow} style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 6,
+                    padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                    JSON 다운로드
+                  </button>
                 </div>
-                {item.workflowDef && <WorkflowDiagram wf={item.workflowDef} />}
+                <N8nFlowPreview json={item.workflowJson ?? MOCK_N8N_WORKFLOW} />
                 <div style={{
                   fontSize: 13, color: "#475569", lineHeight: 1.9, whiteSpace: "pre-line",
-                  ...(item.workflowDef ? { marginTop: 20, paddingTop: 16, borderTop: "1px solid #F1F5F9" } : {}),
+                  marginTop: 20, paddingTop: 16, borderTop: "1px solid #F1F5F9",
                 }}>
                   {item.description}
                 </div>
@@ -1230,12 +1328,12 @@ export default function PlatformItemDetailPage() {
 
         {activeTab === "contact" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
+            <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{
                     width: 38, height: 38, borderRadius: "50%",
-                    background: "#0F172A", color: "#fff",
+                    background: "#1A1F27", color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 14, fontWeight: 700, flexShrink: 0,
                   }}>
@@ -1243,17 +1341,17 @@ export default function PlatformItemDetailPage() {
                   </div>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{item.owner}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: "#0F172A", color: "#fff", padding: "2px 7px", borderRadius: 20 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1F27" }}>{item.owner}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, background: "#1A1F27", color: "#fff", padding: "2px 7px", borderRadius: 20 }}>
                         담당자
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: "#64748B" }}>{item.dept}</div>
+                    <div style={{ fontSize: 12, color: "#697386" }}>{item.dept}</div>
                   </div>
                 </div>
                 <a href={`mailto:${item.ownerEmail}`} style={{ textDecoration: "none" }}>
                   <button style={{
-                    background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6,
+                    background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 6,
                     padding: "7px 14px", fontSize: 12, fontWeight: 600, color: "#475569",
                     cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
                   }}>
@@ -1273,7 +1371,7 @@ export default function PlatformItemDetailPage() {
 
         {activeTab === "posts" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#64748B" }}>
+            <div style={{ background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, padding: "10px 16px", fontSize: 12, color: "#697386" }}>
               공지·질문·이슈제보·건의를 자유롭게 남길 수 있는 공간입니다. 담당자 직접 문의는 담당자 탭을 이용하세요.
             </div>
 
@@ -1285,13 +1383,13 @@ export default function PlatformItemDetailPage() {
 
             {posts.map(p => (
               <div key={p.id} style={{
-                background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 22px",
+                background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "18px 22px",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: "50%",
-                      background: "#E2E8F0", color: "#475569",
+                      background: "#EBEEF3", color: "#475569",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 12, fontWeight: 700, flexShrink: 0,
                     }}>
@@ -1299,7 +1397,7 @@ export default function PlatformItemDetailPage() {
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{p.author}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27" }}>{p.author}</span>
                         <span style={{ fontSize: 11, color: "#94A3B8" }}>{p.dept}</span>
                         <span style={{
                           fontSize: 10, fontWeight: 700,
@@ -1331,13 +1429,13 @@ export default function PlatformItemDetailPage() {
               </div>
             ))}
 
-            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 22px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 10 }}>글 작성</div>
+            <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "18px 22px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1A1F27", marginBottom: 10 }}>글 작성</div>
               <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                 {POST_TAGS.map(tag => (
                   <button key={tag} onClick={() => setPostTag(tag)} style={{
                     fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, cursor: "pointer",
-                    border: `1.5px solid ${postTag === tag ? POST_TAG_COLOR[tag].color : "#E2E8F0"}`,
+                    border: `1.5px solid ${postTag === tag ? POST_TAG_COLOR[tag].color : "#EBEEF3"}`,
                     background: postTag === tag ? POST_TAG_COLOR[tag].bg : "#fff",
                     color: postTag === tag ? POST_TAG_COLOR[tag].color : "#94A3B8",
                   }}>
@@ -1351,14 +1449,14 @@ export default function PlatformItemDetailPage() {
                 placeholder="공지, 질문, 이슈, 건의 등 자유롭게 남겨주세요."
                 style={{
                   width: "100%", boxSizing: "border-box", minHeight: 80,
-                  padding: "12px 14px", fontSize: 13, color: "#0F172A",
-                  border: "1.5px solid #E2E8F0", borderRadius: 8, outline: "none",
+                  padding: "12px 14px", fontSize: 13, color: "#1A1F27",
+                  border: "1.5px solid #EBEEF3", borderRadius: 8, outline: "none",
                   resize: "vertical", fontFamily: "inherit",
                 }}
               />
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
                 <button onClick={handlePost} style={{
-                  background: "#2563EB", color: "#fff", border: "none", borderRadius: 7,
+                  background: "#1C6BFF", color: "#fff", border: "none", borderRadius: 7,
                   padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>
                   등록

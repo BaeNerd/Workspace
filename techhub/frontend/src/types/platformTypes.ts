@@ -120,10 +120,54 @@ export type PlatformItem = {
 
   // 상태 사유 — "일부 제한" / "사용 중지" 항목에 제한·중단 이유 기재
   statusNote?: string;
+
+  // 이용 방식 — self: 셀프서비스(바로 사용) / contact: 담당자 문의(카탈로그형)
+  usageMode?: "self" | "contact";
 };
 
 export const countAvailable = (items: PlatformItem[]): number =>
   items.filter(item => item.status === "사용 가능").length;
+
+// ===== 활용 후기 =====
+export type PlatformReview = {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  itemKind: PlatformId;
+  author: string;
+  dept: string;
+  text: string;
+  createdAt: string;
+  likes: number;
+};
+
+// ===== 에디터 픽 (금주의 발견) =====
+export type EditorsPick = {
+  itemId: string;
+  reason: string;
+  pickedAt: string;
+  pickedBy: string;
+};
+
+// ===== 2단계 승인 =====
+export type ApprovalStage = "1차대기" | "2차대기" | "게시됨" | "반려" | "중지";
+
+export type ApprovalRecord = {
+  stage: ApprovalStage;
+  at: string;
+  by: string;
+  note?: string;
+};
+
+// ===== 삭제 이력 (CompanyAdmin) =====
+export type DeletionRecord = {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  deletedAt: string;
+  deletedBy: string;
+  reason: string;
+};
 
 export const PLATFORM_ICON_PATH: Record<Platform["icon"], string> = {
   automation: "M13 2L3 14h7l-1 8 10-12h-7l1-8z",

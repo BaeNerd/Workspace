@@ -24,7 +24,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     label: "일반 사용자",
     desc: "등록 신청만 가능 · 관리자 화면 불가",
     user: {
-      name: "정직원", email: "user.jung@kolmar.co.kr", dept: "마케팅팀", title: "사원",
+      name: "박직원", email: "user.jung@kolmar.co.kr", dept: "마케팅팀", title: "사원",
       role: "user", company: "KKM", isGroupViewer: false, department: "마케팅",
     },
   },
@@ -44,6 +44,16 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     user: {
       name: "박생산", email: "user3.park@kolmar.co.kr", dept: "생산팀", title: "사원",
       role: "user", company: "HC", isGroupViewer: false, department: "생산",
+    },
+  },
+  {
+    key: "companyAdmin",
+    label: "관계사 관리자",
+    desc: "KKM 담당 · 1차 검토·삭제만 가능",
+    user: {
+      name: "최관리", email: "cadmin.choi@kolmar.co.kr", dept: "IT인프라팀", title: "과장",
+      role: "companyAdmin", company: "KKM", isGroupViewer: false, department: "IT",
+      managedCompany: "KKM",
     },
   },
 ];
@@ -71,7 +81,8 @@ export default function LoginPage() {
 
   const handleDemoLogin = (account: DemoAccount) => {
     login(account.user);
-    const target = account.user.role === "admin" ? "/admin" : redirectTo;
+    const r = account.user.role;
+    const target = r === "admin" ? "/admin" : r === "companyAdmin" ? "/admin/review" : redirectTo;
     navigate(target);
   };
 
@@ -79,7 +90,7 @@ export default function LoginPage() {
     <div style={{
       fontFamily: "var(--font-ui)",
       minHeight: "100vh",
-      background: "linear-gradient(160deg, #0F172A 0%, #1E3A5F 100%)",
+      background: "linear-gradient(160deg, #1A1F27 0%, #1E3A5F 100%)",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 24,
     }}>
@@ -91,15 +102,15 @@ export default function LoginPage() {
         {/* 로고 */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: "#0F172A" }}>KOLMAR</span>
+            <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: "#1A1F27" }}>KOLMAR</span>
           </div>
           <div style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>AX Platform</div>
         </div>
 
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#1A1F27", marginBottom: 8 }}>
           Kolmar AX Platform
         </h1>
-        <p style={{ fontSize: 13, color: "#64748B", marginBottom: 32, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: "#697386", marginBottom: 32, lineHeight: 1.6 }}>
           사내 계정으로 로그인하세요
         </p>
 
@@ -109,7 +120,7 @@ export default function LoginPage() {
           disabled={loading}
           style={{
             width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-            background: loading ? "#94A3B8" : "#0F172A",
+            background: loading ? "#94A3B8" : "#1A1F27",
             color: "#fff", border: "none", borderRadius: 8,
             padding: "13px 0", fontSize: 14, fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer",
@@ -132,8 +143,8 @@ export default function LoginPage() {
           <button
             onClick={() => setDemoOpen(v => !v)}
             style={{
-              width: "100%", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 8,
-              padding: "10px 0", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer",
+              width: "100%", background: "#F4F6F9", border: "1.5px solid #EBEEF3", borderRadius: 8,
+              padding: "10px 0", fontSize: 12, fontWeight: 600, color: "#697386", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
@@ -147,15 +158,15 @@ export default function LoginPage() {
             <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
               {DEMO_ACCOUNTS.map(acc => {
                 const isAdminAcc = acc.user.role === "admin";
-                const badgeColor = isAdminAcc ? "#2563EB" : "#94A3B8";
-                const badgeBg = isAdminAcc ? "#EFF6FF" : "#F1F5F9";
+                const badgeColor = isAdminAcc ? "#1C6BFF" : "#94A3B8";
+                const badgeBg = isAdminAcc ? "#E8F0FE" : "#F1F5F9";
                 const badgeText = isAdminAcc ? "관리자" : "사용자";
                 return (
                   <button
                     key={acc.key}
                     onClick={() => handleDemoLogin(acc)}
                     style={{
-                      width: "100%", background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+                      width: "100%", background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 8,
                       padding: "10px 12px", cursor: "pointer", textAlign: "left",
                       display: "flex", alignItems: "center", gap: 10,
                     }}
@@ -165,7 +176,7 @@ export default function LoginPage() {
                       padding: "2px 8px", borderRadius: 20, flexShrink: 0,
                     }}>{badgeText}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.label}</span>
+                      <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1A1F27", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.label}</span>
                       <span style={{ display: "block", fontSize: 10.5, color: "#94A3B8", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.desc}</span>
                     </span>
                   </button>
@@ -181,7 +192,7 @@ export default function LoginPage() {
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid #F1F5F9" }}>
           <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.6 }}>
             로그인에 문제가 있으신가요?<br />
-            <a href="mailto:tech-hub@kolmar.co.kr" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+            <a href="mailto:tech-hub@kolmar.co.kr" style={{ color: "#1C6BFF", fontWeight: 600, textDecoration: "none" }}>
               tech-hub@kolmar.co.kr
             </a>
             로 문의하세요

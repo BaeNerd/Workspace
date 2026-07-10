@@ -83,6 +83,7 @@ export default function AdminDashboard() {
     { label: "승인 대기", value: String(pending.length), sub: "즉시 검토 필요", subColor: "#D97706" },
     { label: "이번 달 신규", value: String(thisMonthTotal), sub: "6개 플랫폼 합산", subColor: "#2563EB" },
     { label: "사용 가능 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
+    { label: "누적 활용 후기", value: "47", sub: "전체 항목 합산", subColor: "#059669" },
   ];
 
   return (
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* KPI CARDS */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
             {KPIS.map((k, i) => (
               <div key={i} style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "18px 20px" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", marginBottom: 8 }}>{k.label}</div>

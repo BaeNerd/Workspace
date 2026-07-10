@@ -4,8 +4,8 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { PLATFORMS, STATUS_ORDER, STATUS_COLOR } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
-import { WorkflowEditor, WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
+import { useAuth } from "../../context/useAuth";
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
@@ -162,6 +162,9 @@ type ManagedPlatformItem = {
   mlType?: string; trainingDataDesc?: string; performanceSummary?: string;
   // ml / vibe 공용
   devTool?: string; sourceRepo?: string; outputType?: string;
+  // Admin 전용
+  isHighlighted?: boolean;
+  isWeeklyDiscover?: boolean;
 };
 
 type ManagedItem = ManagedPlatformItem;
@@ -462,6 +465,7 @@ const isWorkflowKind = (item: ManagedPlatformItem): boolean =>
 const isAssistantKind = (item: ManagedPlatformItem): boolean => item.kind === "assistant";
 
 export default function AdminProjectManage() {
+  const { isAdmin, isCompanyAdmin, user } = useAuth();
   const [items, setItems] = useState<ManagedItem[]>(INITIAL_PLATFORM_ITEMS);
   const [selected, setSelected] = useState<string>(INITIAL_PLATFORM_ITEMS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
@@ -481,11 +485,23 @@ export default function AdminProjectManage() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
-  const filtered = items.filter(i =>
-    (sourceFilter === "전체" || i.kind === sourceFilter) &&
-    (filterStatus === "전체" || i.status === filterStatus) &&
-    (search === "" || i.title.includes(search) || i.dept.includes(search))
-  );
+  const managedCo = user?.managedCompany ?? null;
+  const filtered = items.filter(i => {
+    if (isCompanyAdmin && managedCo) {
+      const scopeMatch = i.company.length === 0 || i.company.includes(managedCo);
+      if (!scopeMatch) return false;
+    }
+    return (
+      (sourceFilter === "전체" || i.kind === sourceFilter) &&
+      (filterStatus === "전체" || i.status === filterStatus) &&
+      (search === "" || i.title.includes(search) || i.dept.includes(search))
+    );
+  });
+
+  const toggleHighlight = (id: string) =>
+    setItems(p => p.map(i => i.id === id ? { ...i, isHighlighted: !i.isHighlighted } : i));
+  const toggleWeeklyDiscover = (id: string) =>
+    setItems(p => p.map(i => i.id === id ? { ...i, isWeeklyDiscover: !i.isWeeklyDiscover } : { ...i, isWeeklyDiscover: false }));
 
   const activeItem = isNew ? editData : items.find(i => i.id === selected) ?? null;
   const displayData = editMode || isNew ? editData : activeItem;
@@ -588,15 +604,21 @@ export default function AdminProjectManage() {
             <div style={{ padding: "14px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>전체 항목 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{items.length}</span></span>
-
-                <select
-                  value=""
-                  onChange={e => { if (e.target.value) startNew(e.target.value as PlatformId); }}
-                  style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}
-                >
-                  <option value="" disabled>+ 직접 등록</option>
-                  {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                {isAdmin && (
+                  <select
+                    value=""
+                    onChange={e => { if (e.target.value) startNew(e.target.value as PlatformId); }}
+                    style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}
+                  >
+                    <option value="" disabled>+ 직접 등록</option>
+                    {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+                {isCompanyAdmin && (
+                  <span style={{ fontSize: 11, color: "#B4802E", background: "#FBF3E4", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>
+                    {managedCo ?? "–"} 담당
+                  </span>
+                )}
               </div>
 
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="항목명, 부서 검색" style={{ ...inputStyle, padding: "7px 12px", fontSize: 12, marginBottom: 8 }} />
@@ -686,10 +708,28 @@ export default function AdminProjectManage() {
                       ) : displayData.title}
                     </h2>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+                    {isAdmin && !isEditing && (
+                      <>
+                        <button
+                          onClick={() => toggleHighlight(displayData.id)}
+                          title={displayData.isHighlighted ? "하이라이트 해제" : "하이라이트 지정"}
+                          style={{ background: displayData.isHighlighted ? "#FEF08A" : "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700, color: displayData.isHighlighted ? "#854D0E" : "#64748B", cursor: "pointer" }}
+                        >
+                          {displayData.isHighlighted ? "★ 하이라이트" : "☆ 하이라이트"}
+                        </button>
+                        <button
+                          onClick={() => toggleWeeklyDiscover(displayData.id)}
+                          title={displayData.isWeeklyDiscover ? "금주의 발견 해제" : "금주의 발견 지정"}
+                          style={{ background: displayData.isWeeklyDiscover ? "#D1FAE5" : "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700, color: displayData.isWeeklyDiscover ? "#065F46" : "#64748B", cursor: "pointer" }}
+                        >
+                          {displayData.isWeeklyDiscover ? "✦ 금주의 발견" : "✦ 금주의 발견"}
+                        </button>
+                      </>
+                    )}
                     {!isEditing ? (
                       <>
-                        <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
+                        {isAdmin && <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>}
                         <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
                       </>
                     ) : (
@@ -780,23 +820,15 @@ export default function AdminProjectManage() {
                           ? <ChipEditor items={displayData.connectedApps ?? []} onAdd={v => addToArray("connectedApps", v)} onRemove={v => removeFromArray("connectedApps", v)} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" />
                           : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{(displayData.connectedApps ?? []).map((a, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{a}</span>)}</div>}
                       </FieldRow>
-                      <FieldRow label="워크플로우 다이어그램">
-                        {isEditing
-                          ? <WorkflowEditor value={displayData.workflowInput ?? { status: "Stable", nodes: [] }} onChange={v => setF("workflowInput", v)} />
-                          : (() => {
-                              const wf = toWorkflowDef(displayData.workflowInput ?? { status: "Stable", nodes: [] });
-                              return (
-                                <div>
-                                  {wf ? <WorkflowDiagram wf={wf} /> : <span style={{ fontSize: 13, color: "#94A3B8" }}>다이어그램 미등록</span>}
-                                  {(displayData.workflowJson || wf) && (
-                                    <button onClick={() => { const c = displayData.workflowJson ?? JSON.stringify(wf ?? {}, null, 2); const b = new Blob([c], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = `${displayData.id.toLowerCase()}-workflow.json`; a.click(); URL.revokeObjectURL(u); }} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                                      JSON 다운로드
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                      <FieldRow label="워크플로우 JSON">
+                        {displayData.workflowJson ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>✓ JSON 첨부됨</span>
+                            <button onClick={() => { const b = new Blob([displayData.workflowJson!], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = `${displayData.id.toLowerCase()}-workflow.json`; a.click(); URL.revokeObjectURL(u); }} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>JSON 다운로드</button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 13, color: "#94A3B8" }}>JSON 없음</span>
+                        )}
                       </FieldRow>
                     </SectionBlock>
 

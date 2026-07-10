@@ -5,8 +5,10 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
 import { PLATFORMS, STATUS_ORDER } from "../types/platformTypes";
 import type { PlatformId } from "../types/platformTypes";
-import { WorkflowEditor, toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
+import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
+import N8nFlowPreview from "../components/N8nFlowPreview";
+import { FORM_MAX_WIDTH } from "../styles/layout";
 
 
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
@@ -177,7 +179,7 @@ const STEPS_BY_KIND = (kind: PlatformId): string[] => {
 // ===== 공용 스타일 (모듈 레벨) =====
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box", padding: "10px 14px",
-  fontSize: 13, color: "#0F172A", border: "1.5px solid #E2E8F0",
+  fontSize: 13, color: "#1A1F27", border: "1.5px solid #EBEEF3",
   borderRadius: 8, outline: "none", fontFamily: "inherit",
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", appearance: "none" as const };
@@ -186,8 +188,8 @@ const rowActionWidth = 24;
 // ===== 공용 컴포넌트 (모듈 레벨) =====
 function Section({ title, optional, children }: { title: string; optional?: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px", marginBottom: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>
         {title}
         {optional && (
           <span style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "2px 8px", borderRadius: 20 }}>선택</span>
@@ -203,7 +205,7 @@ function SubHeading({ label = "선택 정보 (지금 몰라도 됩니다)" }: { 
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em",
-      margin: "4px 0 16px", paddingTop: 16, borderTop: "1px dashed #E2E8F0",
+      margin: "4px 0 16px", paddingTop: 16, borderTop: "1px dashed #EBEEF3",
     }}>{label}</div>
   );
 }
@@ -224,9 +226,9 @@ function Tag({ label, selected, onClick }: { label: string; selected: boolean; o
   return (
     <span onClick={onClick} style={{
       fontSize: 12, fontWeight: 600, padding: "6px 14px", borderRadius: 20,
-      border: `1.5px solid ${selected ? "#2563EB" : "#E2E8F0"}`,
-      background: selected ? "#EFF6FF" : "#fff",
-      color: selected ? "#2563EB" : "#475569",
+      border: `1.5px solid ${selected ? "#1C6BFF" : "#EBEEF3"}`,
+      background: selected ? "#E8F0FE" : "#fff",
+      color: selected ? "#1C6BFF" : "#475569",
       cursor: "pointer", userSelect: "none",
     }}>{label}</span>
   );
@@ -260,9 +262,9 @@ function TimeSavedInput({
           {SAVED_PERIODS.map(p => (
             <span key={p} onClick={() => onPeriodChange(p)} style={{
               fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 8,
-              border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
-              background: period === p ? "#EFF6FF" : "#fff",
-              color: period === p ? "#2563EB" : "#475569",
+              border: `1.5px solid ${period === p ? "#1C6BFF" : "#EBEEF3"}`,
+              background: period === p ? "#E8F0FE" : "#fff",
+              color: period === p ? "#1C6BFF" : "#475569",
               cursor: "pointer", userSelect: "none",
             }}>{p}</span>
           ))}
@@ -278,8 +280,8 @@ function TimeSavedInput({
           }}
           placeholder="예: 3"
           style={{ ...inputStyle, maxWidth: 120 }}
-          onFocus={e => (e.target.style.borderColor = "#2563EB")}
-          onBlur={e => (e.target.style.borderColor = "#E2E8F0")}
+          onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+          onBlur={e => (e.target.style.borderColor = "#EBEEF3")}
         />
         <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>시간</span>
       </div>
@@ -317,7 +319,7 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
       <button onClick={() => setOpen(v => !v)} type="button" style={{
         ...inputStyle, textAlign: "left", width: "100%", cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        color: "#0F172A", fontWeight: 600,
+        color: "#1A1F27", fontWeight: 600,
       }}>
         <span>{platformCompanyDisplay(selected)}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5"
@@ -328,17 +330,17 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 20,
-          background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+          background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 8,
           boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px",
           maxHeight: 340, display: "flex", flexDirection: "column",
         }}>
           <label style={{
             display: "flex", alignItems: "center", gap: 8, padding: "8px 8px",
-            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent",
+            borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#E8F0FE" : "transparent",
             marginBottom: 6, borderBottom: "1px solid #F1F5F9",
           }}>
             <input type="checkbox" checked={isCompanyWide} onChange={selectCompanyWide} style={{ cursor: "pointer" }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#1C6BFF" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
           </label>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="관계사명 또는 코드로 검색"
@@ -348,7 +350,7 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
               <label key={c.code} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
                 borderRadius: 6, cursor: "pointer",
-                background: selected.includes(c.code) ? "#EFF6FF" : "transparent",
+                background: selected.includes(c.code) ? "#E8F0FE" : "transparent",
               }}>
                 <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
                 <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
@@ -360,7 +362,7 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
             )}
           </div>
           <button onClick={() => setOpen(false)} type="button" style={{
-            marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6,
+            marginTop: 8, background: "#1A1F27", color: "#fff", border: "none", borderRadius: 6,
             padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
           }}>완료</button>
         </div>
@@ -381,7 +383,7 @@ function ChipInput({
         {items.map(item => (
           <span key={item} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF",
+            fontSize: 12, fontWeight: 600, background: "#E8F0FE", color: "#1E40AF",
             padding: "4px 6px 4px 10px", borderRadius: 6, border: "1px solid #BFDBFE",
           }}>
             {item}
@@ -393,17 +395,17 @@ function ChipInput({
         <input value={draft} onChange={e => onDraftChange(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
           placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
-          onFocus={e => (e.target.style.borderColor = "#2563EB")}
-          onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+          onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+          onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
         <button onClick={() => onAdd()} style={{
-          background: "#2563EB", color: "#fff", border: "none", borderRadius: 7,
+          background: "#1C6BFF", color: "#fff", border: "none", borderRadius: 7,
           padding: "0 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
         }}>추가</button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
         {suggestions.filter(s => !items.includes(s)).slice(0, 8).map(s => (
           <span key={s} onClick={() => onAdd(s)} style={{
-            fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
+            fontSize: 11, color: "#94A3B8", background: "#F4F6F9", border: "1px solid #EBEEF3",
             padding: "3px 9px", borderRadius: 20, cursor: "pointer",
           }}>+ {s}</span>
         ))}
@@ -442,6 +444,7 @@ export default function ProjectRegisterPage() {
     user?.company ? "specific" : "unset"
   );
   const [n8nUploadedFile, setN8nUploadedFile] = useState<string | null>(null);
+  const [n8nJsonError, setN8nJsonError] = useState<string | null>(null);
   const [draftNode, setDraftNode] = useState("");
   const [draftApp, setDraftApp] = useState("");
   const [draftSampleQuestion, setDraftSampleQuestion] = useState("");
@@ -453,10 +456,23 @@ export default function ProjectRegisterPage() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
+      try {
+        const obj = JSON.parse(text) as Record<string, unknown>;
+        if (!obj || typeof obj !== "object" || !Array.isArray(obj.nodes)) {
+          setN8nJsonError("n8n 워크플로우 JSON 형식이 아닙니다. nodes 배열이 없습니다.");
+          setN8nUploadedFile(null);
+          return;
+        }
+      } catch {
+        setN8nJsonError("JSON 파싱에 실패했습니다. 파일이 올바른 JSON 형식인지 확인하세요.");
+        setN8nUploadedFile(null);
+        return;
+      }
       const parsed = parseN8nJson(text);
       if (parsed) {
         setForm(p => ({ ...p, workflowInput: parsed.workflowInput, workflowJson: parsed.rawJson }));
         setN8nUploadedFile(file.name);
+        setN8nJsonError(null);
       }
     };
     reader.readAsText(file);
@@ -577,19 +593,19 @@ export default function ProjectRegisterPage() {
   const companyHint = "기본적으로 소속 관계사가 선택되어 있습니다. 전사 공용이나 다른 관계사로 바꾸려면 드롭다운에서 변경하세요.";
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
 
       <Navbar />
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "20px 32px" }}>
-        <div style={{ maxWidth: 780, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>등록</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>신규 항목 등록 신청</h1>
-          <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>작성 완료 후 관리자 검토를 거쳐 AX Platform에 게시됩니다.</p>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "20px 32px" }}>
+        <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>등록</div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.02em" }}>신규 항목 등록 신청</h1>
+          <p style={{ fontSize: 13, color: "#697386", marginTop: 4 }}>작성 완료 후 관리자 검토를 거쳐 AX Platform에 게시됩니다.</p>
         </div>
       </div>
 
-      <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 32px" }}>
+      <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto", padding: "28px 32px" }}>
 
         {/* STEP INDICATOR */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 28 }}>
@@ -598,16 +614,16 @@ export default function ProjectRegisterPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: "50%",
-                  background: i < step ? "#059669" : i === step ? "#2563EB" : "#E2E8F0",
+                  background: i < step ? "#059669" : i === step ? "#1C6BFF" : "#EBEEF3",
                   color: i <= step ? "#fff" : "#94A3B8",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: 800, flexShrink: 0,
                 }}>
                   {i < step ? "✓" : i + 1}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: i === step ? "#0F172A" : "#94A3B8", whiteSpace: "nowrap" }}>{s}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: i === step ? "#1A1F27" : "#94A3B8", whiteSpace: "nowrap" }}>{s}</span>
               </div>
-              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 1.5, background: i < step ? "#059669" : "#E2E8F0", margin: "0 10px" }} />}
+              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 1.5, background: i < step ? "#059669" : "#EBEEF3", margin: "0 10px" }} />}
             </div>
           ))}
         </div>
@@ -618,7 +634,7 @@ export default function ProjectRegisterPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {visibleKindOptions.map(opt => (
                 <div key={opt.key} onClick={() => setKind(opt.key)} style={{
-                  border: `1.5px solid ${kind === opt.key ? opt.color : "#E2E8F0"}`,
+                  border: `1.5px solid ${kind === opt.key ? opt.color : "#EBEEF3"}`,
                   borderTop: `3px solid ${opt.color}`,
                   background: kind === opt.key ? opt.bg : "#fff",
                   borderRadius: 10, padding: "16px 18px", cursor: "pointer",
@@ -626,9 +642,9 @@ export default function ProjectRegisterPage() {
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <span style={{ width: 8, height: 8, borderRadius: 2, background: opt.color, display: "inline-block", flexShrink: 0 }} />
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{opt.label}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1F27" }}>{opt.label}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>{opt.desc}</div>
+                  <div style={{ fontSize: 12, color: "#697386", lineHeight: 1.5 }}>{opt.desc}</div>
                 </div>
               ))}
             </div>
@@ -637,7 +653,7 @@ export default function ProjectRegisterPage() {
                 AI Agent 유형은 관리자 전용 등록입니다. 카탈로그 표준(모델명 + 제공사 표기)에 맞춰 등록해 주세요.
               </div>
             )}
-            <div style={{ marginTop: 10, padding: "10px 14px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 11, color: "#64748B" }}>
+            <div style={{ marginTop: 10, padding: "10px 14px", background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, fontSize: 11, color: "#697386" }}>
               어떤 유형을 선택해도 등록 신청 → 관리자 검토 → 승인 절차는 동일하게 적용됩니다.
             </div>
           </Section>
@@ -658,15 +674,15 @@ export default function ProjectRegisterPage() {
                   "제목을 입력하세요"
                 }
                 style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="한 줄 요약" required>
               <input value={form.summary} onChange={e => set("summary", e.target.value)}
                 placeholder="이 항목이 무엇을 하는지 한 문장으로 설명하세요"
                 style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="상세 설명" required>
               <textarea value={form.description} onChange={e => set("description", e.target.value)}
@@ -679,8 +695,8 @@ export default function ProjectRegisterPage() {
                   "트리거 조건, 동작 순서, 연동되는 시스템을 포함하면 좋습니다."
                 }
                 style={{ ...inputStyle, minHeight: 140, resize: "vertical", lineHeight: 1.7 }}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
           </Section>
         )}
@@ -713,8 +729,8 @@ export default function ProjectRegisterPage() {
                 <Field label="실행 URL" required>
                   <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
                     placeholder="https://" style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                    onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                    onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                    onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
                 </Field>
               )}
 
@@ -734,24 +750,24 @@ export default function ProjectRegisterPage() {
                     ? "예: 양식 제출 시 승인 요청 → 승인 완료 후 SharePoint 항목 업데이트 → Teams 알림"
                     : "예: Schedule Trigger(매일 오전 8시) → 재고 API 조회 → IF(임계치 이하) → Teams 알림"}
                   style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7 }}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                  onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                  onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
               </Field>
 
               {kind === "pa" && (
                 <Field label="실행 위치" hint="Power Automate 포털 링크 또는 이 흐름이 연결된 Teams·SharePoint 위치를 입력하세요.">
                   <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
                     placeholder="예: Teams > 구매팀 채널 승인 카드, 또는 포털 링크" style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                    onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                    onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                    onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
                 </Field>
               )}
 
               <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
                 <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                   placeholder="예: HR, 계정자동화" style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                  onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                  onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                  onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
               </Field>
             </Section>
 
@@ -786,11 +802,11 @@ export default function ProjectRegisterPage() {
               </Field>
               {kind === "n8n" && (
                 <>
-                  <Field label="워크플로우 JSON 업로드" hint="n8n에서 내보낸 .json 파일을 업로드하면 노드 구성이 자동으로 채워집니다.">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Field label="워크플로우 JSON 업로드" hint="n8n에서 내보낸 .json 파일을 업로드하면 다이어그램이 자동으로 표시됩니다.">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: n8nJsonError ? 8 : 0 }}>
                       <label style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
-                        background: "#0F172A", color: "#fff", borderRadius: 7,
+                        background: "#1A1F27", color: "#fff", borderRadius: 7,
                         padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0,
                       }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -805,9 +821,16 @@ export default function ProjectRegisterPage() {
                         <span style={{ fontSize: 12, color: "#94A3B8" }}>선택된 파일 없음</span>
                       )}
                     </div>
-                  </Field>
-                  <Field label="워크플로우 다이어그램" hint="JSON 파일 업로드 시 자동으로 채워집니다.">
-                    <WorkflowEditor value={form.workflowInput} onChange={v => setForm(p => ({ ...p, workflowInput: v }))} />
+                    {n8nJsonError && (
+                      <div style={{ fontSize: 12, color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 7, padding: "8px 12px" }}>
+                        {n8nJsonError}
+                      </div>
+                    )}
+                    {form.workflowJson && !n8nJsonError && (
+                      <div style={{ marginTop: 12 }}>
+                        <N8nFlowPreview json={form.workflowJson} compact />
+                      </div>
+                    )}
                   </Field>
                 </>
               )}
@@ -853,8 +876,8 @@ export default function ProjectRegisterPage() {
               <textarea value={form.sharedPrompt} onChange={e => set("sharedPrompt", e.target.value)}
                 placeholder={'예: "당신은 계약서를 검토하는 법무 담당자입니다. 업로드된 계약서에서 위험 조항을 찾아 표로 정리해 주세요..."'}
                 style={{ ...inputStyle, minHeight: 140, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)" }}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
 
             <SubHeading />
@@ -862,12 +885,12 @@ export default function ProjectRegisterPage() {
             <Field label="기반 모델" hint="HK GPT에서 선택한 대표 모델을 입력하세요.">
               <input value={form.basedModel} onChange={e => set("basedModel", e.target.value)}
                 placeholder="예: Claude Opus 4.8, GPT-5.4" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
                 {ASSISTANT_MODEL_HINTS.map(m => (
                   <span key={m} onClick={() => set("basedModel", m)} style={{
-                    fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
+                    fontSize: 11, color: "#94A3B8", background: "#F4F6F9", border: "1px solid #EBEEF3",
                     padding: "3px 9px", borderRadius: 20, cursor: "pointer",
                   }}>+ {m}</span>
                 ))}
@@ -876,15 +899,15 @@ export default function ProjectRegisterPage() {
             <Field label="비서 소개" hint="이 비서를 한 문장으로 소개하면 어떻게 될까요?">
               <input value={form.roleDefinition} onChange={e => set("roleDefinition", e.target.value)}
                 placeholder="예: 계약서 위험 조항을 빠르게 찾아주는 법무 검토 도우미" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="연결된 데이터·문서" hint="업로드된 참고 문서나 연결된 사내 데이터가 있다면 설명하세요.">
               <textarea value={form.connectedData} onChange={e => set("connectedData", e.target.value)}
                 placeholder="예: 최근 3년 특허 출원 문서 PDF 220건"
                 style={{ ...inputStyle, minHeight: 70, resize: "vertical", lineHeight: 1.7 }}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="예시 질문" hint="이 비서에게 할 수 있는 대표 질문을 입력하세요.">
               <ChipInput
@@ -898,14 +921,14 @@ export default function ProjectRegisterPage() {
             <Field label="접속 URL">
               <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
                 placeholder="HK GPT 내 비서 링크 (선택)" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                 placeholder="예: 법무, 계약검토" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
           </Section>
         )}
@@ -933,14 +956,14 @@ export default function ProjectRegisterPage() {
               <textarea value={form.strengthsDetail} onChange={e => set("strengthsDetail", e.target.value)}
                 placeholder="이 모델이 무엇을 잘하는지, 어떤 업무에 쓰면 좋은지 답변하듯 적어주세요. 상세 페이지 최상단에 노출됩니다."
                 style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.7 }}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="모델 접속 URL" required>
               <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
                 placeholder="https://" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
 
             <SubHeading />
@@ -948,8 +971,8 @@ export default function ProjectRegisterPage() {
             <Field label="세부 모델명" hint="선택한 제공사 내 구체적인 모델명을 입력하세요.">
               <input value={form.modelName} onChange={e => set("modelName", e.target.value)}
                 placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="처리 가능한 글 분량" hint="한 번에 얼마나 긴 내용을 이해할 수 있는지 쉬운 말로 표시합니다.">
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -964,14 +987,14 @@ export default function ProjectRegisterPage() {
             <Field label="1회 사용량" hint="A4 10페이지 문서(약 1만 토큰) 요약 1회 기준으로 환산해 적어주세요.">
               <input value={form.tokenUsageNote} onChange={e => set("tokenUsageNote", e.target.value)}
                 placeholder="A4 10페이지 문서(약 1만 토큰) 요약 1회 기준으로 환산해 적어주세요. 예: 문서 10페이지 요약 시 약 1.2만 토큰" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="핵심 키워드" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.strengths} onChange={e => set("strengths", e.target.value)}
                 placeholder="예: 긴 컨텍스트, 정밀 추론" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="권장 사용 시나리오" hint="이 모델을 어떤 업무에 쓰면 좋은지 예시를 추가하세요.">
               <ChipInput
@@ -985,8 +1008,8 @@ export default function ProjectRegisterPage() {
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                 placeholder="예: 문서분석, 법무" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
           </Section>
         )}
@@ -1016,38 +1039,38 @@ export default function ProjectRegisterPage() {
             <Field label="핵심 성능" hint="회귀·분류 모델 모두 알아보기 쉬운 한 줄로 적어주세요.">
               <input value={form.performanceSummary} onChange={e => set("performanceSummary", e.target.value)}
                 placeholder="예: 정확도 92%, 또는 평균 오차 5% 이내" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="학습 데이터 개요" hint="어떤 데이터로 학습했는지 간단히 적어주세요.">
               <input value={form.trainingDataDesc} onChange={e => set("trainingDataDesc", e.target.value)}
                 placeholder="예: 생산 라인 불량 이미지 12만 장" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="개발 도구">
               <input value={form.devTool} onChange={e => set("devTool", e.target.value)}
                 placeholder="예: PyTorch, scikit-learn, TensorFlow" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="출력 형태" hint="모델이 반환하는 결과물의 형태를 설명하세요.">
               <input value={form.outputType} onChange={e => set("outputType", e.target.value)}
                 placeholder="예: 불량 여부 (0/1), 불량 확률 (0–1)" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="소스 저장소">
               <input value={form.sourceRepo} onChange={e => set("sourceRepo", e.target.value)}
                 placeholder="예: https://github.com/kolmar/ml-defect-detection" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                 placeholder="예: 비전, 품질관리" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
           </Section>
         )}
@@ -1072,12 +1095,12 @@ export default function ProjectRegisterPage() {
             <Field label="사용한 AI 도구">
               <input value={form.devTool} onChange={e => set("devTool", e.target.value)}
                 placeholder="예: Cursor, GitHub Copilot" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
                 {VIBE_TOOL_SUGGESTIONS.map(t => (
                   <span key={t} onClick={() => set("devTool", form.devTool ? `${form.devTool}, ${t}` : t)} style={{
-                    fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0",
+                    fontSize: 11, color: "#94A3B8", background: "#F4F6F9", border: "1px solid #EBEEF3",
                     padding: "3px 9px", borderRadius: 20, cursor: "pointer",
                   }}>+ {t}</span>
                 ))}
@@ -1086,26 +1109,26 @@ export default function ProjectRegisterPage() {
             <Field label="결과물 형태" hint="웹앱, 스크립트, 대시보드 등 만들어진 산출물을 설명하세요.">
               <input value={form.outputType} onChange={e => set("outputType", e.target.value)}
                 placeholder="예: React 웹앱, Python 스크립트, Streamlit 대시보드" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="접속 URL" hint="사내에서 실제로 접근 가능한 배포 주소가 있다면 입력하세요.">
               <input value={form.specificUrl} onChange={e => set("specificUrl", e.target.value)}
                 placeholder="https:// (선택)" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="소스 저장소">
               <input value={form.sourceRepo} onChange={e => set("sourceRepo", e.target.value)}
                 placeholder="예: https://github.com/kolmar/vibe-project" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
             <Field label="태그" hint="콤마(,)로 구분하여 입력하세요.">
               <input value={form.itemTags} onChange={e => set("itemTags", e.target.value)}
                 placeholder="예: 대시보드, 재고관리" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "#2563EB")}
-                onBlur={e => (e.target.style.borderColor = "#E2E8F0")} />
+                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
+                onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
           </Section>
         )}
@@ -1157,7 +1180,7 @@ export default function ProjectRegisterPage() {
               borderRadius: 8, padding: "8px 14px", marginBottom: 16,
             }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: selectedKindMeta?.color }}>{selectedKindMeta?.label}</span>
-              <span style={{ fontSize: 12, color: "#64748B" }}>으로 등록합니다</span>
+              <span style={{ fontSize: 12, color: "#697386" }}>으로 등록합니다</span>
             </div>
 
             {[
@@ -1221,10 +1244,10 @@ export default function ProjectRegisterPage() {
             ].map((row, i) => (
               <div key={i} style={{
                 display: "grid", gridTemplateColumns: "160px 1fr",
-                padding: "10px 0", borderBottom: "1px solid #F8FAFC", gap: 16,
+                padding: "10px 0", borderBottom: "1px solid #F4F6F9", gap: 16,
               }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>{row.label}</span>
-                <span style={{ fontSize: 13, color: "#0F172A" }}>{row.value}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#697386" }}>{row.label}</span>
+                <span style={{ fontSize: 13, color: "#1A1F27" }}>{row.value}</span>
               </div>
             ))}
 
@@ -1246,7 +1269,7 @@ export default function ProjectRegisterPage() {
             onClick={() => setStep(s => Math.max(0, s - 1))}
             disabled={step === 0 || saving || saved}
             style={{
-              background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+              background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 8,
               padding: "10px 22px", fontSize: 13, fontWeight: 600, color: "#475569",
               cursor: step === 0 ? "not-allowed" : "pointer", opacity: step === 0 ? 0.5 : 1,
             }}
@@ -1254,12 +1277,12 @@ export default function ProjectRegisterPage() {
 
           {step < 4 ? (
             <button onClick={() => setStep(s => Math.min(4, s + 1))} disabled={!canNext()} style={{
-              background: canNext() ? "#2563EB" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 8,
+              background: canNext() ? "#1C6BFF" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 8,
               padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-allowed",
             }}>다음</button>
           ) : (
             <button onClick={handleSubmit} disabled={saving || saved} style={{
-              background: saved ? "#059669" : "#2563EB", color: "#fff", border: "none", borderRadius: 8,
+              background: saved ? "#059669" : "#1C6BFF", color: "#fff", border: "none", borderRadius: 8,
               padding: "10px 22px", fontSize: 13, fontWeight: 700,
               cursor: saving || saved ? "not-allowed" : "pointer",
             }}>
