@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { PLATFORMS, STATUS_ORDER } from "../types/platformTypes";
-import type { PlatformId } from "../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, BUSINESS_DOMAINS } from "../types/platformTypes";
+import type { PlatformId, BusinessDomain } from "../types/platformTypes";
 import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 import N8nFlowPreview from "../components/N8nFlowPreview";
@@ -165,6 +165,7 @@ type FormState = {
   platformCompanies: string[];
   contacts: Contact[];
   links: LinkItem[];
+  domain: BusinessDomain | "";
 };
 
 const STEPS_BY_KIND = (kind: PlatformId): string[] => {
@@ -438,6 +439,7 @@ export default function ProjectRegisterPage() {
     platformCompanies: user?.company ? [user.company] : [],
     contacts: [{ name: "이수연", dept: "메이크업연구소", role: "주담당자", email: "suyeon.lee@kolmar.co.kr" }],
     links: [{ label: "", url: "" }],
+    domain: "",
   });
 
   const [platformScope, setPlatformScope] = useState<"unset" | "company-wide" | "specific">(
@@ -566,6 +568,7 @@ export default function ProjectRegisterPage() {
     const _payload = {
       platformId: kind,
       ...form,
+      domain: form.domain || undefined,
       expectedTimeSaved: serializeTimeSaved(form.timeSavedValue, form.timeSavedPeriod),
       workflowDef: kind === "n8n" ? toWorkflowDef(form.workflowInput) : undefined,
       workflowJson: kind === "n8n" && form.workflowJson ? form.workflowJson : undefined,
@@ -698,6 +701,15 @@ export default function ProjectRegisterPage() {
                 onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
                 onBlur={e => (e.target.style.borderColor = "#EBEEF3")} />
             </Field>
+            {kind !== "ai-orchestration" && (
+              <Field label="업무 도메인" hint="이 항목이 주로 활용되는 업무 영역을 선택하세요.">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {BUSINESS_DOMAINS.map(d => (
+                    <Tag key={d} label={d} selected={form.domain === d} onClick={() => set("domain", form.domain === d ? "" : d as BusinessDomain)} />
+                  ))}
+                </div>
+              </Field>
+            )}
           </Section>
         )}
 
@@ -1188,6 +1200,7 @@ export default function ProjectRegisterPage() {
               { label: "한 줄 요약", value: form.summary || "—" },
               { label: "상태", value: form.status || "—" },
               { label: "소속/대상 관계사", value: platformCompanyDisplay(form.platformCompanies) },
+              ...(kind !== "ai-orchestration" ? [{ label: "업무 도메인", value: form.domain || "—" }] : []),
               ...(kind && isWorkflowKind(kind) ? [
                 ...(kind === "pa" ? [
                   { label: "흐름 유형", value: form.flowType || "—" },

@@ -50,6 +50,9 @@ export const STATUS_QUERY_KEY: Record<PlatformItemStatus, string> = {
   "일부 제한": "restricted", "사용 중지": "stopped",
 };
 
+export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
+export type BusinessDomain = typeof BUSINESS_DOMAINS[number];
+
 export type PlatformItem = {
   id: string;
   platformId: PlatformId;
@@ -123,6 +126,9 @@ export type PlatformItem = {
 
   // 이용 방식 — self: 셀프서비스(바로 사용) / contact: 담당자 문의(카탈로그형)
   usageMode?: "self" | "contact";
+
+  // 업무 도메인 — 정식 분류 축 (AdminTaxonomy에서 관리)
+  domain?: BusinessDomain;
 };
 
 export const countAvailable = (items: PlatformItem[]): number =>

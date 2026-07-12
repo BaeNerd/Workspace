@@ -65,7 +65,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
 
-  const redirectTo = searchParams.get("redirect") || "/projects";
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const handleSsoLogin = () => {
     setLoading(true);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS } from "../../types/platformTypes";
+import { PLATFORMS, BUSINESS_DOMAINS } from "../../types/platformTypes";
 import type { PlatformId } from "../../types/platformTypes";
 
 // ===== 타입 정의 =====
@@ -26,6 +26,12 @@ const freeTagContext = (t: FreeTag): string => {
 // ===== AX 플랫폼 분류체계 =====
 // TODO: 실제 연동 시 GET /api/v1/admin/taxonomy?scope=platform 응답으로 교체
 const INITIAL_PLATFORM_TAXONOMY: Record<string, Category> = {
+  businessDomain: {
+    label: "업무 도메인",
+    desc: "AX 플랫폼 항목에 배정되는 업무 도메인 분류. 단일 선택. 등록 시 선택 가능한 값 목록을 관리한다.",
+    type: "single",
+    items: [...BUSINESS_DOMAINS],
+  },
   nodeHints: {
     label: "n8n 노드 힌트",
     desc: "n8n 등록 시 노드 입력란에서 제안되는 자동완성 힌트 목록. n8n 전용이며 PA 커넥터와 공유하지 않는다.",
@@ -102,6 +108,7 @@ const INITIAL_FREE_TAGS: FreeTag[] = [
 ];
 
 const PLATFORM_TABS = [
+  { id: "businessDomain", label: "업무 도메인" },
   { id: "nodeHints", label: "n8n 노드 힌트" },
   { id: "paConnectors", label: "PA 커넥터 힌트" },
   { id: "appHints", label: "n8n · PA 연동 앱" },
