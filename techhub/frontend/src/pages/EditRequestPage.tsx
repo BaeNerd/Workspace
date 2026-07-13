@@ -117,7 +117,7 @@ export default function EditRequestPage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
 
       <Navbar />
 
@@ -266,6 +266,7 @@ export default function EditRequestPage() {
         )}
       </div>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );

@@ -517,7 +517,7 @@ export default function AboutPage() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: T.canvas, minHeight: "100vh", color: T.ink }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: T.canvas, minHeight: "100vh", color: T.ink, display: "flex", flexDirection: "column" }}>
       <style>{GLOBAL_CSS}</style>
 
       <Navbar />
@@ -824,6 +824,7 @@ export default function AboutPage() {
         </div>
       </div>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );

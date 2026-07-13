@@ -848,7 +848,7 @@ export default function PlatformItemDetailPage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "10px 32px" }}>
@@ -1467,6 +1467,7 @@ export default function PlatformItemDetailPage() {
         )}
       </div>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );

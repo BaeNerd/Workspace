@@ -737,7 +737,7 @@ export default function LandingPage() {
   const spotlightItems = itemsByDomain(spotlightDomain);
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       {/* [1단] 헤더: 인사 + 검색 + 실시간 인기 바 */}
@@ -964,6 +964,7 @@ export default function LandingPage() {
         }
       `}</style>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );

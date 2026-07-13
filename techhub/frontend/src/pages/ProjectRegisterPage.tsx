@@ -596,7 +596,7 @@ export default function ProjectRegisterPage() {
   const companyHint = "기본적으로 소속 관계사가 선택되어 있습니다. 전사 공용이나 다른 관계사로 바꾸려면 드롭다운에서 변경하세요.";
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
 
       <Navbar />
 
@@ -1305,6 +1305,7 @@ export default function ProjectRegisterPage() {
         </div>
       </div>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );

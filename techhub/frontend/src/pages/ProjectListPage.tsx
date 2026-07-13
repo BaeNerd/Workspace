@@ -156,7 +156,7 @@ const MOCK_PLATFORM_ITEMS: PlatformItem[] = [
 const POPULAR_TAGS: string[] = (() => {
   const freq = new Map<string, number>();
   MOCK_PLATFORM_ITEMS.forEach(item => item.tags.forEach(t => freq.set(t, (freq.get(t) ?? 0) + 1)));
-  return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t);
+  return [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t]) => t);
 })();
 
 const SORT_OPTIONS = ["최신순", "인기순", "이름순"] as const;
@@ -408,7 +408,7 @@ export default function ProjectListPage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
 
       <Navbar />
 
@@ -457,59 +457,103 @@ export default function ProjectListPage() {
       {/* FILTER BAR */}
       <div style={{ position: "sticky", top: 56, zIndex: 99, background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "10px 32px" }}>
         <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
-          {/* 1행: 플랫폼 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0, minWidth: 52 }}>플랫폼</span>
-            <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          {/* 1행: 플랫폼 + 도메인 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#F3F5F8", borderRadius: 10, padding: "4px 6px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>플랫폼</span>
               {SOURCE_OPTIONS.map(opt => {
                 const sStyle = opt.key === "전체" ? null : SOURCE_STYLE[opt.key];
+                const isActive = source === opt.key;
                 return (
-                  <div key={opt.key} onClick={() => setSource(opt.key)} style={{
-                    padding: "5px 10px", borderRadius: 6, cursor: "pointer",
-                    fontSize: 12.5, fontWeight: source === opt.key ? 700 : 400,
-                    color: source === opt.key ? "#1C6BFF" : "#475569",
-                    background: source === opt.key ? "#E8F0FE" : "transparent",
-                    display: "flex", alignItems: "center", gap: 5,
-                  }}>
+                  <div
+                    key={opt.key}
+                    onClick={() => setSource(opt.key)}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "#EBEEF3"; }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    style={{
+                      padding: "5px 10px", borderRadius: 7, cursor: "pointer",
+                      fontSize: 12.5, fontWeight: isActive ? 700 : 400,
+                      color: isActive ? "#1C6BFF" : "#475569",
+                      background: isActive ? "#E8F0FE" : "transparent",
+                      display: "flex", alignItems: "center", gap: 5,
+                    }}
+                  >
                     {sStyle && <span style={{ width: 7, height: 7, borderRadius: 2, background: sStyle.color, display: "inline-block", flexShrink: 0 }} />}
                     {opt.label}
                   </div>
                 );
               })}
             </div>
-          </div>
-          {/* 2행: 도메인 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0, minWidth: 52 }}>도메인</span>
-            <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              {(["전체", ...BUSINESS_DOMAINS] as const).map(opt => (
-                <div key={opt} onClick={() => setDomainFilter(opt as BusinessDomain | "전체")} style={{
-                  padding: "5px 10px", borderRadius: 6, cursor: "pointer",
-                  fontSize: 12.5, fontWeight: domainFilter === opt ? 700 : 400,
-                  color: domainFilter === opt ? "#1C6BFF" : "#475569",
-                  background: domainFilter === opt ? "#E8F0FE" : "transparent",
-                }}>
-                  {opt}
-                </div>
-              ))}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#F3F5F8", borderRadius: 10, padding: "4px 6px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>도메인</span>
+              {(["전체", ...BUSINESS_DOMAINS] as const).map(opt => {
+                const isActive = domainFilter === opt;
+                return (
+                  <div
+                    key={opt}
+                    onClick={() => setDomainFilter(opt as BusinessDomain | "전체")}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "#EBEEF3"; }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                    style={{
+                      padding: "5px 10px", borderRadius: 7, cursor: "pointer",
+                      fontSize: 12.5, fontWeight: isActive ? 700 : 400,
+                      color: isActive ? "#1C6BFF" : "#475569",
+                      background: isActive ? "#E8F0FE" : "transparent",
+                    }}
+                  >
+                    {opt}
+                  </div>
+                );
+              })}
             </div>
           </div>
-          {/* 3행: 이용 구분 + 관계사 + 초기화 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: POPULAR_TAGS.length > 0 ? 8 : 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0, minWidth: 52 }}>이용 구분</span>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
-              {(["전체", "바로 사용", "담당자 문의", "사용 중지", ...(canSeePreparing ? ["준비 중"] : [])] as UsageFilter[]).map(opt => (
-                <button key={opt} onClick={() => setUsage(opt)} style={{
-                  padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  borderTop: `1.5px solid ${usage === opt ? "#1C6BFF" : "#EBEEF3"}`,
-                  borderRight: `1.5px solid ${usage === opt ? "#1C6BFF" : "#EBEEF3"}`,
-                  borderBottom: `1.5px solid ${usage === opt ? "#1C6BFF" : "#EBEEF3"}`,
-                  borderLeft: `1.5px solid ${usage === opt ? "#1C6BFF" : "#EBEEF3"}`,
-                  background: usage === opt ? "#E8F0FE" : "#fff",
-                  color: usage === opt ? "#1C6BFF" : "#475569",
-                }}>{opt}</button>
-              ))}
+          {/* 2행: 이용 구분 + 인기 태그 + 관계사 + 초기화 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#F3F5F8", borderRadius: 10, padding: "4px 6px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>이용 구분</span>
+              {(["전체", "바로 사용", "담당자 문의", "사용 중지", ...(canSeePreparing ? ["준비 중"] : [])] as UsageFilter[]).map(opt => {
+                const isActive = usage === opt;
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => setUsage(opt)}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#EBEEF3"; }}
+                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    style={{
+                      padding: "5px 10px", borderRadius: 7, cursor: "pointer",
+                      fontSize: 12.5, fontWeight: isActive ? 700 : 400,
+                      color: isActive ? "#1C6BFF" : "#475569",
+                      background: isActive ? "#E8F0FE" : "transparent",
+                      border: "none",
+                    }}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
             </div>
+            {POPULAR_TAGS.length > 0 && (
+              <div style={{ display: "flex", gap: 4, flex: 1, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" }}>
+                {POPULAR_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setSearch(search === tag ? "" : tag)}
+                    style={{
+                      padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                      borderTop: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
+                      borderRight: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
+                      borderBottom: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
+                      borderLeft: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
+                      background: search === tag ? "#E8F0FE" : "#F4F6F9",
+                      color: search === tag ? "#1C6BFF" : "#697386",
+                      flexShrink: 0,
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
             <CompanyFilterDropdown
               company={company}
               setCompany={setCompany}
@@ -519,25 +563,6 @@ export default function ProjectListPage() {
               초기화
             </button>
           </div>
-          {/* 4행: 인기 태그 */}
-          {POPULAR_TAGS.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0, minWidth: 52 }}>인기 태그</span>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                {POPULAR_TAGS.map(tag => (
-                  <button key={tag} onClick={() => setSearch(search === tag ? "" : tag)} style={{
-                    padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    borderTop: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                    borderRight: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                    borderBottom: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                    borderLeft: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                    background: search === tag ? "#E8F0FE" : "#F4F6F9",
-                    color: search === tag ? "#1C6BFF" : "#697386",
-                  }}>#{tag}</button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -725,6 +750,7 @@ export default function ProjectListPage() {
         )}
       </div>
 
+      <div style={{ flex: 1 }} />
       <Footer />
     </div>
   );
