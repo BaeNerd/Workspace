@@ -628,7 +628,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "72px 32px 56px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "72px 32px 56px", width: "100%", boxSizing: "border-box" }}>
 
         {/* 01 — 왜 AX Platform인가 */}
         <div style={{ marginBottom: 88 }}>

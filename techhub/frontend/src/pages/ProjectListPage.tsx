@@ -567,7 +567,7 @@ export default function ProjectListPage() {
       </div>
 
       {/* BODY */}
-      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "24px 32px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "24px 32px", width: "100%", boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <span style={{ fontSize: 13, color: "#697386" }}>
             <strong style={{ color: "#1A1F27" }}>{filtered.length}</strong>개 항목

@@ -778,7 +778,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "20px 32px 48px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "20px 32px 48px", width: "100%", boxSizing: "border-box" }}>
 
         {/* [2단] 지표 그라디언트 4카드 */}
         <div className="ax-stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>

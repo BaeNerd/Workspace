@@ -608,7 +608,7 @@ export default function ProjectRegisterPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto", padding: "28px 32px" }}>
+      <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto", padding: "28px 32px", width: "100%", boxSizing: "border-box" }}>
 
         {/* STEP INDICATOR */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 28 }}>

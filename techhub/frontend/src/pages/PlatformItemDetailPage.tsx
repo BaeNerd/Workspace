@@ -961,7 +961,7 @@ export default function PlatformItemDetailPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "28px 32px" }}>
+      <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "28px 32px", width: "100%", boxSizing: "border-box" }}>
 
         {activeTab === "overview" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
