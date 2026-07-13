@@ -1,35 +1,22 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, PLATFORM_ICON_PATH } from "../../types/platformTypes";
-import type { Platform, PlatformId } from "../../types/platformTypes";
+import { PLATFORMS, ICON_PRESETS } from "../../types/platformTypes";
+import type { Platform, PlatformId, IconKey } from "../../types/platformTypes";
 
 // ============================================================
 // AD-09 자동화·AI 도구(플랫폼) 관리 화면
-// ------------------------------------------------------------
-// platformTypes.ts의 PLATFORMS 메타데이터를 관리자가 UI에서 CRUD.
-// PLATFORMS는 출처 색상·경로·필터 옵션 등 여러 화면이 정적으로 참조하는
-// 단일 기준(source of truth)이므로, 편집 결과의 실제 반영은 백엔드 연동 시
-// GET/POST/PUT/PATCH /api/v1/admin/platforms로 위임한다.
-//
-// 데모 단계에서는 로컬 상태로만 편집 흐름을 재현하며, 다른 화면의 정적
-// PLATFORMS 참조에는 즉시 반영되지 않는다(백엔드 연동 시 서버가 단일 소스).
+// DEMO 전용 — 로컬 상태로 편집 흐름만 재현.
+// TODO: 실제 연동 시 GET/POST/PUT/PATCH /api/v1/admin/platforms 로 교체.
 // ============================================================
 
 // 관리 화면 내부에서만 쓰는 확장 타입 — active(노출 여부) 플래그 추가.
 // TODO: 백엔드 Platform 스키마에 active(또는 visible) 필드 반영 필요.
 type ManagedPlatform = Platform & { active: boolean };
 
-// 아이콘 옵션 (platformTypes.ts의 PLATFORM_ICON_PATH 키와 일치)
-const ICON_OPTIONS: Platform["icon"][] = ["automation", "assistant", "orchestration", "pa", "ml", "vibe"];
-const ICON_LABEL: Record<Platform["icon"], string> = {
-  automation: "자동화 (번개)",
-  assistant: "비서 (원형)",
-  orchestration: "오케스트레이션 (그리드)",
-  pa: "Power Automate (화살표)",
-  ml: "ML 모델 (큐브)",
-  vibe: "Vibe Coding (코드)",
-};
+// 아이콘 선택지 — ICON_PRESETS 레지스트리 전체를 참조 (프리셋 추가 시 자동 반영)
+const ICON_OPTION_KEYS: IconKey[] = Object.keys(ICON_PRESETS);
+const iconLabelOf = (icon: IconKey) => ICON_PRESETS[icon]?.label ?? icon;
 
 // 색상 프리셋 — 출처 색상/배경 쌍. 자유 입력도 허용하되 대표 조합을 빠르게 고를 수 있게 제공.
 const COLOR_PRESETS: { label: string; color: string; bg: string }[] = [
@@ -84,17 +71,74 @@ const SectionBlock = ({ title, children }: { title: string; children: React.Reac
   </div>
 );
 
-// 플랫폼 아이콘 미리보기 (색상 배경 위에 SVG path)
-const PlatformIcon = ({ icon, color, bg, size = 40 }: { icon: Platform["icon"]; color: string; bg: string; size?: number }) => (
+// 아이콘 키 → 프리셋 조회 (미등록 키는 기본 아이콘으로 폴백 — 서버 비정상 값 방어)
+const iconPreset = (icon: IconKey) => {
+  const preset = ICON_PRESETS[icon];
+  if (preset) return preset;
+  console.warn(`[AdminPlatforms] 알 수 없는 아이콘 키 "${icon}" — 기본 아이콘으로 대체합니다.`);
+  return ICON_PRESETS.automation;
+};
+
+// 플랫폼 아이콘 미리보기 (색상 배경 위에 SVG path) — ICON_PRESETS 레지스트리 참조
+const PlatformIcon = ({ icon, color, bg, size = 40 }: { icon: IconKey; color: string; bg: string; size?: number }) => (
   <div style={{
     width: size, height: size, borderRadius: 10, background: bg, flexShrink: 0,
     display: "flex", alignItems: "center", justifyContent: "center",
   }}>
     <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d={PLATFORM_ICON_PATH[icon]} />
+      <path d={iconPreset(icon).path} />
     </svg>
   </div>
 );
+
+// 아이콘 선택 — 닫힌 트리거(inputStyle+cursor) + 그리드 프리셋 패널 (AdminScopeSelect와 동일 패턴)
+const iconTriggerStyle: React.CSSProperties = {
+  ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, maxWidth: 360,
+};
+const IconPicker = ({ value, color, bg, onChange }: { value: IconKey; color: string; bg: string; onChange: (k: IconKey) => void }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <div ref={rootRef} style={{ position: "relative", maxWidth: 360 }}>
+      <button type="button" onClick={() => setOpen(v => !v)} style={iconTriggerStyle}>
+        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <PlatformIcon icon={value} color={color} bg={bg} size={28} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{iconLabelOf(value)}</span>
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 40, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: 10, maxHeight: 360, overflowY: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            {ICON_OPTION_KEYS.map(k => {
+              const on = k === value;
+              return (
+                <button key={k} type="button" onClick={() => { onChange(k); setOpen(false); }} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 6px", borderRadius: 8, cursor: "pointer",
+                  border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff",
+                }}>
+                  <PlatformIcon icon={k} color={color} bg={bg} size={30} />
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: on ? "#2563EB" : "#475569", textAlign: "center", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{ICON_PRESETS[k].label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 8, paddingTop: 8, borderTop: "1px solid #F1F5F9" }}>
+            프리셋 외 아이콘은 개발 반영이 필요합니다.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function AdminPlatforms() {
   const [platforms, setPlatforms] = useState<ManagedPlatform[]>(INITIAL_PLATFORMS);
@@ -109,7 +153,6 @@ export default function AdminPlatforms() {
   const activeItem = isNew ? draft : platforms.find(p => p.id === selected) ?? null;
   const displayData = editMode || isNew ? draft : activeItem;
   const isEditing = editMode || isNew;
-  const canEdit = true;
 
   const setF = <K extends keyof ManagedPlatform>(k: K, v: ManagedPlatform[K]) =>
     setDraft(p => p ? { ...p, [k]: v } : p);
@@ -366,31 +409,11 @@ export default function AdminPlatforms() {
                 <SectionBlock title="표시 스타일">
                   <FieldRow label="아이콘">
                     {isEditing ? (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {ICON_OPTIONS.map(icon => {
-                          const isSel = displayData.icon === icon;
-                          return (
-                            <button
-                              key={icon}
-                              type="button"
-                              onClick={() => setF("icon", icon)}
-                              style={{
-                                display: "flex", alignItems: "center", gap: 8,
-                                padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                                border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-                                background: isSel ? "#EFF6FF" : "#fff",
-                              }}
-                            >
-                              <PlatformIcon icon={icon} color={displayData.color} bg={displayData.bg} size={28} />
-                              <span style={{ fontSize: 12, fontWeight: 600, color: isSel ? "#2563EB" : "#475569" }}>{ICON_LABEL[icon]}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <IconPicker value={displayData.icon} color={displayData.color} bg={displayData.bg} onChange={k => setF("icon", k)} />
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <PlatformIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={28} />
-                        <span style={{ fontSize: 13, color: "#334155" }}>{ICON_LABEL[displayData.icon]}</span>
+                        <span style={{ fontSize: 13, color: "#334155" }}>{iconLabelOf(displayData.icon)}</span>
                       </div>
                     )}
                   </FieldRow>

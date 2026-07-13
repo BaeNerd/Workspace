@@ -9,8 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-share
 dist-ssr
 *.local
+
+# 공유 빌드 산출물 (build:share 결과 복사본)
+ax-landing-preview.html
 
 # Editor directories and files
 .vscode/*

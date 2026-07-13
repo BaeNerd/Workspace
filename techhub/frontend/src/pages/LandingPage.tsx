@@ -7,6 +7,8 @@ import { PLATFORMS, PLATFORM_ICON_PATH } from "../types/platformTypes";
 import type { PlatformId, PlatformItemStatus, Platform } from "../types/platformTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
+import { IS_SHARE_MODE } from "../config/shareMode";
+import { useShareNotice } from "../context/ShareNoticeContext";
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Platform["icon"] }> =
   Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
@@ -24,8 +26,7 @@ const DOMAIN_CHIP: Record<Domain, { bg: string; fg: string }> = {
   "IT":   { bg: "#EDF0F4", fg: "#4B5768" },
 };
 
-// 지표 4카드 (v2 그라디언트 스타일)
-// "신규 업데이트" → "최근 30일 신규": 월초 리셋 문제로 기간 이동창 방식으로 변경 (2026-07-10 회의 결정)
+// 지표 4카드
 // TODO: 실제 연동 시 GET /api/v1/stats/summary 응답으로 교체
 const STAT_CARDS = [
   { value: 208, label: "전체 AX 항목", grad: "linear-gradient(135deg, #FF9F43, #FF7E5F)" },
@@ -41,7 +42,6 @@ type FeedItem = {
 };
 
 // TODO: 실제 연동 시 GET /api/v1/platform-items?sort=recent 응답으로 교체
-// (날짜는 상대 시각 표시 데모를 위해 2026년 최근 범위로 정규화)
 const ALL_ITEMS: FeedItem[] = [
   // n8n
   { id: "N8N-001", kind: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달", dept: "IT인프라팀", status: "사용 가능", tags: ["Outlook", "긴급메일"], likes: 22, views: 420, updated: "2026.07.03", path: "/n8n/N8N-001", domain: "IT" },
@@ -169,7 +169,6 @@ const EDITORS_PICK: { item: FeedItem; note: string; editor: string } | null = {
 type Review = { text: string; author: string; itemTitle: string; itemPath: string; itemKind: PlatformId };
 
 // TODO: 실제 연동 시 GET /api/v1/reviews/highlights 응답으로 교체
-// 후기 입력 체계(등록 폼 또는 상세 페이지 후기 필드)는 차주 유형별 콘텐츠 기획에서 정의 예정
 const REVIEWS: Review[] = [
   { text: "회의 끝나고 정리에 쓰던 1시간이 사라졌습니다. 녹취록만 올리면 결정사항이 바로 나옵니다.", author: "IT개발팀", itemTitle: "회의록 요약 봇", itemPath: "/assistant/AST-002", itemKind: "assistant" },
   { text: "계약서 초안 검토 전에 한 번 돌려보는 게 습관이 됐습니다. 위험 조항을 먼저 짚어주니 검토 시간이 절반으로 줄었어요.", author: "법무팀", itemTitle: "법무 검토 보조 봇", itemPath: "/assistant/AST-001", itemKind: "assistant" },
@@ -218,10 +217,25 @@ function TopViewedBar({
   const idx = activeIdx % items.length;
   const current = items[idx];
 
+  // 닫힘 유예 — 바~패널 이동 중 커서가 잠깐 벗어나도 즉시 닫히지 않도록 200ms 지연
+  const closeTimerRef = useRef<number | null>(null);
+  const cancelClose = () => {
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 200);
+  };
+  // 언마운트 시 타이머 정리 (메모리 누수·언마운트 후 setState 방지)
+  useEffect(() => cancelClose, []);
+
   return (
     <div
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseLeave={scheduleClose}
       style={{ position: "relative", flexShrink: 0 }}
     >
       {/* 접힌 바 */}
@@ -255,46 +269,51 @@ function TopViewedBar({
         </span>
       </div>
 
-      {/* 호버 확장 패널 */}
+      {/* 호버 확장 패널 — 외부 컨테이너는 바에 바로 붙이고(top:100%) paddingTop 6px로
+          바~패널 사이 틈을 투명 호버 브리지로 채운다. 카드 스타일은 내부 div로 이동. */}
       {open && (
         <div style={{
-          position: "absolute", top: "calc(100% + 6px)", right: 0, width: 320,
-          background: "#fff", borderRadius: 12, padding: "10px 12px", zIndex: 50,
-          boxShadow: "0 12px 32px rgba(26,31,39,0.14)",
-          animation: "axPanelIn 0.25s ease-out",
+          position: "absolute", top: "100%", right: 0, width: 320,
+          paddingTop: 6, zIndex: 50,
         }}>
-          {items.map((item, i) => {
-            const s = SOURCE_STYLE[item.kind];
-            return (
-              <div
-                key={item.id}
-                onClick={() => onNavigate(item.path)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 8px", borderRadius: 8, cursor: "pointer",
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#F4F6F9")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                <span style={{
-                  width: 18, fontSize: 13, fontWeight: 800, flexShrink: 0, textAlign: "center",
-                  color: i < 3 ? "#1C6BFF" : "#AEB6C2",
-                }}>{i + 1}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#1A1F27", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {item.title}
+          <div style={{
+            background: "#fff", borderRadius: 12, padding: "10px 12px",
+            boxShadow: "0 12px 32px rgba(26,31,39,0.14)",
+            animation: "axPanelIn 0.25s ease-out",
+          }}>
+            {items.map((item, i) => {
+              const s = SOURCE_STYLE[item.kind];
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => onNavigate(item.path)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 8px", borderRadius: 8, cursor: "pointer",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#F4F6F9")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{
+                    width: 18, fontSize: 13, fontWeight: 800, flexShrink: 0, textAlign: "center",
+                    color: i < 3 ? "#1C6BFF" : "#AEB6C2",
+                  }}>{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: "#1A1F27", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {item.title}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {s.label} · {item.dept}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {s.label} · {item.dept}
-                  </div>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
+                    <EyeIcon size={10} /> {item.views.toLocaleString()}
+                  </span>
                 </div>
-                <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#94A3B8", flexShrink: 0 }}>
-                  <EyeIcon size={10} /> {item.views.toLocaleString()}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -668,8 +687,9 @@ function ReviewRotator({
   );
 }
 
-/** [존 C-3] 문의 채널 카드 — ITSM 티켓 대신 Teams 채널 기반 운영 (회의 확정 사항) */
+/** [존 C-3] 문의 채널 카드 — Teams 채널 문의 진입 */
 function AskChannelCard() {
+  const { showNotice } = useShareNotice();
   return (
     <div style={{
       ...panelStyle,
@@ -695,21 +715,36 @@ function AskChannelCard() {
           사용 방법, 등록 문의, 아이디어 제안까지 — AX 플랫폼 Teams 채널에서 편하게 대화로 나눠요.
         </div>
       </div>
-      <a
-        href={TEAMS_CHANNEL_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          flexShrink: 0, textDecoration: "none",
-          background: "#1C6BFF", color: "#fff",
-          fontSize: 12, fontWeight: 700, padding: "9px 16px", borderRadius: 20,
-          transition: "background 0.15s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "#1558D6")}
-        onMouseLeave={e => (e.currentTarget.style.background = "#1C6BFF")}
-      >
-        채널 열기
-      </a>
+      {IS_SHARE_MODE ? (
+        // 공유 모드: 사내 전용 Teams 링크 비활성 — href 제거, 클릭 시 안내, 톤을 회색으로 낮춤
+        <button
+          type="button"
+          onClick={() => showNotice()}
+          style={{
+            flexShrink: 0, border: "none", cursor: "pointer",
+            background: "#E2E8F0", color: "#697386",
+            fontSize: 12, fontWeight: 700, padding: "9px 16px", borderRadius: 20,
+          }}
+        >
+          채널 열기
+        </button>
+      ) : (
+        <a
+          href={TEAMS_CHANNEL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            flexShrink: 0, textDecoration: "none",
+            background: "#1C6BFF", color: "#fff",
+            fontSize: 12, fontWeight: 700, padding: "9px 16px", borderRadius: 20,
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#1558D6")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#1C6BFF")}
+        >
+          채널 열기
+        </a>
+      )}
     </div>
   );
 }

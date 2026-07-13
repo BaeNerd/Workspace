@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import { IS_SHARE_MODE } from "../config/shareMode";
+import { SHARE_BANNER_HEIGHT } from "./SharePreviewBanner";
 
 const NAV_LINKS = [
   { label: "소개", path: "/about" },
@@ -12,12 +14,12 @@ const NAV_LINKS = [
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isCompanyAdmin } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <nav style={{
-      position: "sticky", top: 0, zIndex: 100,
+      position: "sticky", top: IS_SHARE_MODE ? SHARE_BANNER_HEIGHT : 0, zIndex: 100,
       background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)",
       borderBottom: "1px solid #E2E8F0", padding: "0 32px", height: 56,
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -44,7 +46,7 @@ export default function Navbar() {
             </span>
           ))}
 
-          {isAdmin && (
+          {(isAdmin || isCompanyAdmin) && (
             <span onClick={() => navigate("/admin")} style={{
               fontSize: 13, cursor: "pointer",
               fontWeight: location.pathname.startsWith("/admin") ? 700 : 600,
@@ -67,9 +69,12 @@ export default function Navbar() {
               {isAdmin && (
                 <span style={{ fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "3px 10px", borderRadius: 20 }}>관리자</span>
               )}
+              {isCompanyAdmin && (
+                <span style={{ fontSize: 11, fontWeight: 700, background: "#FBEEE4", color: "#B4602E", padding: "3px 10px", borderRadius: 20 }}>관계사 관리자</span>
+              )}
               <div style={{
                 width: 32, height: 32, borderRadius: "50%",
-                background: isAdmin ? "#D97706" : "#0F172A", color: "#fff",
+                background: isAdmin ? "#D97706" : isCompanyAdmin ? "#B4602E" : "#0F172A", color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 12, fontWeight: 700,
               }}>
@@ -90,7 +95,7 @@ export default function Navbar() {
                 <div onClick={() => { setMenuOpen(false); navigate("/my-status"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#475569", cursor: "pointer", borderRadius: 6 }}>
                   내 등록 현황
                 </div>
-                {isAdmin && (
+                {(isAdmin || isCompanyAdmin) && (
                   <div onClick={() => { setMenuOpen(false); navigate("/admin"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#D97706", fontWeight: 600, cursor: "pointer", borderRadius: 6 }}>
                     관리자 페이지
                   </div>
@@ -101,7 +106,7 @@ export default function Navbar() {
               </div>
             )}
           </div>
-        ) : (
+        ) : IS_SHARE_MODE ? null : (
           <button onClick={() => navigate("/login")} style={{
             background: "#0F172A", color: "#fff", border: "none", borderRadius: 6,
             padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer",

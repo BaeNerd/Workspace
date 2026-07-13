@@ -1,10 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import AdminScopeSelect from "../../components/AdminScopeSelect";
+import type { ScopeSelection } from "../../components/AdminScopeSelect";
+import { useAuth } from "../../context/useAuth";
 import {
   STAT_COMPANIES,
   scopedCompanies, aggregateMonthly, aggregateSourceTotal, aggregateDomain,
-  monthTotal,
+  monthTotal, COMPANY_NAME,
 } from "../../mocks/statsMockData";
 import type { MonthPoint, SourceKey, StatCompany } from "../../mocks/statsMockData";
 
@@ -99,6 +102,21 @@ const TIME_SAVED_BY_COMPANY: Record<StatCompany, string[]> = {
   KBT: [""],
 };
 
+// 후기 많은 항목 TOP 5 — 각 항목에 소유 관계사 코드를 부여하여 scope를 따르게 함.
+// 전사(admin) 기준에서는 5건 전량 노출(기존 표시와 동일). TODO: 백엔드 연동 시 폐기.
+type TopReview = { id: string; title: string; kind: string; reviewCount: number; avgLikes: number; company: StatCompany };
+const TOP5_REVIEWS_ALL: TopReview[] = [
+  { id: "N8N-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",              reviewCount: 18, avgLikes: 7.2, company: "KKM" },
+  { id: "AST-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
+  { id: "AIO-002", title: "Claude (문서 분석 특화)",        kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
+  { id: "PA-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
+  { id: "ML-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
+];
+
+// 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로) — AdminDashboard와 동일 방식
+const scopeCompanyNames = (codes: string[]): string =>
+  codes.map(c => COMPANY_NAME[c] ?? c).join(" · ");
+
 const PICK_YEARS = [2025];
 const PICK_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -157,13 +175,31 @@ const sectionLabelStyle: React.CSSProperties = {
 };
 
 export default function AdminStatistics() {
+  const { isCompanyAdmin, managedCompanies } = useAuth();
   const [periodMode, setPeriodMode] = useState<"preset" | "month">("preset");
   const [period, setPeriod] = useState<Period>("최근 6개월");
   const [pickYear, setPickYear] = useState(2025);
   const [pickMonth, setPickMonth] = useState(6);
 
+  // 조회 범위 선택 (표시용 필터). 권한 범위(baseScope) 안에서만 선택 가능.
+  const [scopeSel, setScopeSel] = useState<ScopeSelection>({ kind: "all" });
+  // 권한 범위: companyAdmin은 담당 관계사만, 그 외(admin)는 전사(null) — 선택기 restrictTo로도 사용
+  const baseScope = isCompanyAdmin ? managedCompanies : null;
+  const baseKey = baseScope ? [...baseScope].sort().join(",") : "ALL";
+  // 역할/담당 구성이 바뀌면(다른 계정 로그인 등) 이전 선택이 남지 않도록 리셋
+  useEffect(() => { setScopeSel({ kind: "all" }); }, [baseKey]);
+  // 담당 관계사가 지정되지 않은 companyAdmin 예외 케이스
+  const noScope = isCompanyAdmin && managedCompanies.length === 0;
+  // 선택기 노출: admin 항상 / companyAdmin은 담당 2곳 이상일 때만 (1곳=배지, 0곳=미지정 안내)
+  const showScopeSelect = !isCompanyAdmin || managedCompanies.length >= 2;
+  // 유효 조회 범위: 개별 관계사 선택 시 해당 코드, 아니면 권한 범위 (기간 × 관계사 이중 필터)
+  const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope;
+  // useMemo 의존성용 안정 키 ("ALL"=전사, ""=담당 없음, 그 외=코드 정렬 조인)
+  const scopeKey = viewScope ? [...viewScope].sort().join(",") : "ALL";
+
   const agg = useMemo(() => {
-    const companies = scopedCompanies(null);
+    const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
+    const companies = scopedCompanies(currentScope);
     const monthSeries = aggregateMonthly(companies);
     const sourceTotal = aggregateSourceTotal(companies);
     const domain = aggregateDomain(companies);
@@ -174,6 +210,7 @@ export default function AdminStatistics() {
     const dept = aggregateDept(companies);
     const keyword = aggregateKeyword(companies);
     const timeSamples = aggregateTimeSaved(companies);
+    const topReviews = TOP5_REVIEWS_ALL.filter(r => companies.includes(r.company));
 
     const status = STATUS_META.map((s, i) => ({ ...s, count: statusCounts[i] }));
     const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: difficultyCounts[i] }));
@@ -186,8 +223,8 @@ export default function AdminStatistics() {
     const estimableCount = parsed.length - unestimableCount;
 
     return { companies, monthSeries, sourceTotal, domain, status, difficulty, cost, mlType, dept, keyword,
-      totalAnnualHoursSaved, unestimableCount, estimableCount };
-  }, []);
+      topReviews, totalAnnualHoursSaved, unestimableCount, estimableCount };
+  }, [scopeKey]);
 
   const MONTH_SERIES = agg.monthSeries;
   const PRESET_MONTHS: Record<Period, MonthPoint[]> = {
@@ -233,8 +270,17 @@ export default function AdminStatistics() {
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, gap: 16, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>통계 대시보드</h1>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{isCompanyAdmin ? "관계사 관리자" : "관리자"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>통계 대시보드</h1>
+                {showScopeSelect ? (
+                  <AdminScopeSelect value={scopeSel} onChange={setScopeSel} restrictTo={baseScope} />
+                ) : !noScope && baseScope ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#B4602E", background: "#FBEEE4", padding: "3px 10px", borderRadius: 20 }}>
+                    담당 관계사 {baseScope.length}곳: {scopeCompanyNames(baseScope)}
+                  </span>
+                ) : null}
+              </div>
               <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의비서 · AI Agent · ML · Vibe) 등록 현황을 통합 분석합니다.</p>
             </div>
 
@@ -269,6 +315,12 @@ export default function AdminStatistics() {
               )}
             </div>
           </div>
+
+          {noScope && (
+            <div style={{ background: "#FBEEE4", border: "1px solid #F0D4BF", borderRadius: 10, padding: "14px 18px", marginBottom: 20, fontSize: 13, fontWeight: 600, color: "#B4602E" }}>
+              담당 관계사가 지정되지 않았습니다. 전사관리자에게 문의하세요.
+            </div>
+          )}
 
           {/* 상단 4카드 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
@@ -518,21 +570,15 @@ export default function AdminStatistics() {
 
           {/* 후기 많은 항목 TOP 5 */}
           {(() => {
-            const TOP5_REVIEWS = [
-              { id: "N8N-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",            reviewCount: 18, avgLikes: 7.2 },
-              { id: "AST-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",   reviewCount: 14, avgLikes: 8.5 },
-              { id: "AIO-002", title: "Claude (문서 분석 특화)",        kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1 },
-              { id: "PA-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",           reviewCount:  8, avgLikes: 5.9 },
-              { id: "ML-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",           reviewCount:  6, avgLikes: 4.8 },
-            ];
-            const maxReview = Math.max(...TOP5_REVIEWS.map(r => r.reviewCount), 1);
+            const topReviews = agg.topReviews;
+            const maxReview = Math.max(...topReviews.map(r => r.reviewCount), 1);
             return (
               <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px", marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>
                   후기 많은 항목 TOP 5 <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500, marginLeft: 8 }}>누적 후기 수 기준</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {TOP5_REVIEWS.map((item, i) => {
+                  {topReviews.map((item, i) => {
                     const pct = Math.round((item.reviewCount / maxReview) * 100);
                     return (
                       <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -553,6 +599,9 @@ export default function AdminStatistics() {
                       </div>
                     );
                   })}
+                  {topReviews.length === 0 && (
+                    <div style={{ fontSize: 12, color: "#94A3B8", padding: "8px 0" }}>해당 범위의 후기 데이터가 없습니다.</div>
+                  )}
                 </div>
               </div>
             );

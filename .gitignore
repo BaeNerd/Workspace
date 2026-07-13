@@ -22,7 +22,7 @@ build
 
 # 로컬 설정
 *.local
-.claude/settings.local.json
+.claude/
 
 # OS / Editor
 .DS_Store

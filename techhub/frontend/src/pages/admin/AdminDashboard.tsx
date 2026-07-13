@@ -1,11 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import AdminScopeSelect from "../../components/AdminScopeSelect";
+import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { PLATFORMS } from "../../types/platformTypes";
+import type { ApprovalSlots } from "../../types/platformTypes";
+import { useAuth } from "../../context/useAuth";
 import {
   scopedCompanies, aggregateSourceTotal, aggregateMonthly, aggregateDomain,
-  monthTotal,
+  monthTotal, COMPANY_NAME,
 } from "../../mocks/statsMockData";
 import type { SourceKey, StatCompany } from "../../mocks/statsMockData";
 
@@ -32,13 +36,16 @@ const detailPathOf = (source: SourceKey, id: string) => {
 // TODO: 백엔드 연동 시 폐기.
 // ============================================================
 
-type PendingItem = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: StatCompany };
+// 병렬 2슬롯 승인 상태 더미 (company/global). 두 슬롯 모두 미승인=승인 대기, 하나만=부분 승인.
+const slots = (company: boolean, global: boolean): ApprovalSlots => ({ company: { approved: company }, global: { approved: global } });
+
+type PendingItem = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: StatCompany; approvalSlots: ApprovalSlots };
 const PENDING_ALL: PendingItem[] = [
-  { id: "N8N-2025-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2025.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM" },
-  { id: "AST-2025-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2025.06.03", type: "나만의비서", source: "assistant", company: "KBH" },
-  { id: "PA-2025-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2025.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG" },
-  { id: "AIO-2025-007", title: "원료 추천 에이전트", dept: "IT개발팀", submittedAt: "2025.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC" },
-  { id: "ML-2025-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2025.06.06", type: "ML 모델", source: "ml", company: "KKM" },
+  { id: "N8N-2025-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2025.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM", approvalSlots: slots(false, false) },
+  { id: "AST-2025-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2025.06.03", type: "나만의비서", source: "assistant", company: "KBH", approvalSlots: slots(true, false) },
+  { id: "PA-2025-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2025.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG", approvalSlots: slots(false, false) },
+  { id: "AIO-2025-007", title: "원료 추천 에이전트", dept: "IT개발팀", submittedAt: "2025.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
+  { id: "ML-2025-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2025.06.06", type: "ML 모델", source: "ml", company: "KKM", approvalSlots: slots(false, false) },
 ];
 
 type ApprovedItem = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey; company: StatCompany };
@@ -53,23 +60,61 @@ const ACTIVE_TOOLS_BY_COMPANY: Record<StatCompany, number> = {
   KKM: 44, KBH: 14, HC: 10, KMG: 8, KMW: 4, KUS: 2, KBT: 2,
 };
 
+// 누적 활용 후기 — 관계사별 더미 (합 47 = 기존 전사 표기와 일치). TODO: 백엔드 연동 시 폐기.
+const REVIEW_COUNT_BY_COMPANY: Record<StatCompany, number> = {
+  KKM: 22, KBH: 9, HC: 6, KMG: 5, KMW: 2, KUS: 2, KBT: 1,
+};
+
 const CARD_BORDER = "1.5px solid #E2E8F0";
+
+// 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로)
+const scopeCompanyNames = (codes: string[]): string =>
+  codes.map(c => COMPANY_NAME[c] ?? c).join(" · ");
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { isCompanyAdmin, managedCompanies } = useAuth();
+
+  // 조회 범위 선택 (표시용 필터). 권한 범위(baseScope) 안에서만 선택 가능.
+  const [scopeSel, setScopeSel] = useState<ScopeSelection>({ kind: "all" });
+  // 권한 범위: companyAdmin은 담당 관계사만, 그 외(admin)는 전사(null) — 선택기 restrictTo로도 사용
+  const baseScope = isCompanyAdmin ? managedCompanies : null;
+  const baseKey = baseScope ? [...baseScope].sort().join(",") : "ALL";
+  // 역할/담당 구성이 바뀌면(다른 계정 로그인 등) 이전 선택이 남지 않도록 리셋
+  useEffect(() => { setScopeSel({ kind: "all" }); }, [baseKey]);
+  // 담당 관계사가 지정되지 않은 companyAdmin 예외 케이스
+  const noScope = isCompanyAdmin && managedCompanies.length === 0;
+  // 선택기 노출: admin 항상 / companyAdmin은 담당 2곳 이상일 때만 (1곳=배지, 0곳=미지정 안내)
+  const showScopeSelect = !isCompanyAdmin || managedCompanies.length >= 2;
+  // 유효 조회 범위: 개별 관계사 선택 시 해당 코드, 아니면 권한 범위
+  const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope;
+  // useMemo 의존성용 안정 키 ("ALL"=전사, ""=담당 없음, 그 외=코드 정렬 조인)
+  const scopeKey = viewScope ? [...viewScope].sort().join(",") : "ALL";
 
   const agg = useMemo(() => {
-    const companies = scopedCompanies(null);
+    const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
+    const companies = scopedCompanies(currentScope);
     const sourceTotal = aggregateSourceTotal(companies);
     const monthly = aggregateMonthly(companies);
     const domain = aggregateDomain(companies);
     const pending = PENDING_ALL.filter(p => companies.includes(p.company));
     const recentApproved = RECENT_APPROVED_ALL.filter(p => companies.includes(p.company));
     const activeTools = companies.reduce((s, co) => s + (ACTIVE_TOOLS_BY_COMPANY[co] ?? 0), 0);
-    return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools };
-  }, []);
+    const reviewTotal = companies.reduce((s, co) => s + (REVIEW_COUNT_BY_COMPANY[co] ?? 0), 0);
+    // 대기 = 미게시·미반려 중 미승인 슬롯이 남은 항목(= 승인 대기 + 부분 승인). 부분 승인 = 한 슬롯만 완료.
+    const partialCount = pending.filter(p => p.approvalSlots.company.approved !== p.approvalSlots.global.approved).length;
+    return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount };
+  }, [scopeKey]);
 
   const { sourceTotal, monthly, domain, pending, recentApproved } = agg;
+
+  // 사이드바 pendingCount — 조회 선택과 무관하게 권한 범위(baseScope) 기준으로 산출
+  // (조회 범위는 표시용 필터일 뿐, "내가 처리할 건수" 알림을 바꾸지 않는다)
+  // admin: 미종결 대기 항목 전체 / companyAdmin: 담당 범위 내 관계사 슬롯 미승인 항목
+  const permCompanies = scopedCompanies(baseScope);
+  const userPendingCount = PENDING_ALL
+    .filter(p => permCompanies.includes(p.company))
+    .filter(p => isCompanyAdmin ? !p.approvalSlots.company.approved : true).length;
 
   const totalRegistrations =
     sourceTotal.n8n + sourceTotal.pa + sourceTotal.assistant +
@@ -80,24 +125,39 @@ export default function AdminDashboard() {
 
   const KPIS = [
     { label: "전체 등록물", value: String(totalRegistrations), sub: "자동화·AI 도구 합산", subColor: "#059669" },
-    { label: "승인 대기", value: String(pending.length), sub: "즉시 검토 필요", subColor: "#D97706" },
+    { label: "승인 대기", value: String(pending.length), sub: `부분 승인 ${agg.partialCount}건 포함`, subColor: "#D97706" },
     { label: "이번 달 신규", value: String(thisMonthTotal), sub: "6개 플랫폼 합산", subColor: "#2563EB" },
     { label: "사용 가능 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
-    { label: "누적 활용 후기", value: "47", sub: "전체 항목 합산", subColor: "#059669" },
+    { label: "누적 활용 후기", value: String(agg.reviewTotal), sub: "전체 항목 합산", subColor: "#059669" },
   ];
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
-        <AdminSidebar pendingCount={pending.length} />
+        <AdminSidebar pendingCount={userPendingCount} />
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>대시보드</h1>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{isCompanyAdmin ? "관계사 관리자" : "관리자"}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>대시보드</h1>
+              {showScopeSelect ? (
+                <AdminScopeSelect value={scopeSel} onChange={setScopeSel} restrictTo={baseScope} />
+              ) : !noScope && baseScope ? (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#B4602E", background: "#FBEEE4", padding: "3px 10px", borderRadius: 20 }}>
+                  담당 관계사 {baseScope.length}곳: {scopeCompanyNames(baseScope)}
+                </span>
+              ) : null}
+            </div>
             <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의비서 · AI Agent · ML · Vibe) 통합 현황 · 2025년 6월 기준</p>
           </div>
+
+          {noScope && (
+            <div style={{ background: "#FBEEE4", border: "1px solid #F0D4BF", borderRadius: 10, padding: "14px 18px", marginBottom: 24, fontSize: 13, fontWeight: 600, color: "#B4602E" }}>
+              담당 관계사가 지정되지 않았습니다. 전사관리자에게 문의하세요.
+            </div>
+          )}
 
           {/* KPI CARDS */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>

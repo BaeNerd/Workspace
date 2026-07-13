@@ -2,6 +2,44 @@
 
 export type PlatformId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe";
 
+// ============================================================
+// 아이콘 프리셋 레지스트리 (라벨 + 24x24 stroke 라인 아이콘 path)
+// ------------------------------------------------------------
+// 기존 6개 키(automation…vibe)는 PLATFORM_ICON_PATH와 동일한 path를 그대로 포함(데이터 호환).
+// AdminPlatforms의 아이콘 선택지·미리보기는 이 레지스트리를 단일 소스로 참조한다.
+// Record<string, …>로 두어 keyof(=IconKey)가 문자열이 되게 하며, 이로써 기존
+// PLATFORM_ICON_PATH(Record<Platform["icon"], string> = Record<string,string>)의
+// 6개 매핑이 그대로 유효하다(추가 키 요구 없음).
+// TODO: 실제 연동 시 서버 아이콘 카탈로그로 교체.
+// ============================================================
+export const ICON_PRESETS: Record<string, { label: string; path: string }> = {
+  // ── 기존 6종 (키·path 변경 금지) ──
+  automation:    { label: "자동화 (번개)",            path: "M13 2L3 14h7l-1 8 10-12h-7l1-8z" },
+  assistant:     { label: "비서 (원형)",              path: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 16v-4M12 8h.01" },
+  orchestration: { label: "오케스트레이션 (그리드)",  path: "M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z" },
+  pa:            { label: "Power Automate (화살표)",  path: "M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4m14 6V17a4 4 0 00-4-4H3" },
+  ml:            { label: "ML 모델 (큐브)",           path: "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" },
+  vibe:          { label: "Vibe Coding (코드)",       path: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" },
+  // ── 신규 프리셋 ──
+  bot:        { label: "봇 (로봇)",       path: "M12 3v3 M7 6h10a1 1 0 011 1v9a1 1 0 01-1 1H7a1 1 0 01-1-1V7a1 1 0 011-1z M10 11v2 M14 11v2 M3 11v3 M21 11v3" },
+  document:   { label: "문서",            path: "M6 2a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z M14 2v6h6 M8 13h8 M8 17h6" },
+  barChart:   { label: "차트 (막대)",     path: "M3 21h18 M7 21V11 M12 21V6 M17 21v-8" },
+  lineChart:  { label: "차트 (선)",       path: "M4 4v16h16 M8 15l3-4 3 2 4-6" },
+  branch:     { label: "흐름 (분기)",     path: "M7 4a2 2 0 100 4 2 2 0 000-4z M7 8v8 M7 16a2 2 0 100 4 2 2 0 000-4z M17 6a2 2 0 100 4 2 2 0 000-4z M17 10c0 4-10 1-10 6" },
+  database:   { label: "데이터베이스",    path: "M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" },
+  settings:   { label: "설정 (슬라이더)", path: "M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M2 14h4 M10 8h4 M18 16h4" },
+  chat:       { label: "채팅",            path: "M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z" },
+  search:     { label: "검색 (돋보기)",   path: "M11 4a7 7 0 100 14 7 7 0 000-14z M21 21l-4.3-4.3" },
+  calendar:   { label: "캘린더",          path: "M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" },
+  mail:       { label: "메일",            path: "M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2z M22 7l-10 7L2 7" },
+  cloud:      { label: "클라우드",        path: "M7 19a4 4 0 01-.8-7.9 5.5 5.5 0 0110.7-1.6A3.5 3.5 0 0117 19H7z" },
+  shield:     { label: "보안 (방패)",     path: "M12 3l7 3v5c0 4-3 7-7 8.5C8 17 5 14 5 10V6z M9.5 11.5l2 2 3.5-3.5" },
+  puzzle:     { label: "연동 (퍼즐)",     path: "M10 4a2 2 0 014 0v1h3a1 1 0 011 1v3h1a2 2 0 010 4h-1v3a1 1 0 01-1 1h-3v-1a2 2 0 00-4 0v1H6a1 1 0 01-1-1v-3H4a2 2 0 010-4h1V6a1 1 0 011-1h4z" },
+};
+
+// 아이콘 키 — ICON_PRESETS 레지스트리 기반 (Record<string,…>이므로 string)
+export type IconKey = keyof typeof ICON_PRESETS;
+
 export type Platform = {
   id: PlatformId;
   name: string;
@@ -10,7 +48,7 @@ export type Platform = {
   accessUrl: string | null;
   color: string;
   bg: string;
-  icon: "automation" | "assistant" | "orchestration" | "pa" | "ml" | "vibe";
+  icon: IconKey;
 };
 
 export const PLATFORMS: Platform[] = [
@@ -155,11 +193,45 @@ export type EditorsPick = {
   pickedBy: string;
 };
 
-// ===== 2단계 승인 =====
-export type ApprovalStage = "1차대기" | "2차대기" | "게시됨" | "반려" | "중지";
+// ===== 병렬 2슬롯 승인 =====
+// 항목마다 독립 승인 슬롯 2개를 두고, 순서 없이 어느 쪽이 먼저 승인해도 된다.
+// - company 슬롯: 담당 companyAdmin 또는 admin이 수행
+// - global 슬롯: admin만 수행
+// - 두 슬롯 모두 승인되면 게시. 어느 한쪽이라도 반려하면 종결.
+export type ApprovalSlotKey = "company" | "global";
+export type ApprovalSlot = { approved: boolean; by?: string; at?: string };
+export type ApprovalSlots = Record<ApprovalSlotKey, ApprovalSlot>;
+export const APPROVAL_SLOT_LABEL: Record<ApprovalSlotKey, string> = {
+  company: "관계사 관리자 승인",
+  global: "전사 관리자 승인",
+};
+
+export type ApprovalStage = "승인 대기" | "부분 승인" | "게시됨" | "반려" | "중지";
+
+// 슬롯 승인 상태 + 종결 플래그로부터 stage 파생 (종결 상태가 우선)
+export function deriveStage(slots: ApprovalSlots, rejected: boolean, suspended: boolean): ApprovalStage {
+  if (suspended) return "중지";
+  if (rejected) return "반려";
+  const approvedCount = (slots.company.approved ? 1 : 0) + (slots.global.approved ? 1 : 0);
+  if (approvedCount >= 2) return "게시됨";
+  if (approvedCount === 1) return "부분 승인";
+  return "승인 대기";
+}
+
+// 레거시 stage → 슬롯 초기값 구성 규칙
+// "1차대기" → 둘 다 미승인("승인 대기") / "2차대기" → company 승인 완료("부분 승인")
+// "게시됨"·"반려"·"중지" → 동일 상태 유지
+export const LEGACY_APPROVAL_MAP: Record<string, { slots: ApprovalSlots; rejected: boolean; suspended: boolean }> = {
+  "1차대기": { slots: { company: { approved: false }, global: { approved: false } }, rejected: false, suspended: false },
+  "2차대기": { slots: { company: { approved: true }, global: { approved: false } }, rejected: false, suspended: false },
+  "게시됨":  { slots: { company: { approved: true }, global: { approved: true } }, rejected: false, suspended: false },
+  "반려":    { slots: { company: { approved: false }, global: { approved: false } }, rejected: true, suspended: false },
+  "중지":    { slots: { company: { approved: false }, global: { approved: false } }, rejected: false, suspended: true },
+};
 
 export type ApprovalRecord = {
-  stage: ApprovalStage;
+  slot?: ApprovalSlotKey;
+  action: "승인" | "반려";
   at: string;
   by: string;
   note?: string;

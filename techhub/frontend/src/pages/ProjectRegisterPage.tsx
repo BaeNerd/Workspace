@@ -59,7 +59,7 @@ const ASSISTANT_MODEL_HINTS = [
   "Gemini", "LG AI", "Upstage",
 ];
 
-// AI Agent(HK GPT 게이트웨이) — 제공사 선택형 (6종 확정)
+// AI Agent(HK GPT 게이트웨이) — 제공사 선택형
 const PROVIDER_OPTIONS = ["웍스 대표 모델", "OpenAI", "Anthropic", "Google", "LG AI", "Upstage"];
 // "컨텍스트 윈도우"라는 어려운 말 대신 처리 가능한 글 분량을 쉬운 말로 선택
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
@@ -138,6 +138,7 @@ const isAssistantKind = (k: PlatformId) => k === "assistant";
 const isModelKind = (k: PlatformId) => k === "ai-orchestration";
 const isMLKind = (k: PlatformId) => k === "ml";
 const isVibeKind = (k: PlatformId) => k === "vibe";
+const STATUS_OPTIONS_BY_KIND = (_kind: PlatformId) => STATUS_ORDER;
 
 type FormState = {
   title: string; summary: string; description: string; status: string;

@@ -2,10 +2,12 @@ import { useAuth } from "../context/useAuth";
 import type { CurrentUser } from "../context/AuthContext";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { managedCompaniesOf } from "../mocks/companyAdminMockData";
 
 // ============================================================
 // 데모 전용 계정 프리셋 (DEMO 전용)
-// ⚠️ 백엔드(Microsoft SSO) 연동 시 이 블록과 계정 선택 UI 전량 폐기.
+// 백엔드(Microsoft SSO) 연동 시 이 블록과 계정 선택 UI 전량 폐기.
+// 폐기 시 companyAdminMockData import도 함께 제거한다.
 // ============================================================
 type DemoAccount = { key: string; label: string; desc: string; user: NonNullable<CurrentUser> };
 
@@ -49,11 +51,21 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     key: "companyAdmin",
     label: "관계사 관리자",
-    desc: "KKM 담당 · 1차 검토·삭제만 가능",
+    desc: "KKM 담당 · 관계사 관리자 승인·삭제만 가능",
     user: {
       name: "최관리", email: "cadmin.choi@kolmar.co.kr", dept: "IT인프라팀", title: "과장",
       role: "companyAdmin", company: "KKM", isGroupViewer: false, department: "IT",
-      managedCompany: "KKM",
+      managedCompanies: managedCompaniesOf("cadmin.choi@kolmar.co.kr"),
+    },
+  },
+  {
+    key: "companyAdmin-multi",
+    label: "관계사 관리자 (복수)",
+    desc: "KBH·HC 담당 · 관계사 관리자 승인·삭제만 가능",
+    user: {
+      name: "정담당", email: "cadmin.jung@kolmar.co.kr", dept: "경영지원팀", title: "차장",
+      role: "companyAdmin", company: "KBH", isGroupViewer: false, department: "재무",
+      managedCompanies: managedCompaniesOf("cadmin.jung@kolmar.co.kr"),
     },
   },
 ];
@@ -82,7 +94,7 @@ export default function LoginPage() {
   const handleDemoLogin = (account: DemoAccount) => {
     login(account.user);
     const r = account.user.role;
-    const target = r === "admin" ? "/admin" : r === "companyAdmin" ? "/admin/review" : redirectTo;
+    const target = r === "admin" ? "/admin" : r === "companyAdmin" ? "/admin" : redirectTo;
     navigate(target);
   };
 

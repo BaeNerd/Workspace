@@ -1,14 +1,16 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
 
+// companyAdmin(관계사 관리자) 접근 허용 여부를 각 항목에 표시
 const ADMIN_NAV = [
-  { label: "대시보드", path: "/admin" },
-  { label: "등록 신청 검토", path: "/admin/review" },
-  { label: "프로젝트 관리", path: "/admin/projects" },
-  { label: "분류체계 관리", path: "/admin/taxonomy" },
-  { label: "부서/조직 관리", path: "/admin/org" },
-  { label: "사용자 관리", path: "/admin/users" },
-  { label: "통계", path: "/admin/statistics" },
-  { label: "자동화·AI 도구 관리", path: "/admin/platforms" },
+  { label: "대시보드", path: "/admin", companyAdmin: true },
+  { label: "등록 신청 검토", path: "/admin/review", companyAdmin: true },
+  { label: "프로젝트 관리", path: "/admin/projects", companyAdmin: true },
+  { label: "분류체계 관리", path: "/admin/taxonomy", companyAdmin: false },
+  { label: "부서/조직 관리", path: "/admin/org", companyAdmin: false },
+  { label: "사용자 관리", path: "/admin/users", companyAdmin: false },
+  { label: "통계", path: "/admin/statistics", companyAdmin: true },
+  { label: "자동화·AI 도구 관리", path: "/admin/platforms", companyAdmin: false },
 ];
 
 type Props = { pendingCount?: number };
@@ -16,6 +18,9 @@ type Props = { pendingCount?: number };
 export default function AdminSidebar({ pendingCount = 0 }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isCompanyAdmin } = useAuth();
+
+  const navItems = isCompanyAdmin ? ADMIN_NAV.filter(n => n.companyAdmin) : ADMIN_NAV;
 
   return (
     <aside style={{
@@ -25,9 +30,9 @@ export default function AdminSidebar({ pendingCount = 0 }: Props) {
       height: "calc(100vh - 56px)", overflowY: "auto",
     }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, padding: "0 8px" }}>
-        관리자 메뉴
+        {isCompanyAdmin ? "관계사 관리자 메뉴" : "관리자 메뉴"}
       </div>
-      {ADMIN_NAV.map(n => {
+      {navItems.map(n => {
         const isActive = pathname === n.path;
         return (
           <div

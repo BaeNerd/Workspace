@@ -2,8 +2,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, STATUS_ORDER, BUSINESS_DOMAINS } from "../../types/platformTypes";
-import type { PlatformId, ApprovalStage, ApprovalRecord, BusinessDomain } from "../../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, BUSINESS_DOMAINS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../../types/platformTypes";
+import type { PlatformId, ApprovalStage, ApprovalSlot, ApprovalSlots, ApprovalSlotKey, ApprovalRecord, BusinessDomain } from "../../types/platformTypes";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 
@@ -85,12 +85,97 @@ const annualHours = (value: number | "", period: SavedPeriod): number =>
 
 // 승인 단계 배지 색상
 const APPROVAL_STAGE_STYLE: Record<ApprovalStage, { bg: string; fg: string; label: string }> = {
-  "1차대기": { bg: "#FBF3E4", fg: "#B4802E", label: "1차 대기" },
-  "2차대기": { bg: "#E8F0FE", fg: "#2563C9", label: "2차 대기" },
-  "게시됨":  { bg: "#E6F5EC", fg: "#1F7A46", label: "게시됨" },
-  "반려":    { bg: "#EDF0F4", fg: "#4B5768", label: "반려" },
-  "중지":    { bg: "#EDF0F4", fg: "#4B5768", label: "중지" },
+  "승인 대기": { bg: "#FBF3E4", fg: "#B4802E", label: "승인 대기" },
+  "부분 승인": { bg: "#E8F0FE", fg: "#2563C9", label: "부분 승인" },
+  "게시됨":   { bg: "#E6F5EC", fg: "#1F7A46", label: "게시됨" },
+  "반려":     { bg: "#EDF0F4", fg: "#4B5768", label: "반려" },
+  "중지":     { bg: "#EDF0F4", fg: "#4B5768", label: "중지" },
 };
+
+// 승인 슬롯 시각 스타일 — 대기 회색 / 승인 파스텔 그린
+const SLOT_PENDING = { bg: "#EDF0F4", fg: "#94A3B8" };
+const SLOT_APPROVED = { bg: "#E6F5EC", fg: "#1F7A46" };
+const SLOT_SHORT: Record<ApprovalSlotKey, string> = { company: "관계사", global: "전사" };
+
+// 목록 행 2분할 진행 필 (좌 관계사 / 우 전사)
+function SlotPill({ slots }: { slots: ApprovalSlots }) {
+  const cell = (key: ApprovalSlotKey) => {
+    const on = slots[key].approved;
+    const s = on ? SLOT_APPROVED : SLOT_PENDING;
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: s.bg, color: s.fg, fontSize: 9, fontWeight: 700, padding: "0 8px", height: 18, lineHeight: "18px" }}>
+        {on && <span aria-hidden style={{ fontSize: 9 }}>✓</span>}{SLOT_SHORT[key]}
+      </span>
+    );
+  };
+  return (
+    <span style={{ display: "inline-flex", borderRadius: 20, overflow: "hidden", border: "1px solid #E2E8F0" }}>
+      {cell("company")}
+      <span style={{ width: 1, background: "#E2E8F0" }} />
+      {cell("global")}
+    </span>
+  );
+}
+
+// 상세 패널 슬롯 카드 — 명칭 / 상태 / 처리자·일시 / 승인 버튼
+function SlotCard({ slotKey, slot, canApprove, disabledReason, onApprove }: {
+  slotKey: ApprovalSlotKey; slot: ApprovalSlot; canApprove: boolean; disabledReason: string; onApprove: () => void;
+}) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, background: "#fff", border: `1.5px solid ${slot.approved ? "#BBE5CB" : "#E2E8F0"}`, borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>{APPROVAL_SLOT_LABEL[slotKey]}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: slot.approved ? SLOT_APPROVED.bg : SLOT_PENDING.bg, color: slot.approved ? SLOT_APPROVED.fg : SLOT_PENDING.fg }}>
+          {slot.approved ? "승인 완료" : "대기"}
+        </span>
+      </div>
+      {slot.approved ? (
+        <div style={{ fontSize: 11, color: "#64748B" }}>{slot.by ?? "관리자"} · {slot.at ?? ""}</div>
+      ) : canApprove ? (
+        <button onClick={onApprove} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 7, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          이 슬롯 승인
+        </button>
+      ) : (
+        <div style={{ fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 7, padding: "8px 10px", lineHeight: 1.5 }}>{disabledReason}</div>
+      )}
+    </div>
+  );
+}
+
+// 상단 현황 요약 스트립 (필터 겸용 칩)
+type ReviewFilterKey = "전체" | "승인 대기" | "부분 승인" | "처리완료";
+function SummaryStrip({ counts, partialCompanyOnly, partialGlobalOnly, active, onSelect }: {
+  counts: Record<ReviewFilterKey, number>; partialCompanyOnly: number; partialGlobalOnly: number;
+  active: ReviewFilterKey; onSelect: (k: ReviewFilterKey) => void;
+}) {
+  const chips: { key: ReviewFilterKey; label: string }[] = [
+    { key: "전체", label: "전체" },
+    { key: "승인 대기", label: "승인 대기" },
+    { key: "부분 승인", label: "부분 승인" },
+    { key: "처리완료", label: "처리완료" },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+      {chips.map(c => {
+        const on = active === c.key;
+        return (
+          <button key={c.key} onClick={() => onSelect(c.key)} style={{
+            textAlign: "left", padding: "7px 10px", borderRadius: 8, cursor: "pointer",
+            border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff",
+          }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: on ? "#2563EB" : "#0F172A" }}>{counts[c.key]}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: on ? "#2563EB" : "#64748B" }}>{c.label}</span>
+            </div>
+            {c.key === "부분 승인" && counts["부분 승인"] > 0 && (
+              <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 1 }}>관계사만 {partialCompanyOnly} · 전사만 {partialGlobalOnly}</div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 const FULL_COMPANIES = [
   { code: "KMH", name: "콜마홀딩스", visible: true },
@@ -156,7 +241,9 @@ type ReviewPlatformItem = {
   company: string[];
   platformScope: "unset" | "company-wide" | "specific";
   contacts: Contact[]; links: LinkItem[];
-  approvalStage: ApprovalStage;
+  approvalSlots: ApprovalSlots;
+  rejected: boolean;
+  suspended: boolean;
   approvalHistory: ApprovalRecord[];
   rejectionReason?: string;
 };
@@ -332,6 +419,15 @@ function CompanyMultiSelect({ selected, onChange, disabled }: {
   );
 }
 
+// 레거시 stage → 슬롯 초기값(항목별 독립 객체) 구성
+const legacy = (stage: string): { approvalSlots: ApprovalSlots; rejected: boolean; suspended: boolean } => {
+  const m = LEGACY_APPROVAL_MAP[stage];
+  return {
+    approvalSlots: { company: { ...m.slots.company }, global: { ...m.slots.global } },
+    rejected: m.rejected, suspended: m.suspended,
+  };
+};
+
 // TODO: 실제 연동 시 GET /api/v1/admin/review-queue 응답으로 교체
 const INITIAL_ITEMS: ReviewItem[] = [
   {
@@ -354,7 +450,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     ]},
     company: [], platformScope: "unset",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
-    links: [], approvalStage: "1차대기", approvalHistory: [],
+    links: [], ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "pa",
@@ -369,7 +465,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     specificUrl: "", itemTags: "결재, 구매자동화",
     company: ["KKM"], platformScope: "specific",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
-    links: [], approvalStage: "1차대기", approvalHistory: [],
+    links: [], ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "assistant",
@@ -388,8 +484,8 @@ const INITIAL_ITEMS: ReviewItem[] = [
     itemTags: "계약서, 법무, 해외법인",
     company: ["KUS", "KMB"], platformScope: "specific",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
-    links: [], approvalStage: "2차대기", approvalHistory: [
-      { stage: "2차대기", at: "2025.06.24", by: "최관리 (관계사관리자)" },
+    links: [], ...legacy("2차대기"), approvalHistory: [
+      { slot: "company", action: "승인", at: "2025.06.24", by: "최관리 (관계사관리자)" },
     ],
   },
   {
@@ -408,7 +504,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     itemTags: "범용, 업무보조",
     company: [], platformScope: "company-wide",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
-    links: [], approvalStage: "1차대기", approvalHistory: [],
+    links: [], ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "ml",
@@ -424,17 +520,16 @@ const INITIAL_ITEMS: ReviewItem[] = [
     specificUrl: "", itemTags: "품질관리, 이미지분류",
     company: ["KKM"], platformScope: "specific",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
-    links: [], approvalStage: "1차대기", approvalHistory: [],
+    links: [], ...legacy("1차대기"), approvalHistory: [],
   },
 ];
 
 export default function AdminReview() {
-  const { isAdmin, isCompanyAdmin, user } = useAuth();
+  const { isAdmin, isCompanyAdmin, user, managedCompanies } = useAuth();
   const [items, setItems] = useState<ReviewItem[]>(INITIAL_ITEMS);
   const [selected, setSelected] = useState<string>(INITIAL_ITEMS[0]?.id ?? "");
-  const [done, setDone] = useState<string[]>([]);
   const [edits, setEdits] = useState<Record<string, Partial<ReviewItem>>>({});
-  const [filter, setFilter] = useState<"전체" | "대기" | "처리완료">("대기");
+  const [filter, setFilter] = useState<ReviewFilterKey>("전체");
   const [sourceFilter, setSourceFilter] = useState<"전체" | PlatformId>("전체");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -442,8 +537,6 @@ export default function AdminReview() {
   const activeItem = items.find(i => i.id === selected) ?? null;
   const edit = edits[selected] ?? {};
   const merged = activeItem ? ({ ...activeItem, ...edit } as ReviewItem) : null;
-
-  const isDisabled = done.includes(selected);
 
   const setEdit = <K extends keyof ReviewItem>(k: K, v: ReviewItem[K]) =>
     setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
@@ -481,74 +574,96 @@ export default function AdminReview() {
   const addUseCase = (v: string) => { if (!currentUseCases.includes(v)) (setEdit as any)("useCases", [...currentUseCases, v]); };
   const removeUseCase = (v: string) => (setEdit as any)("useCases", currentUseCases.filter((u: string) => u !== v));
 
-  // 역할별 승인 처리
-  const handleApprove = () => {
+  // ===== 병렬 슬롯 승인 헬퍼 =====
+  const stageOf = (i: ReviewItem) => deriveStage(i.approvalSlots, i.rejected, i.suspended);
+  const isTerminalStage = (s: ApprovalStage) => s === "게시됨" || s === "반려" || s === "중지";
+  // 담당 범위 일치 (전사 공용(company 비어있음)은 관계사 관리자 권한 대상이 아님)
+  const companyScopeMatch = (i: ReviewItem) => i.company.length > 0 && i.company.some(c => managedCompanies.includes(c));
+  const canActCompanySlot = (i: ReviewItem) => isAdmin || (isCompanyAdmin && companyScopeMatch(i));
+  const canActGlobalSlot = (_i: ReviewItem) => isAdmin;
+
+  // 현재 사용자에게 보이는 항목 집합 (companyAdmin은 담당 범위 + 전사 공용)
+  const visibleToUser = (i: ReviewItem): boolean => {
+    if (isAdmin) return true;
+    if (isCompanyAdmin) return i.company.length === 0 || companyScopeMatch(i);
+    return false;
+  };
+  const baseItems = items.filter(visibleToUser);
+
+  const nextSelectableAfter = (excludeId: string) => {
+    const remaining = baseItems.filter(i => i.id !== excludeId && !isTerminalStage(stageOf(i)));
+    if (remaining.length > 0) setSelected(remaining[0].id);
+  };
+
+  // 슬롯 단위 승인 (순서 무관). 관계사 미지정(unset) 항목은 승인 불가.
+  const approveSlot = (slotKey: ApprovalSlotKey) => {
     if (!activeItem || !merged) return;
     const scope = (edit as any).platformScope ?? merged.platformScope;
     if (scope === "unset") return;
-
-    const newStage: ApprovalStage = isAdmin ? "게시됨" : "2차대기";
-    const record: ApprovalRecord = {
-      stage: newStage,
-      at: "2026.07.10",
-      by: user?.name ?? "관리자",
-    };
+    const at = "2026.07.10";
+    const by = user?.name ?? "관리자";
+    const willComplete = merged.approvalSlots[slotKey === "company" ? "global" : "company"].approved;
 
     setItems(p => p.map(i => {
       if (i.id !== selected) return i;
       const { timeSavedValue, timeSavedPeriod, ...cleanEdit } = edit as any;
       void timeSavedValue; void timeSavedPeriod;
+      const nextSlots: ApprovalSlots = { ...i.approvalSlots, [slotKey]: { approved: true, by, at } };
       return {
         ...i, ...cleanEdit,
-        approvalStage: newStage,
-        approvalHistory: [...(i.approvalHistory ?? []), record],
+        approvalSlots: nextSlots,
+        approvalHistory: [...(i.approvalHistory ?? []), { slot: slotKey, action: "승인", at, by } as ApprovalRecord],
       } as ReviewItem;
     }));
-    setDone(p => [...p, selected]);
-    const remaining = items.filter(i => !done.includes(i.id) && i.id !== selected);
-    if (remaining.length > 0) setSelected(remaining[0].id);
+    // 두 번째 슬롯까지 승인되어 게시되면 다음 미처리 항목으로 이동
+    if (willComplete) nextSelectableAfter(selected);
   };
 
   const handleReject = () => {
     if (!activeItem) return;
     if (!rejectReason.trim()) return;
     const record: ApprovalRecord = {
-      stage: "반려",
+      action: "반려",
       at: "2026.07.10",
       by: user?.name ?? "관리자",
       note: rejectReason,
     };
     setItems(p => p.map(i => i.id === selected ? ({
       ...i,
-      approvalStage: "반려" as ApprovalStage,
+      rejected: true,
       approvalHistory: [...(i.approvalHistory ?? []), record],
       rejectionReason: rejectReason,
     } as ReviewItem) : i));
-    setDone(p => [...p, selected]);
     setRejectOpen(false);
     setRejectReason("");
-    const remaining = items.filter(i => !done.includes(i.id) && i.id !== selected);
-    if (remaining.length > 0) setSelected(remaining[0].id);
+    nextSelectableAfter(selected);
   };
 
-  // 역할별 보이는 항목 필터링
-  const isRelevantToRole = (item: ReviewItem): boolean => {
-    if (isAdmin) return item.approvalStage === "2차대기";
-    if (isCompanyAdmin) {
-      const managed = user?.managedCompany;
-      const companyMatch = !managed || item.company.length === 0 || item.company.includes(managed);
-      return item.approvalStage === "1차대기" && companyMatch;
-    }
+  // 요약 스트립 카운트 (사용자 가시 집합 기준)
+  const partialItems = baseItems.filter(i => stageOf(i) === "부분 승인");
+  const partialCompanyOnly = partialItems.filter(i => i.approvalSlots.company.approved && !i.approvalSlots.global.approved).length;
+  const partialGlobalOnly = partialItems.filter(i => i.approvalSlots.global.approved && !i.approvalSlots.company.approved).length;
+  const summaryCounts: Record<ReviewFilterKey, number> = {
+    "전체": baseItems.length,
+    "승인 대기": baseItems.filter(i => stageOf(i) === "승인 대기").length,
+    "부분 승인": partialItems.length,
+    "처리완료": baseItems.filter(i => isTerminalStage(stageOf(i))).length,
+  };
+
+  // 사이드바 pendingCount — admin: 미종결 항목 전체 / companyAdmin: 담당 범위 내 company 슬롯 미승인
+  const userPendingCount = items.filter(i => {
+    if (isTerminalStage(stageOf(i))) return false;
+    if (isAdmin) return true;
+    if (isCompanyAdmin) return companyScopeMatch(i) && !i.approvalSlots.company.approved;
     return false;
-  };
+  }).length;
 
-  const pendingItems = items.filter(i => !done.includes(i.id) && isRelevantToRole(i));
-
-  const filteredList = items
+  const filteredList = baseItems
     .filter(i => {
-      if (filter === "대기") return !done.includes(i.id) && isRelevantToRole(i);
-      if (filter === "처리완료") return done.includes(i.id);
-      return true;
+      const st = stageOf(i);
+      if (filter === "전체") return true;
+      if (filter === "처리완료") return isTerminalStage(st);
+      return st === filter; // "승인 대기" | "부분 승인"
     })
     .filter(i => sourceFilter === "전체" ? true : i.kind === sourceFilter);
 
@@ -557,24 +672,21 @@ export default function AdminReview() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
+  const stage: ApprovalStage | null = merged ? stageOf(merged) : null;
+  const isTerminal = stage ? isTerminalStage(stage) : false;
   const unsetScope = !!(merged && (((edit as any).platformScope ?? merged.platformScope) === "unset"));
-  const approveBlocked = unsetScope;
 
-  // CompanyAdmin은 1차대기 항목만, Admin은 2차대기 항목만 처리 가능
-  const canActOnCurrent = !isDisabled && merged && (
-    (isAdmin && merged.approvalStage === "2차대기") ||
-    (isCompanyAdmin && merged.approvalStage === "1차대기")
-  );
+  // 편집·반려 가능: 종결 전이고 사용자가 어느 한 슬롯이라도 권한 보유
+  const hasAnySlotAuthority = !!merged && (canActCompanySlot(merged) || canActGlobalSlot(merged));
+  const canActOnCurrent = !!merged && !isTerminal && hasAnySlotAuthority;
 
-  const approveLabel = isAdmin ? "최종 승인 (게시)" : "1차 승인 → 관리자 검토 요청";
-
-  const stageStyle = merged ? APPROVAL_STAGE_STYLE[merged.approvalStage] : null;
+  const stageStyle = stage ? APPROVAL_STAGE_STYLE[stage] : null;
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
-        <AdminSidebar pendingCount={pendingItems.length} />
+        <AdminSidebar pendingCount={userPendingCount} />
 
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
@@ -585,26 +697,23 @@ export default function AdminReview() {
                 등록 신청 목록
               </div>
               {isCompanyAdmin && (
-                <div style={{ fontSize: 11, color: "#B4802E", background: "#FBF3E4", padding: "3px 8px", borderRadius: 6, marginBottom: 8, fontWeight: 600 }}>
-                  1차 검토 담당 · {user?.managedCompany ?? "–"}
+                <div style={{ fontSize: 11, color: "#B4602E", background: "#FBEEE4", padding: "3px 8px", borderRadius: 6, marginBottom: 8, fontWeight: 600 }}>
+                  관계사 관리자 승인 담당 · {managedCompanies.length > 0 ? managedCompanies.join("·") : "–"}
                 </div>
               )}
               {isAdmin && (
                 <div style={{ fontSize: 11, color: "#2563C9", background: "#E8F0FE", padding: "3px 8px", borderRadius: 6, marginBottom: 8, fontWeight: 600 }}>
-                  최종 승인 담당 (2차)
+                  전사 관리자 승인 담당
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-                {(["전체", "대기", "처리완료"] as const).map(f => (
-                  <button key={f} onClick={() => setFilter(f)} style={{
-                    flex: 1, padding: "5px 0", borderRadius: 6, border: "none",
-                    background: filter === f ? "#0F172A" : "#F1F5F9",
-                    color: filter === f ? "#fff" : "#64748B",
-                    fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  }}>{f}</button>
-                ))}
-              </div>
+              <SummaryStrip
+                counts={summaryCounts}
+                partialCompanyOnly={partialCompanyOnly}
+                partialGlobalOnly={partialGlobalOnly}
+                active={filter}
+                onSelect={setFilter}
+              />
 
               <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value as "전체" | PlatformId)} style={{ ...selectStyle, fontSize: 11, padding: "6px 28px 6px 10px" }}>
                 {SOURCE_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
@@ -613,11 +722,12 @@ export default function AdminReview() {
 
             <div style={{ flex: 1, overflowY: "auto" }}>
               {filteredList.map(item => {
-                const isDone = done.includes(item.id);
+                const st = stageOf(item);
+                const isDone = isTerminalStage(st);
                 const isSelected = selected === item.id;
                 const sourceStyle = SOURCE_STYLE[item.kind];
                 const needsAttention = item.platformScope === "unset" && !isDone;
-                const stage = APPROVAL_STAGE_STYLE[item.approvalStage];
+                const stBadge = APPROVAL_STAGE_STYLE[st];
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
                     padding: "12px 14px", cursor: "pointer",
@@ -627,11 +737,14 @@ export default function AdminReview() {
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 9, fontWeight: 700, background: sourceStyle.bg, color: sourceStyle.color, padding: "1px 7px", borderRadius: 20 }}>{sourceStyle.label}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, background: stage.bg, color: stage.fg, padding: "1px 7px", borderRadius: 20 }}>{stage.label}</span>
-                      {!isDone && needsAttention && <span style={{ fontSize: 9, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>}
+                      <span style={{ fontSize: 9, fontWeight: 700, background: stBadge.bg, color: stBadge.fg, padding: "1px 7px", borderRadius: 20 }}>{stBadge.label}</span>
+                      {needsAttention && <span style={{ fontSize: 9, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{item.dept} · {item.submittedBy}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.dept} · {item.submittedBy}</span>
+                      <SlotPill slots={item.approvalSlots} />
+                    </div>
                   </div>
                 );
               })}
@@ -660,10 +773,12 @@ export default function AdminReview() {
                   <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 8 }}>승인 이력</div>
                     {merged.approvalHistory.map((h, i) => {
-                      const hs = APPROVAL_STAGE_STYLE[h.stage];
+                      const isReject = h.action === "반려";
+                      const hs = isReject ? { bg: "#FEE2E2", fg: "#991B1B" } : { bg: SLOT_APPROVED.bg, fg: SLOT_APPROVED.fg };
+                      const label = `${h.slot ? APPROVAL_SLOT_LABEL[h.slot] + " " : ""}${h.action}`;
                       return (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: i < merged.approvalHistory.length - 1 ? 6 : 0 }}>
-                          <span style={{ background: hs.bg, color: hs.fg, fontWeight: 700, padding: "1px 8px", borderRadius: 12, fontSize: 11 }}>{hs.label}</span>
+                          <span style={{ background: hs.bg, color: hs.fg, fontWeight: 700, padding: "1px 8px", borderRadius: 12, fontSize: 11 }}>{label}</span>
                           <span style={{ color: "#475569" }}>{h.by}</span>
                           <span style={{ color: "#CBD5E1" }}>·</span>
                           <span style={{ color: "#94A3B8" }}>{h.at}</span>
@@ -674,16 +789,16 @@ export default function AdminReview() {
                   </div>
                 )}
 
-                {(merged.approvalStage === "게시됨" || merged.approvalStage === "반려") && (
-                  <div style={{ background: merged.approvalStage === "게시됨" ? "#D1FAE5" : "#FEE2E2", border: `1px solid ${merged.approvalStage === "게시됨" ? "#6EE7B7" : "#FECACA"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, fontWeight: 600, color: merged.approvalStage === "게시됨" ? "#065F46" : "#991B1B" }}>
-                    이 항목은 {APPROVAL_STAGE_STYLE[merged.approvalStage].label} 처리되었습니다.
-                    {merged.approvalStage === "반려" && merged.rejectionReason && ` (사유: ${merged.rejectionReason})`}
+                {isTerminal && stage && (
+                  <div style={{ background: stage === "게시됨" ? "#D1FAE5" : "#FEE2E2", border: `1px solid ${stage === "게시됨" ? "#6EE7B7" : "#FECACA"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, fontWeight: 600, color: stage === "게시됨" ? "#065F46" : "#991B1B" }}>
+                    이 항목은 {APPROVAL_STAGE_STYLE[stage].label} 처리되었습니다.
+                    {stage === "반려" && merged.rejectionReason && ` (사유: ${merged.rejectionReason})`}
                   </div>
                 )}
 
                 {canActOnCurrent && (
                   <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "9px 14px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
-                    내용을 직접 수정한 후 승인할 수 있습니다. 수정된 내용이 최종 게시됩니다.
+                    내용을 직접 수정한 후 승인할 수 있습니다. 두 승인이 모두 완료되면 게시됩니다.
                   </div>
                 )}
 
@@ -990,42 +1105,55 @@ export default function AdminReview() {
                   )}
                 </SectionBlock>
 
-                {/* ===== 승인 / 반려 액션 ===== */}
-                {canActOnCurrent && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {approveBlocked && (
+                {/* ===== 승인 슬롯 (순서 없는 병렬 2슬롯) / 반려 ===== */}
+                {!isTerminal && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {unsetScope && (
                       <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 14px", fontSize: 12, color: "#991B1B" }}>
                         관계사 범위가 선택되지 않아 승인할 수 없습니다. "소속 / 대상 관계사"에서 해당 관계사를 선택해주세요.
                       </div>
                     )}
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button
-                        onClick={handleApprove}
-                        disabled={approveBlocked}
-                        style={{ flex: 1, background: approveBlocked ? "#CBD5E1" : (isAdmin ? "#059669" : "#2563EB"), color: "#fff", border: "none", borderRadius: 8, padding: "11px 0", fontSize: 13, fontWeight: 700, cursor: approveBlocked ? "not-allowed" : "pointer" }}
-                      >
-                        {approveLabel}
-                      </button>
-                      <button onClick={() => setRejectOpen(v => !v)} style={{ flex: 1, background: "#fff", border: "1.5px solid #FECACA", color: "#EF4444", borderRadius: 8, padding: "11px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                        반려
-                      </button>
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <SlotCard
+                        slotKey="company"
+                        slot={merged.approvalSlots.company}
+                        canApprove={canActCompanySlot(merged) && !unsetScope}
+                        disabledReason={merged.company.length === 0 ? "전사 공용 항목은 전사 관리자만 승인할 수 있습니다." : "담당 관계사 범위가 아닙니다."}
+                        onApprove={() => approveSlot("company")}
+                      />
+                      <SlotCard
+                        slotKey="global"
+                        slot={merged.approvalSlots.global}
+                        canApprove={canActGlobalSlot(merged) && !unsetScope}
+                        disabledReason="전사 관리자만 승인할 수 있습니다."
+                        onApprove={() => approveSlot("global")}
+                      />
                     </div>
-                    {rejectOpen && (
-                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수)</label>
-                        <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다." style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
-                        <button onClick={handleReject} disabled={!rejectReason.trim()} style={{ background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: rejectReason.trim() ? "pointer" : "not-allowed" }}>
-                          반려 확정
+
+                    {hasAnySlotAuthority ? (
+                      !rejectOpen ? (
+                        <button onClick={() => setRejectOpen(true)} style={{ alignSelf: "flex-start", background: "#fff", border: "1.5px solid #FECACA", color: "#EF4444", borderRadius: 8, padding: "9px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                          반려
                         </button>
+                      ) : (
+                        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수) — 어느 슬롯이든 반려 시 항목이 종결됩니다.</label>
+                          <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다." style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button onClick={handleReject} disabled={!rejectReason.trim()} style={{ background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: rejectReason.trim() ? "pointer" : "not-allowed" }}>
+                              반려 확정
+                            </button>
+                            <button onClick={() => { setRejectOpen(false); setRejectReason(""); }} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    ) : (
+                      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#64748B" }}>
+                        이 항목에 대한 승인 권한이 없습니다.
                       </div>
                     )}
-                  </div>
-                )}
-
-                {!canActOnCurrent && !isDisabled && merged && (
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#64748B" }}>
-                    {isCompanyAdmin && merged.approvalStage !== "1차대기" && "이 항목은 현재 단계에서 1차 검토 권한이 없습니다."}
-                    {isAdmin && merged.approvalStage !== "2차대기" && "이 항목은 아직 1차 승인이 완료되지 않았습니다."}
                   </div>
                 )}
               </div>

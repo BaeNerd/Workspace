@@ -1,16 +1,11 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { TEAMS_CHANNEL_URL as DEFAULT_TEAMS_CHANNEL_URL } from "../../config/operations";
-
-// 관계사 관리자(CompanyAdmin) 지정 목업
-type CompanyAdminAssignment = { companyCode: string; adminEmail: string; adminName: string };
-const INITIAL_ASSIGNMENTS: CompanyAdminAssignment[] = [
-  { companyCode: "KKM", adminEmail: "admin.kkm@kolmar.co.kr", adminName: "김관리" },
-  { companyCode: "KBH", adminEmail: "", adminName: "" },
-  { companyCode: "HKN", adminEmail: "", adminName: "" },
-  { companyCode: "YWK", adminEmail: "", adminName: "" },
-];
+// 섹션 3은 읽기 전용 현황판 — 지정·해제는 AdminUsers(사용자 관리)에서만 편집한다.
+// 공유 목업 모듈을 관계사 중심으로 투영한다.
+import { INITIAL_COMPANY_ADMINS } from "../../mocks/companyAdminMockData";
 
 type Company = { code: string; name: string; visible: boolean };
 
@@ -358,6 +353,7 @@ function CompanyAccordion({
 }
 
 export default function AdminOrg() {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
   const [depts, setDepts] = useState<Dept[]>(INITIAL_DEPTS);
   const [search, setSearch] = useState("");
@@ -369,9 +365,6 @@ export default function AdminOrg() {
   const [newDept, setNewDept] = useState<{ name: string; parent: string; company: string }>({ name: "", parent: NO_PARENT, company: "KKM" });
   const [savedMsg, setSavedMsg] = useState("");
   const [expandedCompanies, setExpandedCompanies] = useState<string[]>([]);
-
-  const [assignments, setAssignments] = useState<CompanyAdminAssignment[]>(INITIAL_ASSIGNMENTS);
-  const [assignEdit, setAssignEdit] = useState<Record<string, { email: string; name: string }>>({});
 
   const [apiTab, setApiTab] = useState<"status" | "config" | "sync">("status");
   const [apiConnected, setApiConnected] = useState(false);
@@ -450,6 +443,14 @@ export default function AdminOrg() {
     setNewDept({ name: "", parent: NO_PARENT, company: "KKM" });
     showSaved("부서가 추가되었습니다.");
   };
+
+  // ===== 섹션 3. 관계사 관리자(CompanyAdmin) 현황 — 읽기 전용 투영 =====
+  // 편집(지정·해제)은 AdminUsers(사용자 관리)에서만 수행. 여기서는 공유 목업을 관계사 중심으로 투영.
+  const companyAdminsFor = (code: string) =>
+    INITIAL_COMPANY_ADMINS.filter(a => a.managedCompanies.includes(code));
+  // 복수 담당자 배지용 — 해당 관리자가 담당하는 관계사 수
+  const adminManagedCount = (email: string) =>
+    INITIAL_COMPANY_ADMINS.find(a => a.email.toLowerCase() === email.toLowerCase())?.managedCompanies.length ?? 0;
 
   // Teams 동기화 미리보기 — 기존 부서와 company+parent+name 키로 비교해 추가/병합 구분
   const syncPreview = useMemo(() => {
@@ -791,67 +792,52 @@ export default function AdminOrg() {
           <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, marginTop: 28, padding: "18px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#fff", background: "#0F172A", width: 20, height: 20, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>3</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>관계사 관리자(CompanyAdmin) 지정</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>관계사 관리자(CompanyAdmin) 현황</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "2px 8px", borderRadius: 20 }}>읽기 전용</span>
             </div>
-            <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px 28px", lineHeight: 1.6 }}>
-              각 관계사의 1차 검토를 담당할 CompanyAdmin을 지정합니다. 지정된 계정은 해당 관계사의 등록 신청 항목을 1차 승인·반려할 수 있으며, 관계사 범위의 AX 항목 목록을 관리할 수 있습니다.
+            <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 12px 28px", lineHeight: 1.6 }}>
+              각 관계사의 등록 신청을 관계사 관리자 승인·반려할 수 있는 CompanyAdmin 현황입니다. 지정된 계정은 관계사 범위의 AX 항목 목록도 관리할 수 있습니다.
             </p>
+            <div style={{ marginLeft: 28, marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px" }}>
+              <span style={{ fontSize: 12, color: "#1E40AF", lineHeight: 1.6, flex: 1, minWidth: 200 }}>
+                지정·해제는 <strong>사용자 관리</strong>에서 관리합니다. (관리자 권한 부여 시 담당 관계사를 함께 지정)
+              </span>
+              <button onClick={() => navigate("/admin/users")} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                사용자 관리로 이동
+              </button>
+            </div>
             <div style={{ marginLeft: 28, display: "flex", flexDirection: "column", gap: 8 }}>
               {companies.filter(c => c.visible).map(co => {
-                const existing = assignments.find(a => a.companyCode === co.code);
-                const draft = assignEdit[co.code];
-                const isEditing = draft !== undefined;
+                const admins = companyAdminsFor(co.code);
                 return (
-                  <div key={co.code} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0" }}>
-                    <div style={{ width: 100, flexShrink: 0 }}>
+                  <div key={co.code} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0" }}>
+                    <div style={{ width: 100, flexShrink: 0, paddingTop: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{co.name}</div>
                       <div style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{co.code}</div>
                     </div>
-                    {isEditing ? (
-                      <>
-                        <input
-                          value={draft.name}
-                          onChange={e => setAssignEdit(p => ({ ...p, [co.code]: { ...p[co.code], name: e.target.value } }))}
-                          placeholder="이름"
-                          style={{ ...inputStyle, width: 100, padding: "6px 10px", fontSize: 12 }}
-                        />
-                        <input
-                          value={draft.email}
-                          onChange={e => setAssignEdit(p => ({ ...p, [co.code]: { ...p[co.code], email: e.target.value } }))}
-                          placeholder="이메일"
-                          style={{ ...inputStyle, flex: 1, padding: "6px 10px", fontSize: 12 }}
-                        />
-                        <button onClick={() => {
-                          setAssignments(p => {
-                            const idx = p.findIndex(a => a.companyCode === co.code);
-                            const updated = { companyCode: co.code, adminEmail: draft.email, adminName: draft.name };
-                            return idx >= 0 ? p.map((a, i) => i === idx ? updated : a) : [...p, updated];
-                          });
-                          setAssignEdit(p => { const n = { ...p }; delete n[co.code]; return n; });
-                          showSaved(`${co.name} CompanyAdmin이 지정되었습니다.`);
-                        }} style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>저장</button>
-                        <button onClick={() => setAssignEdit(p => { const n = { ...p }; delete n[co.code]; return n; })} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer", flexShrink: 0 }}>취소</button>
-                      </>
-                    ) : (
-                      <>
-                        {existing?.adminName ? (
-                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
-                              {existing.adminName[0]}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{existing.adminName}</div>
-                              <div style={{ fontSize: 11, color: "#64748B" }}>{existing.adminEmail}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ flex: 1, fontSize: 12, color: "#94A3B8" }}>지정된 CompanyAdmin 없음</div>
-                        )}
-                        <button onClick={() => setAssignEdit(p => ({ ...p, [co.code]: { email: existing?.adminEmail ?? "", name: existing?.adminName ?? "" } }))} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", flexShrink: 0 }}>
-                          {existing?.adminName ? "변경" : "지정"}
-                        </button>
-                      </>
-                    )}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {admins.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {admins.map(ad => {
+                            const multi = adminManagedCount(ad.email);
+                            return (
+                              <span key={ad.email} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 20, padding: "4px 10px" }}>
+                                <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{ad.name}</span>
+                                  <span style={{ fontSize: 10, color: "#64748B" }}>{ad.email}</span>
+                                </span>
+                                {multi >= 2 && (
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: "#B4602E", background: "#FBEEE4", padding: "1px 7px", borderRadius: 20, flexShrink: 0 }}>담당 {multi}곳</span>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: "#94A3B8", padding: "4px 0" }}>미지정</div>
+                      )}
+                    </div>
                   </div>
                 );
               })}

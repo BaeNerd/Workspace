@@ -11,8 +11,8 @@ export type CurrentUser = {
   role: Role;
   company: string;         // 소속 관계사 코드 (예: "KKM" = 한국콜마)
   isGroupViewer: boolean;  // 그룹 전체보기 권한
-  department?: string;     // 업무 분야 카테고리 — 히어로 카드 매칭용
-  managedCompany?: string; // CompanyAdmin 전용: 담당 관계사 코드
+  department?: string;         // 업무 분야 카테고리 — 히어로 카드 매칭용
+  managedCompanies?: string[]; // CompanyAdmin 전용: 담당 관계사 코드 목록 (복수 담당 가능)
 } | null;
 
 type AuthContextType = {
@@ -23,6 +23,7 @@ type AuthContextType = {
   isAdmin: boolean;
   isCompanyAdmin: boolean;
   isGroupViewer: boolean;
+  managedCompanies: string[];
 };
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       isCompanyAdmin,
       isGroupViewer: user?.isGroupViewer ?? false,
+      managedCompanies: user?.managedCompanies ?? [],
     }}>
       {children}
     </AuthContext.Provider>

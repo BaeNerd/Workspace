@@ -1,6 +1,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import { INITIAL_COMPANY_ADMINS } from "../../mocks/companyAdminMockData";
+import type { CompanyAdminUser } from "../../mocks/companyAdminMockData";
 
 type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
 type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
@@ -65,13 +67,99 @@ const inputStyle: React.CSSProperties = {
   background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 7, outline: "none", fontFamily: "inherit",
 };
 
+// 담당 관계사 선택 대상 (노출 관계사). TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 로 교체
+const SELECTABLE_COMPANIES: { code: string; name: string }[] = [
+  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" }, { code: "KBH", name: "콜마비앤에이치" },
+  { code: "HKN", name: "에이치케이이노엔" }, { code: "YWK", name: "연우" }, { code: "HC", name: "콜마생활건강" },
+  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" }, { code: "KMW", name: "무석콜마" },
+  { code: "KMB", name: "북경콜마" }, { code: "KUS", name: "미국콜마" }, { code: "KBT", name: "콜마바이오텍" },
+];
+const companyName = (code: string) => SELECTABLE_COMPANIES.find(c => c.code === code)?.name ?? code;
+
+const Chevron = ({ open }: { open: boolean }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+// 부여 플로우용 담당 관계사 멀티셀렉트 (닫힌 트리거 = inputStyle + cursor: pointer)
+function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChange: (codes: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const filtered = SELECTABLE_COMPANIES.filter(c => q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase()));
+  const toggle = (code: string) => onChange(selected.includes(code) ? selected.filter(x => x !== code) : [...selected, code]);
+  const label = selected.length === 0 ? "담당 관계사 선택"
+    : selected.length <= 2 ? selected.map(companyName).join(", ")
+    : `${selected.slice(0, 2).map(companyName).join(", ")} 외 ${selected.length - 2}곳`;
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(v => !v)} style={{ ...inputStyle, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", color: selected.length ? "#0F172A" : "#94A3B8", fontWeight: 600 }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <Chevron open={open} />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 30, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px", maxHeight: 300, display: "flex", flexDirection: "column" }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="관계사명 또는 코드 검색" style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }} />
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {filtered.map(c => (
+              <label key={c.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 6, cursor: "pointer", background: selected.includes(c.code) ? "#EFF6FF" : "transparent" }}>
+                <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggle(c.code)} style={{ cursor: "pointer" }} />
+                <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>{c.code}</span>
+              </label>
+            ))}
+            {filtered.length === 0 && <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>}
+          </div>
+          <button type="button" onClick={() => setOpen(false)} style={{ marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>완료</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 행 편집용 "관계사 추가" 드롭다운 — 미배정 관계사만, 클릭 시 추가 (닫힌 트리거 = inputStyle + cursor)
+function AddCompanyMenu({ assigned, onAdd }: { assigned: string[]; onAdd: (code: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const options = SELECTABLE_COMPANIES.filter(c => !assigned.includes(c.code) && (q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase())));
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <button type="button" onClick={() => setOpen(v => !v)} style={{ ...inputStyle, width: "auto", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#475569", display: "inline-flex", alignItems: "center", gap: 4 }}>
+        + 관계사 추가 <Chevron open={open} />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30, width: 240, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 8px", maxHeight: 280, display: "flex", flexDirection: "column" }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="관계사명 또는 코드 검색" style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }} />
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {options.map(c => (
+              <div key={c.code} onClick={() => { onAdd(c.code); setOpen(false); setQ(""); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 6, cursor: "pointer" }}>
+                <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
+                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>{c.code}</span>
+              </div>
+            ))}
+            {options.length === 0 && <div style={{ padding: "14px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>추가할 관계사가 없습니다.</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("관리자 권한");
   const [admins, setAdmins] = useState<Admin[]>(INITIAL_ADMINS);
   const [groupViewers, setGroupViewers] = useState<GroupViewer[]>(INITIAL_GROUP_VIEWERS);
   const [savedMsg, setSavedMsg] = useState("");
   const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null);
-  const [grantConfirm, setGrantConfirm] = useState<SsoUser | null>(null);
+  // 관계사 관리자 — 공유 목업을 초기값으로 하는 로컬 state
+  // TODO(demo): 화면 내 편집(부여·회수·담당 변경)은 로컬 상태에만 반영됨.
+  //             실제 연동 시 PUT /api/v1/admin/company-admins 및 GET /api/v1/auth/me 반영으로 교체.
+  const [companyAdmins, setCompanyAdmins] = useState<CompanyAdminUser[]>(INITIAL_COMPANY_ADMINS);
+  const [caRevokeConfirm, setCaRevokeConfirm] = useState<string | null>(null);
+  const [grantRole, setGrantRole] = useState<"admin" | "company">("admin");
+  const [grantCompanies, setGrantCompanies] = useState<string[]>([]);
+  const [grantErr, setGrantErr] = useState("");
+  const [chipErr, setChipErr] = useState<Record<string, string>>({});
   const [groupRevokeConfirm, setGroupRevokeConfirm] = useState<number | null>(null);
   const [groupGrantConfirm, setGroupGrantConfirm] = useState<SsoUser | null>(null);
   const [groupGrantReason, setGroupGrantReason] = useState("");
@@ -90,6 +178,7 @@ export default function AdminUsers() {
 
   const showSaved = (msg: string) => { setSavedMsg(msg); setTimeout(() => setSavedMsg(""), 2200); };
   const adminEmails = admins.map(a => a.email);
+  const companyAdminEmails = companyAdmins.map(a => a.email);
   const groupViewerEmails = groupViewers.map(g => g.email);
 
   const MOCK_SSO_USERS: SsoUser[] = [
@@ -122,18 +211,55 @@ export default function AdminUsers() {
     }, 800);
   };
 
-  const handleGrant = (user: SsoUser) => {
+  const resetGrant = () => { setSsoSearch(""); setSsoResult(null); setGrantRole("admin"); setGrantCompanies([]); setGrantErr(""); };
+
+  const handleGrantAdmin = (user: SsoUser) => {
     // TODO: 실제 연동 시 POST /api/v1/admin/users/grant-admin
     setAdmins(p => [...p, { id: Date.now(), name: user.name, email: user.email, dept: user.dept, title: user.title, grantedAt: "2025.06.30", grantedBy: "김관리" }]);
-    setGrantConfirm(null); setSsoSearch(""); setSsoResult(null);
-    showSaved(`${user.name}에게 관리자 권한이 부여되었습니다.`);
+    resetGrant();
+    showSaved(`${user.name}에게 전사 관리자 권한이 부여되었습니다.`);
   };
 
+  const handleGrantCompanyAdmin = (user: SsoUser) => {
+    if (grantCompanies.length === 0) { setGrantErr("담당 관계사를 1곳 이상 선택하세요."); return; }
+    // TODO: 실제 연동 시 PUT /api/v1/admin/company-admins
+    setCompanyAdmins(p => [...p, { email: user.email, name: user.name, dept: user.dept, managedCompanies: grantCompanies }]);
+    resetGrant();
+    showSaved(`${user.name}에게 관계사 관리자 권한이 부여되었습니다.`);
+  };
+
+  // 가드: 전사 관리자 최소 1명 유지 (마지막 전사 관리자 회수 차단)
   const handleRevoke = (id: number) => {
+    if (admins.length <= 1) return;
     // TODO: 실제 연동 시 POST /api/v1/admin/users/:id/revoke-admin
     setAdmins(p => p.filter(a => a.id !== id));
     setRevokeConfirm(null);
-    showSaved("관리자 권한이 회수되었습니다.");
+    showSaved("전사 관리자 권한이 회수되었습니다.");
+  };
+
+  const handleRevokeCompanyAdmin = (email: string) => {
+    setCompanyAdmins(p => p.filter(a => a.email !== email));
+    setCaRevokeConfirm(null);
+    setChipErr(e => { const n = { ...e }; delete n[email]; return n; });
+    showSaved("관계사 관리자 권한이 회수되었습니다.");
+  };
+
+  const addManagedCompany = (email: string, code: string) => {
+    setChipErr(e => { const n = { ...e }; delete n[email]; return n; });
+    setCompanyAdmins(p => p.map(a => a.email === email && !a.managedCompanies.includes(code) ? { ...a, managedCompanies: [...a.managedCompanies, code] } : a));
+  };
+
+  // 마지막 1곳 제거는 차단 — 담당을 모두 해제하려면 권한 회수를 사용
+  const removeManagedCompany = (email: string, code: string) => {
+    setCompanyAdmins(p => p.map(a => {
+      if (a.email !== email) return a;
+      if (a.managedCompanies.length <= 1) {
+        setChipErr(e => ({ ...e, [email]: "담당 관계사는 1곳 이상이어야 합니다. 담당을 모두 해제하려면 권한 회수를 사용하세요." }));
+        return a;
+      }
+      setChipErr(e => { const n = { ...e }; delete n[email]; return n; });
+      return { ...a, managedCompanies: a.managedCompanies.filter(c => c !== code) };
+    }));
   };
 
   const handleGroupGrant = (user: SsoUser) => {
@@ -155,6 +281,7 @@ export default function AdminUsers() {
   };
 
   const filteredAdmins = admins.filter(a => adminSearch === "" || a.name.includes(adminSearch) || a.dept.includes(adminSearch));
+  const filteredCompanyAdmins = companyAdmins.filter(a => adminSearch === "" || a.name.includes(adminSearch) || (a.dept ?? "").includes(adminSearch) || a.email.includes(adminSearch));
   const filteredGroupViewers = groupViewers.filter(g => groupSearch === "" || g.name.includes(groupSearch) || g.dept.includes(groupSearch));
   const filteredReg = REGISTRANTS.filter(r => regSearch === "" || r.name.includes(regSearch) || r.dept.includes(regSearch));
   const filteredLogs = LOGS.filter(l => (logCategory === "전체" || l.category === logCategory) && (logSearch === "" || l.actor.includes(logSearch) || l.target.includes(logSearch) || l.action.includes(logSearch)));
@@ -200,13 +327,19 @@ export default function AdminUsers() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>현재 관리자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{admins.length}명</span></div>
-                  <input value={adminSearch} onChange={e => setAdminSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 200, fontSize: 12 }} />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>
+                    관리자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>전사 {admins.length} · 관계사 {companyAdmins.length}</span>
+                  </div>
+                  <input value={adminSearch} onChange={e => setAdminSearch(e.target.value)} placeholder="이름, 부서, 이메일 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                {/* --- 전사 관리자 --- */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#92400E", letterSpacing: "0.04em", marginBottom: 8 }}>전사 관리자</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
                   {filteredAdmins.map(admin => {
                     const isRevoke = revokeConfirm === admin.id;
                     const isSelf = admin.id === 1;
+                    const isLast = admins.length <= 1;
                     return (
                       <div key={admin.id} style={{ background: "#fff", border: `1.5px solid ${isRevoke ? "#FECACA" : "#E2E8F0"}`, borderRadius: 10, padding: "16px 20px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -215,12 +348,13 @@ export default function AdminUsers() {
                             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 14, fontWeight: 700 }}>{admin.name}</span>
                               {isSelf && <span style={{ fontSize: 10, fontWeight: 700, background: "#E2E8F0", color: "#475569", padding: "1px 7px", borderRadius: 20 }}>본인</span>}
-                              <span style={{ fontSize: 10, fontWeight: 700, background: "#0F172A", color: "#fff", padding: "1px 7px", borderRadius: 20 }}>관리자</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "1px 7px", borderRadius: 20 }}>전사 관리자</span>
                               {groupViewerEmails.includes(admin.email) && (
                                 <span style={{ fontSize: 10, fontWeight: 700, background: "#EDE9FE", color: "#6D28D9", padding: "1px 7px", borderRadius: 20 }}>그룹 전체보기</span>
                               )}
                             </div>
                             <div style={{ fontSize: 12, color: "#64748B" }}>{admin.title} · {admin.dept}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>{admin.email}</div>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
                             <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 8, lineHeight: 1.7 }}>{admin.grantedAt} 부여<br />{admin.grantedBy}</div>
@@ -230,32 +364,88 @@ export default function AdminUsers() {
                         </div>
                         {isRevoke && (
                           <div style={{ marginTop: 12, background: "#FEF2F2", borderRadius: 7, padding: "12px 14px" }}>
-                            <div style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>{admin.name}의 관리자 권한을 회수하시겠습니까?</div>
+                            {isLast ? (
+                              <>
+                                <div style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>전사 관리자는 최소 1명 유지해야 합니다. 회수할 수 없습니다.</div>
+                                <button onClick={() => setRevokeConfirm(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>확인</button>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>{admin.name}의 전사 관리자 권한을 회수하시겠습니까?</div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button onClick={() => setRevokeConfirm(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                                  <button onClick={() => handleRevoke(admin.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>회수 확인</button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {filteredAdmins.length === 0 && <div style={{ textAlign: "center", padding: "24px 0", color: "#94A3B8", fontSize: 13 }}>해당하는 전사 관리자가 없습니다.</div>}
+                </div>
+
+                {/* --- 관계사 관리자 --- */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#B4602E", letterSpacing: "0.04em", marginBottom: 8 }}>관계사 관리자</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {filteredCompanyAdmins.map(ca => {
+                    const isRevoke = caRevokeConfirm === ca.email;
+                    const err = chipErr[ca.email];
+                    return (
+                      <div key={ca.email} style={{ background: "#fff", border: `1.5px solid ${isRevoke ? "#FECACA" : "#E2E8F0"}`, borderRadius: 10, padding: "16px 20px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#B4602E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, flexShrink: 0 }}>{ca.name[0]}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 14, fontWeight: 700 }}>{ca.name}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, background: "#FBEEE4", color: "#B4602E", padding: "1px 7px", borderRadius: 20 }}>관계사 관리자</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: "#64748B" }}>{ca.dept ?? "부서 미상"} · {ca.email}</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, alignItems: "center" }}>
+                              {ca.managedCompanies.map(code => (
+                                <span key={code} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FBEEE4", color: "#B4602E", borderRadius: 20, padding: "3px 6px 3px 10px", fontSize: 11, fontWeight: 700 }}>
+                                  {companyName(code)}
+                                  <button onClick={() => removeManagedCompany(ca.email, code)} title="제거" style={{ background: "none", border: "none", color: "#B4602E", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "0 2px" }}>×</button>
+                                </span>
+                              ))}
+                              <AddCompanyMenu assigned={ca.managedCompanies} onAdd={code => addManagedCompany(ca.email, code)} />
+                            </div>
+                            {err && <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>{err}</div>}
+                          </div>
+                          <div style={{ flexShrink: 0 }}>
+                            {!isRevoke && <button onClick={() => setCaRevokeConfirm(ca.email)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 700, color: "#EF4444", cursor: "pointer" }}>권한 회수</button>}
+                          </div>
+                        </div>
+                        {isRevoke && (
+                          <div style={{ marginTop: 12, background: "#FEF2F2", borderRadius: 7, padding: "12px 14px" }}>
+                            <div style={{ fontSize: 12, color: "#991B1B", fontWeight: 600, marginBottom: 8 }}>{ca.name}의 관계사 관리자 권한을 회수하시겠습니까? (담당 관계사 전체 해제)</div>
                             <div style={{ display: "flex", gap: 8 }}>
-                              <button onClick={() => setRevokeConfirm(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
-                              <button onClick={() => handleRevoke(admin.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>회수 확인</button>
+                              <button onClick={() => setCaRevokeConfirm(null)} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                              <button onClick={() => handleRevokeCompanyAdmin(ca.email)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>회수 확인</button>
                             </div>
                           </div>
                         )}
                       </div>
                     );
                   })}
+                  {filteredCompanyAdmins.length === 0 && <div style={{ textAlign: "center", padding: "24px 0", color: "#94A3B8", fontSize: 13 }}>지정된 관계사 관리자가 없습니다.</div>}
                 </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>관리자 권한 부여</div>
-                  <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14, lineHeight: 1.6 }}>사내 SSO 계정을 검색하여 관리자로 등록합니다. 관리자는 모든 AX 플랫폼 항목을 승인·관리할 수 있습니다.</div>
+                  <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14, lineHeight: 1.6 }}>사내 SSO 계정을 검색하여 전사 관리자 또는 관계사 관리자로 지정합니다.</div>
                   <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    <input value={ssoSearch} onChange={e => { setSsoSearch(e.target.value); setSsoResult(null); setGrantConfirm(null); }} onKeyDown={e => e.key === "Enter" && handleSsoSearch()} placeholder="이름, 이메일, 부서 검색" style={{ ...inputStyle, flex: 1 }} />
+                    <input value={ssoSearch} onChange={e => { setSsoSearch(e.target.value); setSsoResult(null); setGrantRole("admin"); setGrantCompanies([]); setGrantErr(""); }} onKeyDown={e => e.key === "Enter" && handleSsoSearch()} placeholder="이름, 이메일, 부서 검색" style={{ ...inputStyle, flex: 1 }} />
                     <button onClick={handleSsoSearch} style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: 7, padding: "0 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>{searching ? "..." : "검색"}</button>
                   </div>
 
                   {ssoResult === "notfound" && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#991B1B" }}>SSO에서 해당 사용자를 찾을 수 없습니다.</div>}
                   {ssoResult && ssoResult !== "notfound" && (
                     <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: adminEmails.includes(ssoResult.email) ? 0 : 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                         <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{ssoResult.name[0]}</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{ssoResult.name}</div>
@@ -264,23 +454,45 @@ export default function AdminUsers() {
                       </div>
 
                       {adminEmails.includes(ssoResult.email) ? (
-                        <div style={{ fontSize: 12, color: "#D97706", fontWeight: 600, marginTop: 8, background: "#FEF3C7", padding: "6px 10px", borderRadius: 6 }}>이미 관리자로 지정된 사용자입니다.</div>
-                      ) : grantConfirm ? (
-                        <div style={{ background: "#EFF6FF", borderRadius: 7, padding: "10px 12px" }}>
-                          <div style={{ fontSize: 12, color: "#1E40AF", fontWeight: 600, marginBottom: 8 }}>{ssoResult.name}에게 관리자 권한을 부여하시겠습니까?</div>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => setGrantConfirm(null)} style={{ flex: 1, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, padding: "6px 0", fontSize: 11, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
-                            <button onClick={() => handleGrant(ssoResult)} style={{ flex: 1, background: "#2563EB", border: "none", borderRadius: 6, padding: "6px 0", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}>부여 확인</button>
-                          </div>
-                        </div>
+                        <div style={{ fontSize: 12, color: "#D97706", fontWeight: 600, background: "#FEF3C7", padding: "6px 10px", borderRadius: 6 }}>이미 전사 관리자로 지정된 사용자입니다.</div>
+                      ) : companyAdminEmails.includes(ssoResult.email) ? (
+                        <div style={{ fontSize: 12, color: "#B4602E", fontWeight: 600, background: "#FBEEE4", padding: "6px 10px", borderRadius: 6 }}>이미 관계사 관리자로 지정된 사용자입니다. 담당 관계사는 좌측 목록에서 편집하세요.</div>
                       ) : (
-                        <button onClick={() => setGrantConfirm(ssoResult)} style={{ width: "100%", background: "#2563EB", color: "#fff", border: "none", borderRadius: 7, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>관리자로 지정</button>
+                        <>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>역할</label>
+                          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                            {([["admin", "전사 관리자"], ["company", "관계사 관리자"]] as const).map(([key, label]) => {
+                              const on = grantRole === key;
+                              return (
+                                <button key={key} onClick={() => { setGrantRole(key); setGrantErr(""); }} style={{
+                                  flex: 1, padding: "7px 0", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                                  border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff", color: on ? "#2563EB" : "#64748B",
+                                }}>{label}</button>
+                              );
+                            })}
+                          </div>
+
+                          {grantRole === "company" && (
+                            <div style={{ marginBottom: 12 }}>
+                              <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>담당 관계사 <span style={{ color: "#EF4444" }}>*1곳 이상</span></label>
+                              <CompanyMultiSelect selected={grantCompanies} onChange={codes => { setGrantCompanies(codes); if (codes.length > 0) setGrantErr(""); }} />
+                              {grantErr && <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>{grantErr}</div>}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => grantRole === "admin" ? handleGrantAdmin(ssoResult) : handleGrantCompanyAdmin(ssoResult)}
+                            style={{ width: "100%", background: grantRole === "admin" ? "#2563EB" : "#B4602E", color: "#fff", border: "none", borderRadius: 7, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                          >
+                            {grantRole === "admin" ? "전사 관리자로 지정" : "관계사 관리자로 지정"}
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
                 </div>
                 <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
-                  <strong>운영 유의사항</strong><br />본인 계정의 권한은 스스로 회수할 수 없습니다. 관리자는 전체 AX 플랫폼 항목에 대한 승인·관리 권한을 가집니다.
+                  <strong>운영 유의사항</strong><br />전사 관리자는 전체 AX 플랫폼 항목을 승인·관리합니다. 관계사 관리자는 담당 관계사 범위만 승인·관리합니다. 전사 관리자는 최소 1명 유지되어야 하며, 본인 계정은 스스로 회수할 수 없습니다.
                 </div>
               </div>
             </div>

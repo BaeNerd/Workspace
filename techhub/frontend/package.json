@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:share": "tsc -b && vite build --mode share --outDir dist-share",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -26,6 +27,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vite-plugin-singlefile": "^2.3.3"
   }
 }

@@ -2,8 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, STATUS_ORDER, STATUS_COLOR } from "../types/platformTypes";
-import type { PlatformId, ApprovalStage, PlatformReview } from "../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, STATUS_COLOR, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../types/platformTypes";
+import type { PlatformId, ApprovalStage, ApprovalSlots, ApprovalSlotKey, PlatformReview } from "../types/platformTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 
 const TERMINAL_STATUSES = new Set(["사용 중지"]);
@@ -15,7 +15,9 @@ type MyItem = {
   summary: string;
   submittedAt: string;
   updatedAt: string;
-  approvalStage: ApprovalStage;
+  approvalSlots: ApprovalSlots;
+  rejected: boolean;
+  suspended: boolean;
   status: string;
   rejectionReason: string | null;
   difficulty?: string;
@@ -27,13 +29,22 @@ type MyItem = {
   devTool?: string;
 };
 
+// 레거시 stage → 슬롯 초기값(항목별 독립 객체) 구성
+const legacyMy = (stage: string): { approvalSlots: ApprovalSlots; rejected: boolean; suspended: boolean } => {
+  const m = LEGACY_APPROVAL_MAP[stage];
+  return {
+    approvalSlots: { company: { ...m.slots.company }, global: { ...m.slots.global } },
+    rejected: m.rejected, suspended: m.suspended,
+  };
+};
+
 const INITIAL_ITEMS: MyItem[] = [
   {
     id: "N8N-012", kind: "n8n",
     title: "신규 입사자 계정 자동 생성",
     summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성하는 n8n 워크플로우",
     submittedAt: "2025.02.10", updatedAt: "2025.02.14",
-    approvalStage: "게시됨", status: "사용 가능",
+    ...legacyMy("게시됨"), status: "사용 가능",
     rejectionReason: null,
     difficulty: "보통", expectedTimeSaved: "주 2시간",
   },
@@ -42,16 +53,16 @@ const INITIAL_ITEMS: MyItem[] = [
     title: "원료 성분 규제 문의 봇",
     summary: "원료 MSDS·규제 데이터를 자연어로 검색하는 HK GPT 커스텀 봇",
     submittedAt: "2025.05.06", updatedAt: "2025.05.09",
-    approvalStage: "2차대기", status: "준비 중",
+    ...legacyMy("2차대기"), status: "준비 중",  // 관계사 관리자 승인 완료 · 전사 대기 → 부분 승인
     rejectionReason: null,
     shareScope: "팀 공유 비서",
   },
   {
     id: "PA-003", kind: "pa",
     title: "신제품 출시 승인 자동화 플로우",
-    summary: "신제품 등록 시 관련 부서 순차 승인을 Power Automate로 자동화",
+    summary: "신제품 등록 시 관련 부서 승인을 Power Automate로 자동화",
     submittedAt: "2025.06.01", updatedAt: "2025.06.01",
-    approvalStage: "1차대기", status: "준비 중",
+    ...legacyMy("1차대기"), status: "준비 중",
     rejectionReason: null,
     difficulty: "쉬움",
   },
@@ -60,7 +71,7 @@ const INITIAL_ITEMS: MyItem[] = [
     title: "색차 불량 이미지 분류 모델",
     summary: "분광측색계 이미지를 분석해 색차 불량 여부를 자동 판정하는 ML 모델",
     submittedAt: "2025.05.20", updatedAt: "2025.05.22",
-    approvalStage: "반려", status: "준비 중",
+    ...legacyMy("반려"), status: "준비 중",
     rejectionReason: "유사한 기능의 ML 모델이 이미 운영 중입니다(ML-001). 해당 모델 담당자와 협의 후 개선 방향을 명확히 하여 재제출해 주세요.",
     mlType: "이미지 인식",
   },
@@ -82,29 +93,31 @@ const MOCK_MY_REVIEWS: PlatformReview[] = [
 ];
 
 const STAGE_CONFIG: Record<ApprovalStage, { bg: string; fg: string; dot: string; label: string; tabLabel: string }> = {
-  "1차대기": { bg: "#FBF3E4", fg: "#B4802E", dot: "#B4802E", label: "1차 대기", tabLabel: "1차 대기" },
-  "2차대기": { bg: "#E8F0FE", fg: "#2563C9", dot: "#2563C9", label: "2차 대기", tabLabel: "2차 대기" },
-  "게시됨":  { bg: "#E6F5EC", fg: "#1F7A46", dot: "#1F7A46", label: "게시됨",  tabLabel: "게시됨"  },
-  "반려":    { bg: "#FEE2E2", fg: "#991B1B", dot: "#EF4444", label: "반려",    tabLabel: "반려"    },
-  "중지":    { bg: "#EDF0F4", fg: "#4B5768", dot: "#4B5768", label: "중지",    tabLabel: "중지"    },
+  "승인 대기": { bg: "#FBF3E4", fg: "#B4802E", dot: "#B4802E", label: "승인 대기", tabLabel: "승인 대기" },
+  "부분 승인": { bg: "#E8F0FE", fg: "#2563C9", dot: "#2563C9", label: "부분 승인", tabLabel: "부분 승인" },
+  "게시됨":   { bg: "#E6F5EC", fg: "#1F7A46", dot: "#1F7A46", label: "게시됨",   tabLabel: "게시됨"   },
+  "반려":     { bg: "#FEE2E2", fg: "#991B1B", dot: "#EF4444", label: "반려",     tabLabel: "반려"     },
+  "중지":     { bg: "#EDF0F4", fg: "#4B5768", dot: "#4B5768", label: "중지",     tabLabel: "중지"     },
 };
 
-// 4단계 승인 흐름 인디케이터
-const APPROVAL_STEPS: { stage: ApprovalStage | null; label: string }[] = [
-  { stage: null,       label: "신청 완료" },
-  { stage: "1차대기", label: "1차 검토"  },
-  { stage: "2차대기", label: "2차 검토"  },
-  { stage: "게시됨",  label: "게시 완료" },
-];
-const STAGE_STEP_INDEX: Partial<Record<ApprovalStage, number>> = {
-  "1차대기": 1,
-  "2차대기": 2,
-  "게시됨": 3,
-  "반려": -1,
-  "중지": -1,
-};
+// 병렬 승인 슬롯 칩 (대기 회색 / 승인 초록 체크)
+const CHIP_PENDING = { bg: "#EDF0F4", fg: "#94A3B8" };
+const CHIP_APPROVED = { bg: "#E6F5EC", fg: "#1F7A46" };
 
-function ApprovalIndicator({ stage }: { stage: ApprovalStage }) {
+function SlotChip({ slotKey, approved }: { slotKey: ApprovalSlotKey; approved: boolean }) {
+  const s = approved ? CHIP_APPROVED : CHIP_PENDING;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, background: s.bg, color: s.fg, borderRadius: 20, padding: "5px 12px", whiteSpace: "nowrap" }}>
+      <div style={{ width: 16, height: 16, borderRadius: "50%", background: approved ? "#059669" : "#CBD5E1", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {approved && <span style={{ fontSize: 9, color: "#fff", fontWeight: 700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 700 }}>{APPROVAL_SLOT_LABEL[slotKey]}</span>
+    </div>
+  );
+}
+
+// 병렬 승인 인디케이터 — 신청 완료 → (관계사·전사 슬롯 병렬) → 게시 완료
+function ParallelApprovalIndicator({ slots, stage }: { slots: ApprovalSlots; stage: ApprovalStage }) {
   if (stage === "반려" || stage === "중지") {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "10px 14px", background: STAGE_CONFIG[stage].bg, borderRadius: 8 }}>
@@ -115,29 +128,27 @@ function ApprovalIndicator({ stage }: { stage: ApprovalStage }) {
       </div>
     );
   }
-  const currentStep = STAGE_STEP_INDEX[stage] ?? 0;
+  const published = stage === "게시됨";
+  const node = (on: boolean): React.CSSProperties => ({
+    width: 18, height: 18, borderRadius: "50%", background: on ? "#059669" : "#EBEEF3",
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+  });
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, marginTop: 14, paddingTop: 14, borderTop: "1px solid #F1F5F9" }}>
-      {APPROVAL_STEPS.map((step, i) => {
-        const isDone = i < currentStep || (i === 0);
-        const isCurrent = i === currentStep && stage !== "게시됨";
-        const isFuture = !isDone && !isCurrent;
-        const dotBg = isDone || (stage === "게시됨" && i === 3) ? "#059669" : isCurrent ? "#1C6BFF" : "#EBEEF3";
-        const dotBorder = isCurrent ? "2px solid #1C6BFF" : "none";
-        return (
-          <div key={i} style={{ display: "flex", alignItems: "center", flex: i < 3 ? 1 : "none" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 18, height: 18, borderRadius: "50%", background: dotBg, border: dotBorder, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {(isDone || stage === "게시됨") && <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>✓</span>}
-              </div>
-              <span style={{ fontSize: 10, fontWeight: isCurrent ? 700 : 500, color: isFuture ? "#CBD5E1" : isCurrent ? "#1C6BFF" : "#475569", whiteSpace: "nowrap" }}>{step.label}</span>
-            </div>
-            {i < 3 && (
-              <div style={{ flex: 1, height: 2, background: i < currentStep ? "#059669" : "#EBEEF3", margin: "0 4px", marginBottom: 16 }} />
-            )}
-          </div>
-        );
-      })}
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid #F1F5F9", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={node(true)}><span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>✓</span></div>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>신청 완료</span>
+      </div>
+      <div style={{ width: 18, height: 2, background: "#EBEEF3" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <SlotChip slotKey="company" approved={slots.company.approved} />
+        <SlotChip slotKey="global" approved={slots.global.approved} />
+      </div>
+      <div style={{ width: 18, height: 2, background: published ? "#059669" : "#EBEEF3" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={node(published)}>{published && <span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>✓</span>}</div>
+        <span style={{ fontSize: 11, fontWeight: published ? 700 : 500, color: published ? "#059669" : "#CBD5E1", whiteSpace: "nowrap" }}>게시 완료</span>
+      </div>
     </div>
   );
 }
@@ -196,11 +207,11 @@ function KindSummaryChips({ item }: { item: MyItem }) {
 }
 
 const STAT_TABS: { key: "전체" | ApprovalStage; label: string; color: string }[] = [
-  { key: "전체",   label: "전체",   color: "#1A1F27" },
-  { key: "1차대기", label: "1차 대기", color: "#B4802E" },
-  { key: "2차대기", label: "2차 대기", color: "#2563C9" },
-  { key: "게시됨",  label: "게시됨",  color: "#1F7A46" },
-  { key: "반려",   label: "반려",   color: "#EF4444" },
+  { key: "전체",     label: "전체",     color: "#1A1F27" },
+  { key: "승인 대기", label: "승인 대기", color: "#B4802E" },
+  { key: "부분 승인", label: "부분 승인", color: "#2563C9" },
+  { key: "게시됨",    label: "게시됨",    color: "#1F7A46" },
+  { key: "반려",     label: "반려",     color: "#EF4444" },
 ];
 
 export default function MyStatusPage() {
@@ -219,7 +230,11 @@ export default function MyStatusPage() {
   const items = useMemo(() => {
     return [...INITIAL_ITEMS]
       .sort((a, b) => new Date(b.submittedAt.replace(/\./g, "-")).getTime() - new Date(a.submittedAt.replace(/\./g, "-")).getTime())
-      .map(item => ({ ...item, status: statusOverrides[item.id] ?? item.status }));
+      .map(item => ({
+        ...item,
+        status: statusOverrides[item.id] ?? item.status,
+        approvalStage: deriveStage(item.approvalSlots, item.rejected, item.suspended),
+      }));
   }, [statusOverrides]);
 
   const handleStatusChange = (id: string, newStatus: string) => {
@@ -228,12 +243,12 @@ export default function MyStatusPage() {
 
   const visible = items.filter(i => !deleted.includes(i.id) && (filter === "전체" || i.approvalStage === filter));
   const counts: Record<"전체" | ApprovalStage, number> = {
-    "전체":   items.filter(i => !deleted.includes(i.id)).length,
-    "1차대기": items.filter(i => !deleted.includes(i.id) && i.approvalStage === "1차대기").length,
-    "2차대기": items.filter(i => !deleted.includes(i.id) && i.approvalStage === "2차대기").length,
-    "게시됨":  items.filter(i => !deleted.includes(i.id) && i.approvalStage === "게시됨").length,
-    "반려":   items.filter(i => !deleted.includes(i.id) && i.approvalStage === "반려").length,
-    "중지":   items.filter(i => !deleted.includes(i.id) && i.approvalStage === "중지").length,
+    "전체":     items.filter(i => !deleted.includes(i.id)).length,
+    "승인 대기": items.filter(i => !deleted.includes(i.id) && i.approvalStage === "승인 대기").length,
+    "부분 승인": items.filter(i => !deleted.includes(i.id) && i.approvalStage === "부분 승인").length,
+    "게시됨":    items.filter(i => !deleted.includes(i.id) && i.approvalStage === "게시됨").length,
+    "반려":     items.filter(i => !deleted.includes(i.id) && i.approvalStage === "반려").length,
+    "중지":     items.filter(i => !deleted.includes(i.id) && i.approvalStage === "중지").length,
   };
 
   return (
@@ -282,7 +297,7 @@ export default function MyStatusPage() {
             const isDeleteConfirm = deleteConfirm === item.id;
             const platformMeta = PLATFORMS.find(p => p.id === item.kind);
             const isPublished = item.approvalStage === "게시됨";
-            const isPending = item.approvalStage === "1차대기" || item.approvalStage === "2차대기";
+            const isPending = item.approvalStage === "승인 대기" || item.approvalStage === "부분 승인";
             const isRejected = item.approvalStage === "반려";
 
             return (
@@ -336,8 +351,8 @@ export default function MyStatusPage() {
                     </div>
                   </div>
 
-                  {/* 승인 진행 인디케이터 */}
-                  <ApprovalIndicator stage={item.approvalStage} />
+                  {/* 승인 진행 인디케이터 (병렬 2슬롯) */}
+                  <ParallelApprovalIndicator slots={item.approvalSlots} stage={item.approvalStage} />
 
                   {isRejected && item.rejectionReason && (
                     <div style={{ marginTop: 14, background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "12px 14px" }}>

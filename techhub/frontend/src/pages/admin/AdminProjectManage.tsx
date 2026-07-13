@@ -466,7 +466,7 @@ const isWorkflowKind = (item: ManagedPlatformItem): boolean =>
 const isAssistantKind = (item: ManagedPlatformItem): boolean => item.kind === "assistant";
 
 export default function AdminProjectManage() {
-  const { isAdmin, isCompanyAdmin, user } = useAuth();
+  const { isAdmin, isCompanyAdmin, managedCompanies } = useAuth();
   const [items, setItems] = useState<ManagedItem[]>(INITIAL_PLATFORM_ITEMS);
   const [selected, setSelected] = useState<string>(INITIAL_PLATFORM_ITEMS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
@@ -486,10 +486,9 @@ export default function AdminProjectManage() {
     ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
   ];
 
-  const managedCo = user?.managedCompany ?? null;
   const filtered = items.filter(i => {
-    if (isCompanyAdmin && managedCo) {
-      const scopeMatch = i.company.length === 0 || i.company.includes(managedCo);
+    if (isCompanyAdmin) {
+      const scopeMatch = i.company.length === 0 || i.company.some(c => managedCompanies.includes(c));
       if (!scopeMatch) return false;
     }
     return (
@@ -617,7 +616,7 @@ export default function AdminProjectManage() {
                 )}
                 {isCompanyAdmin && (
                   <span style={{ fontSize: 11, color: "#B4802E", background: "#FBF3E4", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>
-                    {managedCo ?? "–"} 담당
+                    {managedCompanies.length > 0 ? managedCompanies.join("·") : "–"} 담당
                   </span>
                 )}
               </div>
