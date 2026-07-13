@@ -6,6 +6,7 @@ import { useAuth } from "../context/useAuth";
 import { PLATFORMS, PLATFORM_ICON_PATH } from "../types/platformTypes";
 import type { PlatformId, PlatformItemStatus, Platform } from "../types/platformTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { TEAMS_CHANNEL_URL } from "../config/operations";
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Platform["icon"] }> =
   Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
@@ -158,7 +159,8 @@ const MY_COMPANY_WEEKLY = MY_COMPANY_ITEMS.filter(i =>
 // ===== [존 C] 에디터스 픽 + 활용 후기 + 문의 채널 데이터 =====
 
 // TODO: 실제 연동 시 GET /api/v1/editors-pick 응답으로 교체 (PlatformItem에 editorNote 필드 추가 검토)
-const EDITORS_PICK = {
+// null 이면 EmptyHint 표시 (운영자가 아직 선정하지 않은 경우)
+const EDITORS_PICK: { item: FeedItem; note: string; editor: string } | null = {
   item: ALL_ITEMS.find(i => i.id === "N8N-005")!,
   note: "입사자 한 명당 30분씩 걸리던 계정 세팅이 이제 0분입니다. 온보딩 자동화의 교과서 같은 사례라 이번 주의 발견으로 선정했습니다.",
   editor: "AX 플랫폼 운영팀",
@@ -175,9 +177,7 @@ const REVIEWS: Review[] = [
   { text: "긴급 메일을 놓쳐서 곤란했던 적이 많았는데, 이제 팀장님께 자동으로 전달되니 마음이 놓입니다.", author: "IT인프라팀", itemTitle: "Outlook 긴급 메일 자동 전달", itemPath: "/n8n/N8N-001", itemKind: "n8n" },
 ];
 
-// 문의 Teams 채널 링크 — ITSM 티켓 대신 Teams 채널 기반 운영
-// TODO: 오픈 시점에 실제 AX 플랫폼 Teams 채널 URL로 교체
-const TEAMS_CHANNEL_URL = "https://teams.microsoft.com/l/channel/ax-platform";
+// TEAMS_CHANNEL_URL — config/operations.ts 에서 관리 (단일 참조점)
 
 // ===== 모듈 레벨 서브컴포넌트 =====
 
@@ -192,6 +192,12 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <span style={{ fontSize: 14, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.01em" }}>
     {children}
   </span>
+);
+
+const EmptyHint = ({ message, style }: { message: string; style?: React.CSSProperties }) => (
+  <div style={{ textAlign: "center", padding: "14px 0", fontSize: 12, color: "#AEB6C2", ...style }}>
+    {message}
+  </div>
 );
 
 /** 공통 흰색 패널 스타일 */
@@ -320,7 +326,9 @@ function PersonalStrip({
           이어서 살펴보기
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {slots.map(({ item, recommended }) => {
+          {slots.length === 0
+            ? <EmptyHint message="최근 본 항목이 없습니다. 새로운 AI 도구를 둘러보세요." />
+            : slots.map(({ item, recommended }) => {
             const s = SOURCE_STYLE[item.kind];
             if (recommended) {
               return (
@@ -388,7 +396,9 @@ function PersonalStrip({
             : `${MY_COMPANY_NAME}의 최근 등록`}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {companyItems.map(item => {
+          {companyItems.length === 0
+            ? <EmptyHint message={`${MY_COMPANY_NAME}의 최근 등록 항목이 없습니다.`} />
+            : companyItems.map(item => {
             const s = SOURCE_STYLE[item.kind];
             return (
               <div
@@ -527,6 +537,14 @@ function LatestFeed({ onNavigate }: { onNavigate: (path: string) => void }) {
 
 /** [존 C-1] 금주의 발견 (에디터스 픽) */
 function EditorsPickCard({ onNavigate }: { onNavigate: (path: string) => void }) {
+  if (!EDITORS_PICK) {
+    return (
+      <div style={{ ...panelStyle, padding: "20px 22px" }}>
+        <SectionLabel>금주의 발견</SectionLabel>
+        <EmptyHint message="이번 주의 발견 항목이 아직 선정되지 않았습니다." style={{ paddingTop: 16 }} />
+      </div>
+    );
+  }
   const item = EDITORS_PICK.item;
   const s = SOURCE_STYLE[item.kind];
   return (
@@ -611,6 +629,14 @@ function ReviewRotator({
   activeIdx: number;
   onNavigate: (path: string) => void;
 }) {
+  if (reviews.length === 0) {
+    return (
+      <div style={{ ...panelStyle, padding: "20px 22px", flex: 1, display: "flex", flexDirection: "column" }}>
+        <SectionLabel>활용 후기</SectionLabel>
+        <EmptyHint message="등록된 활용 후기가 없습니다." style={{ paddingTop: 16 }} />
+      </div>
+    );
+  }
   const idx = activeIdx % reviews.length;
   const nextIdx = (idx + 1) % reviews.length;
   return (
@@ -718,6 +744,7 @@ export default function LandingPage() {
   // 활용 후기 로테이션 (7초)
   const [reviewIdx, setReviewIdx] = useState(0);
   useEffect(() => {
+    if (REVIEWS.length === 0) return;
     const t = setInterval(() => setReviewIdx(v => (v + 1) % REVIEWS.length), 7000);
     return () => clearInterval(t);
   }, []);
@@ -866,9 +893,7 @@ export default function LandingPage() {
                 animation: "axSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
               }}>
                 {spotlightItems.length === 0 ? (
-                  <div style={{ gridColumn: "1 / -1", fontSize: 12, color: "#AEB6C2", padding: "14px 0", textAlign: "center" }}>
-                    아직 등록된 항목이 없습니다. 첫 등록의 주인공이 되어보세요.
-                  </div>
+                  <EmptyHint message="아직 등록된 항목이 없습니다. 첫 등록의 주인공이 되어보세요." style={{ gridColumn: "1 / -1" }} />
                 ) : spotlightItems.map(item => {
                   const s = SOURCE_STYLE[item.kind];
                   return (

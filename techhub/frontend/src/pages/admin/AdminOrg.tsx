@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import { TEAMS_CHANNEL_URL as DEFAULT_TEAMS_CHANNEL_URL } from "../../config/operations";
 
 // 관계사 관리자(CompanyAdmin) 지정 목업
 type CompanyAdminAssignment = { companyCode: string; adminEmail: string; adminName: string };
@@ -380,6 +381,11 @@ export default function AdminOrg() {
   const [syncDone, setSyncDone] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  const [channelUrl, setChannelUrl] = useState(DEFAULT_TEAMS_CHANNEL_URL);
+  const [channelDraft, setChannelDraft] = useState("");
+  const [channelEditing, setChannelEditing] = useState(false);
+  const isValidTeamsUrl = (url: string) => url.trim().startsWith("https://teams.microsoft.com/");
 
   const showSaved = (msg: string) => { setSavedMsg(msg); setTimeout(() => setSavedMsg(""), 2200); };
 
@@ -849,6 +855,55 @@ export default function AdminOrg() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* ===== 섹션 4. 문의 채널 설정 ===== */}
+          <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, marginTop: 28, padding: "18px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: "#fff", background: "#0F172A", width: 20, height: 20, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>4</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>문의 채널 설정</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px 28px", lineHeight: 1.6 }}>
+              랜딩 페이지 하단 "AX 운영팀에 문의하기" 카드에 연결되는 Microsoft Teams 채널 URL입니다. 실제 채널 링크로 교체하세요.
+            </p>
+            <div style={{ marginLeft: 28 }}>
+              {channelEditing ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 560 }}>
+                  <input
+                    value={channelDraft}
+                    onChange={e => setChannelDraft(e.target.value)}
+                    placeholder="https://teams.microsoft.com/l/channel/..."
+                    style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = "#2563EB"}
+                    onBlur={e => e.target.style.borderColor = "#E2E8F0"}
+                  />
+                  {channelDraft.trim() && !isValidTeamsUrl(channelDraft) && (
+                    <div style={{ fontSize: 11, color: "#DC2626" }}>유효한 Teams 채널 URL이 아닙니다 (https://teams.microsoft.com/ 으로 시작해야 합니다).</div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { setChannelUrl(channelDraft.trim()); setChannelEditing(false); showSaved("문의 채널 URL이 저장되었습니다."); }}
+                      disabled={!isValidTeamsUrl(channelDraft)}
+                      style={{ background: isValidTeamsUrl(channelDraft) ? "#0F172A" : "#E2E8F0", color: isValidTeamsUrl(channelDraft) ? "#fff" : "#94A3B8", border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: isValidTeamsUrl(channelDraft) ? "pointer" : "not-allowed" }}
+                    >저장</button>
+                    <button
+                      onClick={() => setChannelEditing(false)}
+                      style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}
+                    >취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: 560 }}>
+                  <div style={{ flex: 1, fontSize: 13, color: "#334155", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "9px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {channelUrl}
+                  </div>
+                  <button
+                    onClick={() => { setChannelDraft(channelUrl); setChannelEditing(true); }}
+                    style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer", flexShrink: 0 }}
+                  >수정</button>
+                </div>
+              )}
             </div>
           </div>
 

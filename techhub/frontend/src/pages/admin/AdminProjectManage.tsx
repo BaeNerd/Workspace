@@ -2,8 +2,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, STATUS_ORDER, STATUS_COLOR } from "../../types/platformTypes";
-import type { PlatformId } from "../../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, STATUS_COLOR, BUSINESS_DOMAINS } from "../../types/platformTypes";
+import type { PlatformId, BusinessDomain } from "../../types/platformTypes";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 
@@ -162,6 +162,7 @@ type ManagedPlatformItem = {
   mlType?: string; trainingDataDesc?: string; performanceSummary?: string;
   // ml / vibe 공용
   devTool?: string; sourceRepo?: string; outputType?: string;
+  domain?: BusinessDomain;
   // Admin 전용
   isHighlighted?: boolean;
   isWeeklyDiscover?: boolean;
@@ -764,6 +765,13 @@ export default function AdminProjectManage() {
                       ? <textarea value={displayData.description} onChange={e => setF("description", e.target.value)} style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.7 }} />
                       : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{displayData.description}</div>}
                   </FieldRow>
+                  {displayData.kind !== "ai-orchestration" && (
+                    <FieldRow label="업무 도메인">
+                      {isEditing
+                        ? <SingleSelectTag options={[...BUSINESS_DOMAINS]} value={displayData.domain ?? ""} onChange={v => setF("domain", v)} />
+                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.domain || "—"}</span>}
+                    </FieldRow>
+                  )}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <FieldRow label="상태">
                       {isEditing

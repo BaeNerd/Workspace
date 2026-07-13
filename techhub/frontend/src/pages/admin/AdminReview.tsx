@@ -2,8 +2,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, STATUS_ORDER } from "../../types/platformTypes";
-import type { PlatformId, ApprovalStage, ApprovalRecord } from "../../types/platformTypes";
+import { PLATFORMS, STATUS_ORDER, BUSINESS_DOMAINS } from "../../types/platformTypes";
+import type { PlatformId, ApprovalStage, ApprovalRecord, BusinessDomain } from "../../types/platformTypes";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 
@@ -152,6 +152,7 @@ type ReviewPlatformItem = {
   costTier?: string; useCases?: string[];
   mlType?: string; trainingDataDesc?: string; performanceSummary?: string;
   devTool?: string; sourceRepo?: string; outputType?: string;
+  domain?: BusinessDomain;
   company: string[];
   platformScope: "unset" | "company-wide" | "specific";
   contacts: Contact[]; links: LinkItem[];
@@ -697,6 +698,13 @@ export default function AdminReview() {
                   <FieldRow label="상세 설명">
                     <textarea value={(edit as any).description ?? merged.description} onChange={e => (setEdit as any)("description", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                   </FieldRow>
+                  {merged.kind !== "ai-orchestration" && (
+                    <FieldRow label="업무 도메인">
+                      <div style={{ marginTop: 4 }}>
+                        <SingleSelectTag options={[...BUSINESS_DOMAINS]} value={(edit as any).domain ?? merged.domain ?? ""} onChange={v => (setEdit as any)("domain", v)} disabled={!canActOnCurrent} />
+                      </div>
+                    </FieldRow>
+                  )}
                 </SectionBlock>
 
                 {/* ===== 소속/대상 관계사 · 상태 (공통) ===== */}
