@@ -1,7 +1,7 @@
 # Kolmar AX Platform — 프로젝트 구조 문서
 
 > React + TypeScript (Vite) 프론트엔드 / FastAPI + PostgreSQL 백엔드  
-> 그룹 전체 AX(AI 전환) 확산 산출물(자동화·AI 도구·ML 모델·Vibe Coding)을 등록·탐색·관리하는 사내 통합 플랫폼
+> 그룹 전체 AX(AI 전환) 확산 산출물(자동화·AI 도구·ML 모델·Vibe Coding·AI 프로젝트)을 등록·탐색·관리하는 7유형 사내 통합 플랫폼
 
 ---
 
@@ -161,10 +161,10 @@ export type ApprovalRecord = {
   - `canActCompanySlot(i) = isAdmin || (isCompanyAdmin && companyScopeMatch(i))`
   - `canActGlobalSlot(i) = isAdmin`
   - `companyScopeMatch(i) = i.company.length > 0 && i.company.some(c => managedCompanies.includes(c))`
-  - `platformScope === "unset"` 항목은 승인 전 범위 지정이 필요해 양 슬롯 모두 비활성.
+  - 관계사 지정 편집 UI는 폐기 — 신규·데모 항목은 전사 공용(`company: []`, `platformScope: "company-wide"`)이라 company 슬롯도 admin이 처리. (`platformScope === "unset"` 방어 가드는 코드에 잔존.)
 - **`pendingCount` (사이드바)** — 사용자가 처리 가능한 **미승인 슬롯 잔여 항목 수**. admin: 미종결(`게시됨/반려/중지` 아님) 전체. companyAdmin: `companyScopeMatch(i) && !i.approvalSlots.company.approved`. 전체 `items` 기준(요약 스트립 카운트는 사용자 가시 `baseItems` 기준).
 - **일괄 게시 버튼 없음** — 액션은 슬롯별 `이 슬롯 승인` 2개와 `반려`뿐. 배너 안내: "두 승인이 모두 완료되면 게시됩니다."
-- **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ChipEditor`, `CompanyMultiSelect`.
+- **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ImageStripView`. (상태·관계사 편집 UI 제거로 `ChipEditor`·`CompanyMultiSelect`·상태 셀렉터 삭제.)
 
 ### MyStatusPage 슬롯 UI
 
@@ -270,7 +270,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 - **`components/ShareRedirect.tsx`** — 랜딩 외 모든 경로를 가로채 마운트 시 `showNotice()` + `<Navigate to="/" replace />` → "안내 표시 + 랜딩 유지"로 수렴.
 - **`components/SharePreviewBanner.tsx`** — 최상단 sticky 안내 바. `SHARE_BANNER_HEIGHT = 32`(Navbar sticky top 오프셋과 동일). 기본(파랑) / 안내 활성(앰버) 톤. `Navbar`는 `IS_SHARE_MODE`일 때 `top: SHARE_BANNER_HEIGHT`로 밀리고 **SSO 로그인 버튼 숨김**.
 - **Teams 버튼 비활성** — LandingPage `AskChannelCard`가 공유 모드에서 실제 Teams `<a>` 대신 회색 `<button>`(클릭 시 `showNotice()`)을 렌더(라벨 "채널 열기" 동일).
-- **산출물**: `ax-landing-preview.html`.
+- **산출물**: `ax-landing-preview.html` — **현재 삭제됨.** 랜딩(`/`)이 외부 제작 콘텐츠로 교체 완료된 후 `npm run build:share`로 재생성 예정. 공유 빌드 체계(`VITE_SHARE_MODE`·`vite-plugin-singlefile`·`ShareRedirect`·`SharePreviewBanner`)는 그대로 유지한다.
 
 ---
 
@@ -283,7 +283,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 | `[]`(비움/생략) | 전사 공용. 모든 관계사 사용자에게 노출. |
 | `["KKM", …]` | 명시된 관계사 사용자에게만 노출. |
 
-- `platformScope === "unset"`인 항목은 AdminReview에서 승인 전 범위 지정이 필요(양 슬롯 비활성).
+- 관계사 지정 편집 UI는 폐기 — 신규 항목은 전사 공용으로 생성된다. `company`/`platformScope`는 승인 슬롯 자격·companyAdmin 조회 범위 판정 데이터로만 사용.
 
 ### CompanyAdmin 항목 가시성
 
@@ -325,7 +325,7 @@ techhub/
     ├── tsconfig*.json
     ├── .env.local            # VITE_API_URL=http://localhost:8000
     ├── .env.share            # VITE_SHARE_MODE=true (공유 빌드용)
-    ├── ax-landing-preview.html   # 공유 빌드 산출물
+    │   # ax-landing-preview.html — 공유 빌드 산출물(현재 삭제, 랜딩 교체 후 재생성)
     ├── dist-share/           # build:share outDir (.gitignore)
     └── src/
         ├── main.tsx
@@ -440,10 +440,12 @@ AX 항목 상세. 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓
 
 #### `ProjectRegisterPage.tsx` — `/projects/new`
 
-다단계 스텝 폼. 유형 선택 → 기본정보 → 플랫폼별 상세 → 담당자·링크 → 최종확인.
+**3단계 고정 스텝 폼**: 유형 선택 → 정보 입력(공통·유형별·담당자 통합) → 최종 확인.
 
-- n8n: N8nFlowPreview + JSON 업로드.
-- **내부 컴포넌트**(모듈 레벨): `Section`, `Field`, `Tag`, `RowRemoveButton`, `TimeSavedInput`, `CompanyMultiSelect`, `ChipInput` 등.
+- **공통 필드**: 사진(최대 10장, 캐러셀 입력) · 제목 · 한 줄 요약 · 상세 설명 · 업무 도메인 · 태그 · 담당자.
+- **유형별**: n8n(JSON 업로드→다이어그램 자동 표시·예상 효과·구성 난이도) / pa(예상 효과) / assistant(공유 프롬프트·기반 모델) / ai-orchestration(이용 가능 여부·강점 및 활용 방법·모델 접속 URL·세부 모델명·처리 가능 글 분량·비용 등급, **관리자 전용**) / ml(모델 유형·학습 데이터 개요·개발 도구) / vibe·etc(공통만).
+- **관계사 범위 입력 없음** — 전 항목 전사 공용(`company: []`)으로 고정. 상태·실행 URL(ai-orch 모델 접속 제외) 입력 없음.
+- **내부 컴포넌트**(모듈 레벨): `Section`, `SubHeading`, `Field`, `Tag`, `RowRemoveButton`, `ImageCarouselInput`, `TimeSavedInput`, `ChipInput` 등.
 
 #### `MyStatusPage.tsx` — `/my-status`
 
@@ -451,7 +453,7 @@ AX 항목 상세. 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓
 
 #### `EditRequestPage.tsx` — `/edit-request/:id`
 
-게시된 항목 수정 신청. 체크박스로 수정할 필드 선택 + 변경 내용 + 사유 입력.
+게시된 항목 수정 신청. **등록 폼(ProjectRegisterPage) Step 1 필드 구성과 1:1 대응**한 폼을 현재 값으로 프리필한 뒤, 변경 내용 + 수정 사유를 입력해 제출 → 관리자 검토 후 반영. 상태·관계사·실행 URL·삭제된 유형별 필드의 수정 UI는 없음. 사진은 캐러셀 입력(`ImageCarouselInput`) 모듈 레벨 패턴 공유.
 
 ---
 
@@ -461,29 +463,30 @@ AX 항목 상세. 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓
 
 #### `AdminDashboard.tsx` — `/admin` (admin + companyAdmin)
 
-KPI 5개 (`repeat(5, 1fr)`): `전체 등록물` / `승인 대기`(부분 승인 N건 포함) / `이번 달 신규` / `사용 가능 도구` / `누적 활용 후기`.
+KPI 5개 (`repeat(5, 1fr)`): `전체 등록물` / `승인 대기`(부분 승인 N건 포함) / `이번 달 신규` / `게시된 도구` / `누적 활용 후기`. (운영 상태 폐기로 `사용 가능 도구` → `게시된 도구`로 변경 — 승인 완료·게시 기준.)
 
 - **조회 범위 선택기** 헤더 노출(위 [조회 범위 선택기] 참조). `pendingCount`는 `baseScope` 기준.
-- 승인 대기 · 최근 승인 2열 목록, 월별 등록 추이 스택 바, 플랫폼별 구성, 비즈니스 도메인 분포.
+- 승인 대기 · 최근 승인 2열 목록, 월별 등록 추이 스택 바(7유형), 카테고리별 구성, 비즈니스 도메인 분포. 출처 색상·라벨은 `PLATFORMS`에서 파생(etc 포함). 목업 ID는 `{PREFIX}-2026-{NNN}` 형식으로 통일.
 
 #### `AdminReview.tsx` — `/admin/review` (admin + companyAdmin)
 
 AX 항목 병렬 2슬롯 승인 검토. `SummaryStrip`(필터) · `SlotPill`(목록) · `SlotCard`(상세 병렬 카드) · `pendingCount` 산출. (상세는 위 [승인 흐름 → AdminReview 슬롯 UI] 참조.)
 
-- **n8n JSON**: "✓ JSON 첨부됨" + 다운로드 버튼.
-- **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ChipEditor`, `CompanyMultiSelect`.
+- **간소화 검토 필드**: 공통(이미지 캐러셀 표시·제목·요약·상세·도메인·태그·담당자) + 유형별(n8n 다이어그램·예상 효과·난이도 / pa 예상 효과 / assistant 공유 프롬프트·기반 모델 / ai-orch 가용 여부·강점·모델 접속 URL·세부 모델명·글 분량·비용 등급 / ml 모델 유형·학습 데이터·개발 도구 / vibe·etc 공통만). **상태·관계사 지정·삭제된 유형별 필드 검토 UI 없음.**
+- **승인 권한 가드는 현행 슬롯 모델 그대로 유지** — `company`/`platformScope`는 슬롯 자격 판정 데이터로만 존치(편집 UI 제거).
+- **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ImageStripView`.
 
 #### `AdminProjectManage.tsx` — `/admin/projects` (admin + companyAdmin)
 
-게시된 AX 항목 전체 관리.
+게시된 AX 항목 전체 관리. 편집 필드는 등록 폼과 동일한 간소화 7유형 체계(상태·관계사·실행 URL 편집 없음).
 
-- **CompanyAdmin**: 담당 관계사 항목만 표시(`company.length === 0 || company.some(c => managedCompanies.includes(c))`). 삭제만 가능.
-- **Admin 전용**: ★ 하이라이트 토글, ✦ 금주의 발견 토글, 수정, 직접 등록.
-- **내부 컴포넌트**(모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ChipEditor`, `CompanyMultiSelect`, `TimeSavedInput`.
+- **CompanyAdmin**: `canManageItem`(담당 관계사 + 전사 공용)만 표시. 삭제만 가능.
+- **Admin 전용**: ★ 하이라이트 토글, ✦ 금주의 발견 토글, 수정, 직접 등록. `expectedTimeSaved` 직렬화/역직렬화(`timeSavedValue`·`timeSavedPeriod`) 유지.
+- **내부 컴포넌트**(모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ImageStripView`, `TimeSavedInput`.
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy` (admin)
 
-AX 항목 분류체계 관리(업무 도메인 `BusinessDomain` 등). 탭별 항목 추가/삭제/편집.
+AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 · 비용 등급 · ML 모델 유형**) + 자유 태그. 등록 폼에서 입력이 사라진 고아 분류(n8n 노드 힌트·PA 커넥터·n8n·PA 연동 앱·Vibe 도구 힌트)는 삭제 — n8n은 JSON 업로드로 전환되어 수동 노드 입력이 없다. 구성 난이도는 **n8n 전용**. 자유 태그 출처(`sourceKind`)는 `etc`(표시명 "AI 프로젝트") 포함 7유형 대응.
 
 #### `AdminOrg.tsx` — `/admin/org` (admin)
 
@@ -504,12 +507,12 @@ AX 항목 분류체계 관리(업무 도메인 `BusinessDomain` 등). 탭별 항
 
 통계 대시보드. 조회 범위 선택기 노출(pendingCount 없음).
 
-- 상단 카드 4개(전체 등록물/이번 달 신규/활성 항목/참여 관계사), 기간 프리셋 + 월 지정.
-- 등록 추이 · 항목 상태 4그룹 · 플랫폼별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`parseTimeSaved` → 연간 환산) · 3-column 분석(난이도/비용 구간/ML 유형) · **후기 많은 항목 TOP 5** · 탐색 키워드 빈도.
+- 상단 카드 4개(전체 등록물/이번 달 신규/**참여 부서**/참여 관계사), 기간 프리셋 + 월 지정. (운영 상태 폐기로 `활성 항목` 카드 및 `항목 상태 4그룹` 차트 제거.)
+- 등록 추이(7유형 스택) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Agent]/ML 유형) · **후기 많은 항목 TOP 5** · 탐색 키워드 빈도. 출처 색상은 `PLATFORMS`에서 파생.
 
 #### `AdminPlatforms.tsx` — `/admin/platforms` (admin)
 
-6개 플랫폼 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `PlatformIcon`. (위 [아이콘 체계] 참조.)
+7개 카테고리 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `PlatformIcon`. (표시 문자열은 "카테고리", 라우트 `/admin/platforms`·파일명·코드 심볼은 platform 계열 유지. 위 [아이콘 체계] 참조.)
 
 ---
 
@@ -577,14 +580,16 @@ AuthProvider
 
 | 타입/상수 | 설명 |
 |---|---|
-| `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe"` (6종, 변경 금지) |
-| `ICON_PRESETS` | 아이콘 레지스트리 `Record<string, {label, path}>` (20종). AdminPlatforms 아이콘 선택 SSOT |
+| `PlatformId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe" \| "etc"` (**7종**, 변경 금지) |
+| `ID_PREFIX` / `makeItemId` | 항목 ID 접두어 매핑(`N8N`/`PA`/`AST`/`AIO`/`ML`/`VIBE`/`ETC`) + `{PREFIX}-{YYYY}-{NNN}` 생성기 (아래 [항목 ID 체계] 참조) |
+| `ICON_PRESETS` | 아이콘 레지스트리 `Record<string, {label, path}>` (21종, `etc` 포함). AdminPlatforms 아이콘 선택 SSOT |
 | `IconKey` | `keyof typeof ICON_PRESETS` (사실상 string — PLATFORM_ICON_PATH 호환) |
 | `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
-| `PLATFORMS` | 6개 플랫폼 메타 배열. 출처 색상·경로 SSOT (변경 금지) |
-| `PlatformItemStatus` | `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"` |
-| `STATUS_ORDER` / `STATUS_COLOR` / `STATUS_QUERY_KEY` | 상태 4종 배열·색상·URL 키 (변경 금지) |
-| `LEGACY_STATUS_MAP` / `normalizeStatus` | 레거시 상태 문자열 정규화 |
+| `PLATFORMS` | **7개** 플랫폼 메타 배열. 출처 색상·경로 SSOT (변경 금지) |
+| ~~`PlatformItemStatus`~~ | **@deprecated 운영 상태 폐기.** `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"`. 제품 UI에서 전면 제거됨 — LandingPage 잔존 참조 정리 시 타입 삭제 예정. |
+| ~~`STATUS_ORDER` / `STATUS_COLOR` / `STATUS_QUERY_KEY`~~ | **@deprecated** 운영 상태 4종 배열·색상·URL 키. 신규 참조 금지. |
+| ~~`LEGACY_STATUS_MAP` / `normalizeStatus`~~ | **@deprecated** 레거시 상태 문자열 정규화. |
+| `agentAvailability` (PlatformItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Agent(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 기존 4종 상태 체계와 별개 축. |
 | `BUSINESS_DOMAINS` / `BusinessDomain` | 업무 도메인 축 `["영업","생산","연구","재무","HR","IT"]` |
 | `ApprovalSlotKey` / `ApprovalSlot` / `ApprovalSlots` | 병렬 2슬롯 승인 (`company` / `global`) |
 | `APPROVAL_SLOT_LABEL` | 슬롯 라벨 (관계사 관리자 승인 / 전사 관리자 승인) |
@@ -595,8 +600,32 @@ AuthProvider
 | `DeletionRecord` | CompanyAdmin 삭제 이력 |
 | `PlatformReview` | `{ id, itemId, itemTitle, itemKind, author, dept, text, createdAt, likes }` |
 | `EditorsPick` | 금주의 발견 `{ itemId, reason, pickedAt, pickedBy }` |
-| `PlatformItem` | AX 항목 공용 타입. `company?: string[]`, `expectedTimeSaved?`, `domain?`, `usageMode?`, 플랫폼별 전용 필드 포함 |
+| `PlatformItem` | AX 항목 공용 타입. `company?: string[]`, `expectedTimeSaved?`, `domain?`, `usageMode?`, 카테고리별 전용 필드 포함 |
 | `PLATFORM_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키, ICON_PRESETS 기존 6종과 동일 path) |
+
+### 항목 ID 체계 (`ID_PREFIX` / `makeItemId`)
+
+```
+형식: {PREFIX}-{YYYY}-{NNN}   예: N8N-2026-001, AIO-2026-012, ETC-2026-001
+PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VIBE / etc=ETC
+```
+
+- **카테고리별·연도별 독립 순번** — 순번(NNN)은 (유형, 연도) 조합마다 1부터 매김.
+- **결번 재사용 금지** — 삭제·반려된 순번은 다시 쓰지 않는다.
+- **승인 전후 ID 불변** — 신청 시 발급된 ID가 게시 후에도 그대로 유지된다.
+- **서버 발급** — 실제 연동 시 PostgreSQL 카테고리·연도별 시퀀스로 INSERT 시점에 원자적 발급. 데모는 `makeItemId(platformId, seq, year)`로 모사.
+
+### 운영 상태(PlatformItemStatus) 폐기
+
+- **운영 상태 4종(`사용 가능`/`준비 중`/`일부 제한`/`사용 중지`)은 제품에서 전면 폐기.** 등록·검토·관리·상세·통계 어디에도 상태 표시·편집·필터·집계 UI를 두지 않는다.
+- **유일한 예외**: AI Agent(ai-orchestration)의 `agentAvailability`(`사용 가능`/`사용 불가`) — 운영 상태와 별개 축.
+- **승인 수명주기는 유지** — `승인 대기`/`부분 승인`/`게시됨`/`반려`/`중지`는 상태와 별개 개념으로 존치(위 [승인 흐름] 참조).
+- `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR`·`STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`는 **deprecated**. 현재 잔존 참조는 `LandingPage.tsx`뿐이며, 정리 완료 시 타입 정의 자체를 삭제한다.
+
+### 항목 URL·관계사 표시 정책
+
+- **항목 실행/접속 URL 폐기** — 유일한 예외는 AI Agent의 **모델 접속 URL**(`specificUrl`). 그 외 유형의 실행 URL·소스 저장소 입력은 제거됨.
+- **회사/관계사 표시 폐기** — 항목의 사용 주체는 **담당자 소속 부서(dept) + 업무 도메인(domain)**으로 표현. `company`/`platformScope`는 승인 권한 가드(관계사 슬롯)·companyAdmin 조회 범위 판정용 **데이터로만 존치**(편집 UI 없음, 신규 항목은 전사 공용).
 
 ### 예상 절감 시간 모델 (`expectedTimeSaved`)
 
@@ -616,8 +645,8 @@ AuthProvider
 
 | 항목 | 설명 |
 |---|---|
-| `SourceKey` | `PlatformId` — 6종 |
-| `MonthPoint` | 월별 포인트. 6개 플랫폼 필드 |
+| `SourceKey` | `PlatformId` — **7종**(etc 포함). 운영 상태 필드 없음 |
+| `MonthPoint` | 월별 포인트. **7개** 유형 필드(`etc`는 더미 0·중립) |
 | `STAT_COMPANIES` / `StatCompany` | 더미 기준 관계사 코드 배열 (`KKM`…`KBT` 7종) |
 | `COMPANY_NAME` | 관계사 코드 → 표시명 매핑 |
 | `MONTH_SERIES_BY_COMPANY` / `SOURCE_TOTAL_BY_COMPANY` / `DOMAIN_BY_COMPANY` | 관계사별 원본 시계열·합계·도메인 분포 |
@@ -671,12 +700,20 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 | `GET` | `/api/v1/auth/me` | AuthContext (role·managedCompanies) |
 | `POST` | `/api/v1/auth/logout` | AuthContext |
 
+> **개편 반영 사항**
+> - **`PATCH /platform-items/:id/status` 삭제** — 운영 상태 폐기로 상태 변경 엔드포인트 없음.
+> - **승인(`approve-slot`)·수정 요청(`edit-requests`) body에서 `company`·`platformScope` 제거** — 전 항목 전사 공용, 관계사 지정 흐름 폐기. 두 필드는 승인 권한 가드 데이터로만 잔존.
+> - **등록·수정 body에 `images: string[]`(최대 10장, 데모는 data URL) 추가.** AI Agent만 `agentAvailability`·모델 접속 `specificUrl` 유지.
+
 ---
 
 ## 플랫폼 포지셔닝
 
 Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 모으는 저장소입니다.
 
-- **6대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding
+- **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
+- **`etc` 표시 라벨 = "AI 프로젝트"**: 내부 식별자(`PlatformId` 값 `"etc"`, ID 접두어 `ETC`, 라우트 `/etc`)는 **불변**. 사용자 노출 라벨만 "기타" → "AI 프로젝트"로 변경(`PLATFORMS`의 name이 단일 소스이며 파생 라벨은 자동 반영).
+- **표시 용어 "카테고리"로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자는 platform 계열 유지**(`PlatformItem`·`platformId`·`platformScope`·`PLATFORMS`·`PlatformId`·`AdminPlatforms` 파일·라우트 `/admin/platforms`·`PLATFORM_ICON_PATH` 등). 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭, TODO API 경로(`/api/v1/platforms/...`)는 그대로 둔다.
+- **AI Agent 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
 - **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
 - **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.

@@ -246,7 +246,7 @@ export default function AdminPlatforms() {
           <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>AX 플랫폼 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{platforms.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>카테고리 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{platforms.length}</span></span>
                 <button onClick={startNew} style={{
                   background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
                   padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -401,7 +401,7 @@ export default function AdminPlatforms() {
                         />
                       : displayData.accessUrl
                           ? <a href={displayData.accessUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.accessUrl}</a>
-                          : <span style={{ fontSize: 13, color: "#94A3B8" }}>미정 (준비 중)</span>}
+                          : <span style={{ fontSize: 13, color: "#94A3B8" }}>미설정</span>}
                   </FieldRow>
                 </SectionBlock>
 

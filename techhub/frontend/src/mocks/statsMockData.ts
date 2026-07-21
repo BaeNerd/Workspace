@@ -13,7 +13,7 @@
 
 import type { PlatformId } from "../types/platformTypes";
 
-// 출처 키 = 6개 플랫폼 타입 그대로
+// 출처 키 = 7개 플랫폼 타입 그대로 (etc 포함, 운영 상태 필드 없음)
 export type SourceKey = PlatformId;
 
 // 월별 포인트 — 두 화면이 각기 쓰던 키를 모두 제공(key/m/month)
@@ -27,6 +27,7 @@ export type MonthPoint = {
   "ai-orchestration": number;
   ml: number;
   vibe: number;
+  etc: number; // AI 프로젝트 카테고리(내부 키 etc) — 더미 데이터 없음 → 항상 0, 중립
 };
 
 // 더미 기준 관계사 코드 (visible 관계사 일부).
@@ -75,20 +76,20 @@ export const MONTH_SERIES_BY_COMPANY: Record<StatCompany, MonthPoint[]> = Object
     co,
     MONTHLY_RAW[co].map((row, i) => ({
       key: MONTH_KEYS[i], m: MONTH_LABELS[i], month: MONTH_LABELS[i],
-      n8n: row[0], pa: row[1], assistant: row[2], "ai-orchestration": row[3], ml: row[4], vibe: row[5],
+      n8n: row[0], pa: row[1], assistant: row[2], "ai-orchestration": row[3], ml: row[4], vibe: row[5], etc: 0,
     })),
   ])
 ) as Record<StatCompany, MonthPoint[]>;
 
 // 누적 출처별 × 관계사. TODO: 백엔드 연동 시 폐기.
 export const SOURCE_TOTAL_BY_COMPANY: Record<StatCompany, Record<SourceKey, number>> = {
-  KKM: { n8n: 18, pa: 12, assistant: 13, "ai-orchestration": 9, ml: 4, vibe: 2 },
-  KBH: { n8n: 7, pa: 5, assistant: 4, "ai-orchestration": 3, ml: 1, vibe: 0 },
-  HC: { n8n: 5, pa: 4, assistant: 3, "ai-orchestration": 2, ml: 0, vibe: 0 },
-  KMG: { n8n: 4, pa: 3, assistant: 4, "ai-orchestration": 3, ml: 2, vibe: 1 },
-  KMW: { n8n: 2, pa: 1, assistant: 2, "ai-orchestration": 1, ml: 1, vibe: 0 },
-  KUS: { n8n: 1, pa: 0, assistant: 1, "ai-orchestration": 0, ml: 0, vibe: 0 },
-  KBT: { n8n: 1, pa: 0, assistant: 0, "ai-orchestration": 1, ml: 0, vibe: 0 },
+  KKM: { n8n: 18, pa: 12, assistant: 13, "ai-orchestration": 9, ml: 4, vibe: 2, etc: 0 },
+  KBH: { n8n: 7, pa: 5, assistant: 4, "ai-orchestration": 3, ml: 1, vibe: 0, etc: 0 },
+  HC: { n8n: 5, pa: 4, assistant: 3, "ai-orchestration": 2, ml: 0, vibe: 0, etc: 0 },
+  KMG: { n8n: 4, pa: 3, assistant: 4, "ai-orchestration": 3, ml: 2, vibe: 1, etc: 0 },
+  KMW: { n8n: 2, pa: 1, assistant: 2, "ai-orchestration": 1, ml: 1, vibe: 0, etc: 0 },
+  KUS: { n8n: 1, pa: 0, assistant: 1, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 },
+  KBT: { n8n: 1, pa: 0, assistant: 0, "ai-orchestration": 1, ml: 0, vibe: 0, etc: 0 },
 };
 
 // 도메인 라벨(고정 순서) + 관계사별 수치. TODO: 백엔드 연동 시 폐기.
@@ -115,7 +116,7 @@ export const scopedCompanies = (scope: string[] | null): StatCompany[] =>
 export const aggregateMonthly = (companies: StatCompany[]): MonthPoint[] => {
   const base: MonthPoint[] = MONTH_KEYS.map((key, i) => ({
     key, m: MONTH_LABELS[i], month: MONTH_LABELS[i],
-    n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0,
+    n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0,
   }));
   companies.forEach(co => {
     MONTH_SERIES_BY_COMPANY[co].forEach((p, idx) => {
@@ -131,7 +132,7 @@ export const aggregateMonthly = (companies: StatCompany[]): MonthPoint[] => {
 };
 
 export const aggregateSourceTotal = (companies: StatCompany[]): Record<SourceKey, number> => {
-  const acc: Record<SourceKey, number> = { n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0 };
+  const acc: Record<SourceKey, number> = { n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 };
   companies.forEach(co => (Object.keys(acc) as SourceKey[]).forEach(k => { acc[k] += SOURCE_TOTAL_BY_COMPANY[co][k]; }));
   return acc;
 };

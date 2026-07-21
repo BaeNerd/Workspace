@@ -4,6 +4,7 @@ import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { useAuth } from "../../context/useAuth";
+import { PLATFORMS } from "../../types/platformTypes";
 import {
   STAT_COMPANIES,
   scopedCompanies, aggregateMonthly, aggregateSourceTotal, aggregateDomain,
@@ -16,31 +17,14 @@ type Period = typeof PERIODS[number];
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-const SOURCES: { key: SourceKey; label: string; color: string }[] = [
-  { key: "n8n", label: "n8n", color: "#EA580C" },
-  { key: "pa", label: "Power Automate", color: "#0078D4" },
-  { key: "assistant", label: "나만의비서", color: "#2563EB" },
-  { key: "ai-orchestration", label: "AI Agent", color: "#7C3AED" },
-  { key: "ml", label: "ML 모델", color: "#0891B2" },
-  { key: "vibe", label: "Vibe Coding", color: "#9333EA" },
-];
+// 유형 색상·라벨은 PLATFORMS 단일 소스에서 파생 (7유형: etc 포함)
+const SOURCES: { key: SourceKey; label: string; color: string }[] =
+  PLATFORMS.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 // ============================================================
 // ★ 화면 고유 더미 — 상태·부서·난이도·비용·ML유형·키워드·절감시간
 // TODO: 백엔드 연동 시 폐기.
 // ============================================================
-
-// 4개 의미 그룹 — 유형별 상태 다양성을 시맨틱 그룹으로 통합
-const STATUS_META = [
-  { label: "사용 가능", sub: "사용 가능", color: "#059669" },
-  { label: "준비 중", sub: "준비 중", color: "#2563EB" },
-  { label: "일부 제한", sub: "일부 제한", color: "#D97706" },
-  { label: "사용 중지", sub: "사용 중지", color: "#EF4444" },
-];
-const STATUS_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [26, 19, 8, 5], KBH: [10, 8, 3, 2], HC: [7, 6, 2, 1],
-  KMG: [5, 4, 2, 2], KMW: [3, 2, 2, 1], KUS: [2, 1, 1, 0], KBT: [1, 1, 0, 0],
-};
 
 const DEPT_BY_COMPANY: Record<StatCompany, { dept: string; count: number }[]> = {
   KKM: [
@@ -55,7 +39,7 @@ const DEPT_BY_COMPANY: Record<StatCompany, { dept: string; count: number }[]> = 
   KBT: [{ dept: "바이오연구팀", count: 2 }],
 };
 
-// n8n · PA 워크플로우 기준
+// n8n 워크플로우 기준 (난이도 축은 n8n 전용)
 const DIFFICULTY_META = [
   { label: "쉬움", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "어려움", color: "#7C3AED" },
 ];
@@ -106,11 +90,11 @@ const TIME_SAVED_BY_COMPANY: Record<StatCompany, string[]> = {
 // 전사(admin) 기준에서는 5건 전량 노출(기존 표시와 동일). TODO: 백엔드 연동 시 폐기.
 type TopReview = { id: string; title: string; kind: string; reviewCount: number; avgLikes: number; company: StatCompany };
 const TOP5_REVIEWS_ALL: TopReview[] = [
-  { id: "N8N-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",              reviewCount: 18, avgLikes: 7.2, company: "KKM" },
-  { id: "AST-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
-  { id: "AIO-002", title: "Claude (문서 분석 특화)",        kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
-  { id: "PA-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
-  { id: "ML-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
+  { id: "N8N-2026-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",              reviewCount: 18, avgLikes: 7.2, company: "KKM" },
+  { id: "AST-2026-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
+  { id: "AIO-2026-002", title: "Claude Opus 4.8",              kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
+  { id: "PA-2026-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
+  { id: "ML-2026-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
 ];
 
 // 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로) — AdminDashboard와 동일 방식
@@ -203,7 +187,6 @@ export default function AdminStatistics() {
     const monthSeries = aggregateMonthly(companies);
     const sourceTotal = aggregateSourceTotal(companies);
     const domain = aggregateDomain(companies);
-    const statusCounts = aggregateIndexed(companies, STATUS_BY_COMPANY, STATUS_META.length);
     const difficultyCounts = aggregateIndexed(companies, DIFFICULTY_BY_COMPANY, DIFFICULTY_META.length);
     const costCounts = aggregateIndexed(companies, COST_BY_COMPANY, COST_META.length);
     const mlTypeCounts = aggregateIndexed(companies, ML_TYPE_BY_COMPANY, ML_TYPE_META.length);
@@ -212,7 +195,6 @@ export default function AdminStatistics() {
     const timeSamples = aggregateTimeSaved(companies);
     const topReviews = TOP5_REVIEWS_ALL.filter(r => companies.includes(r.company));
 
-    const status = STATUS_META.map((s, i) => ({ ...s, count: statusCounts[i] }));
     const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: difficultyCounts[i] }));
     const cost = COST_META.map((c, i) => ({ ...c, count: costCounts[i] }));
     const mlType = ML_TYPE_META.map((t, i) => ({ ...t, count: mlTypeCounts[i] }));
@@ -222,7 +204,7 @@ export default function AdminStatistics() {
     const unestimableCount = parsed.filter(v => v === null).length;
     const estimableCount = parsed.length - unestimableCount;
 
-    return { companies, monthSeries, sourceTotal, domain, status, difficulty, cost, mlType, dept, keyword,
+    return { companies, monthSeries, sourceTotal, domain, difficulty, cost, mlType, dept, keyword,
       topReviews, totalAnnualHoursSaved, unestimableCount, estimableCount };
   }, [scopeKey]);
 
@@ -236,9 +218,8 @@ export default function AdminStatistics() {
 
   const totalRegistrations =
     agg.sourceTotal.n8n + agg.sourceTotal.pa + agg.sourceTotal.assistant +
-    agg.sourceTotal["ai-orchestration"] + agg.sourceTotal.ml + agg.sourceTotal.vibe;
+    agg.sourceTotal["ai-orchestration"] + agg.sourceTotal.ml + agg.sourceTotal.vibe + agg.sourceTotal.etc;
 
-  const totalProjects = agg.status.reduce((s, d) => s + d.count, 0) || 1;
   const totalDomain = agg.domain.reduce((s, d) => s + d.count, 0) || 1;
   const totalDifficulty = agg.difficulty.reduce((s, d) => s + d.count, 0) || 1;
   const totalCost = agg.cost.reduce((s, d) => s + d.count, 0) || 1;
@@ -248,7 +229,7 @@ export default function AdminStatistics() {
 
   const monthly: MonthPoint[] = periodMode === "month"
     ? [MONTH_SERIES.find(s => s.key === `${pickYear}-${pad2(pickMonth)}`)
-        ?? { key: `${pickYear}-${pad2(pickMonth)}`, m: `${pickMonth}월`, month: `${pickMonth}월`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0 }]
+        ?? { key: `${pickYear}-${pad2(pickMonth)}`, m: `${pickMonth}월`, month: `${pickMonth}월`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 }]
     : PRESET_MONTHS[period];
 
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
@@ -256,9 +237,6 @@ export default function AdminStatistics() {
 
   const sourceByPeriod = SOURCES.map(s => ({ ...s, count: monthly.reduce((acc, m) => acc + (m as Record<SourceKey, number>)[s.key], 0) }));
   const periodTotal = sourceByPeriod.reduce((a, b) => a + b.count, 0);
-
-  // 정상 운영 + 검증·개발만 활성 항목으로 간주
-  const activeItems = agg.status[0].count + agg.status[1].count;
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -281,7 +259,7 @@ export default function AdminStatistics() {
                   </span>
                 ) : null}
               </div>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의비서 · AI Agent · ML · Vibe) 등록 현황을 통합 분석합니다.</p>
+              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 등록 현황을 통합 분석합니다.</p>
             </div>
 
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -325,9 +303,9 @@ export default function AdminStatistics() {
           {/* 상단 4카드 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
             {[
-              { label: "전체 등록물", value: totalRegistrations, sub: "6개 플랫폼 합산", color: "#0F172A" },
-              { label: "이번 달 신규", value: monthTotal(MONTH_SERIES[MONTH_SERIES.length - 1]), sub: "6개 플랫폼 합산", color: "#2563EB" },
-              { label: "활성 항목", value: activeItems, sub: "정상 운영 + 검증·개발", color: "#059669" },
+              { label: "전체 등록물", value: totalRegistrations, sub: "전체 유형 합산", color: "#0F172A" },
+              { label: "이번 달 신규", value: monthTotal(MONTH_SERIES[MONTH_SERIES.length - 1]), sub: "전체 유형 합산", color: "#2563EB" },
+              { label: "참여 부서", value: agg.dept.length, sub: "집계된 부서 수", color: "#059669" },
               { label: "참여 관계사", value: agg.companies.length, sub: "전체 관계사", color: "#7C3AED" },
             ].map((k, i) => (
               <div key={i} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "16px 20px" }}>
@@ -338,8 +316,8 @@ export default function AdminStatistics() {
             ))}
           </div>
 
-          {/* 등록 추이 | 항목 상태 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, marginBottom: 16 }}>
+          {/* 등록 추이 */}
+          <div style={{ marginBottom: 16 }}>
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>등록 추이 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 8 }}>{periodLabel}</span></div>
@@ -372,32 +350,12 @@ export default function AdminStatistics() {
                 })}
               </div>
             </div>
-
-            <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>항목 상태</div>
-              <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
-                {agg.status.map((s, i) => s.count > 0 && <div key={i} title={`${s.label}: ${s.count}건`} style={{ flex: s.count, background: s.color }} />)}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {agg.status.map((s, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0, marginTop: 2 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>{s.label}</div>
-                      <div style={{ fontSize: 10, color: "#CBD5E1", marginTop: 1 }}>{s.sub}</div>
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{s.count}</span>
-                    <span style={{ fontSize: 11, color: "#94A3B8", width: 32, textAlign: "right" }}>{Math.round(s.count / totalProjects * 100)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* 출처별 등록 현황 */}
           <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 24px", marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>플랫폼별 등록 현황 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 8 }}>{periodLabel} 기준 · 총 {periodTotal}건</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>카테고리별 등록 현황 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 8 }}>{periodLabel} 기준 · 총 {periodTotal}건</span></div>
             </div>
             <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
               {sourceByPeriod.map(s => s.count > 0 && <div key={s.key} title={`${s.label}: ${s.count}건`} style={{ flex: s.count, background: s.color }} />)}
@@ -466,10 +424,10 @@ export default function AdminStatistics() {
             </div>
           </div>
 
-          {/* 플랫폼 항목 분석 섹션 */}
+          {/* 등록 항목 분석 섹션 */}
           <div style={sectionLabelStyle}>
-            <span style={{ width: 4, height: 14, borderRadius: 2, background: "#DB2777" }} />플랫폼 항목 분석
-            <span style={{ fontSize: 11, fontWeight: 500, color: "#94A3B8", textTransform: "none", letterSpacing: 0 }}>n8n · PA · 나만의비서 · AI Agent · ML · Vibe 기준 (총 {totalRegistrations}건)</span>
+            <span style={{ width: 4, height: 14, borderRadius: 2, background: "#DB2777" }} />등록 항목 분석
+            <span style={{ fontSize: 11, fontWeight: 500, color: "#94A3B8", textTransform: "none", letterSpacing: 0 }}>전체 유형 기준 (총 {totalRegistrations}건)</span>
           </div>
 
           {/* 절감 효과 요약 */}
@@ -513,7 +471,7 @@ export default function AdminStatistics() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>난이도 분포</div>
-              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>n8n · PA 워크플로우 기준</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>n8n 워크플로우 기준</div>
               <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
                 {agg.difficulty.map((d, i) => d.count > 0 && <div key={i} title={`${d.label}: ${d.count}건`} style={{ flex: d.count, background: d.color }} />)}
               </div>

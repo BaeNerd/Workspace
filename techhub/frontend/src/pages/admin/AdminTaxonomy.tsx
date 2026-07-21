@@ -32,27 +32,9 @@ const INITIAL_PLATFORM_TAXONOMY: Record<string, Category> = {
     type: "single",
     items: [...BUSINESS_DOMAINS],
   },
-  nodeHints: {
-    label: "n8n 노드 힌트",
-    desc: "n8n 등록 시 노드 입력란에서 제안되는 자동완성 힌트 목록. n8n 전용이며 PA 커넥터와 공유하지 않는다.",
-    type: "multi",
-    items: ["Manual Trigger", "Schedule Trigger", "Form Trigger", "Chat Trigger", "Webhook", "Set (Edit Fields)", "Code", "IF", "Switch", "Filter", "Merge", "Aggregate", "Sort", "AI Agent", "Basic LLM Chain"],
-  },
-  paConnectors: {
-    label: "PA 커넥터 힌트",
-    desc: "Power Automate 등록 시 커넥터 입력란에서 제안되는 힌트 목록. n8n 노드 힌트와 별도 세트로 관리한다(실행 환경이 다르기 때문).",
-    type: "multi",
-    items: ["SharePoint", "Microsoft Teams", "Outlook", "Excel Online", "Power BI", "Dataverse", "Forms", "Approvals", "Planner", "OneDrive", "Azure Blob Storage", "SQL Server"],
-  },
-  appHints: {
-    label: "n8n · PA 공용 연동 앱 힌트",
-    desc: "n8n · Power Automate 등록 시 연동 앱 입력란에서 제안되는 힌트 목록. 두 플랫폼이 공통으로 참조한다.",
-    type: "multi",
-    items: ["Microsoft Outlook", "Microsoft Teams", "Microsoft One Drive", "Google Sheets", "HTTP Request", "Spreadsheet File", "Respond To Webhook"],
-  },
   difficulty: {
     label: "구성 난이도",
-    desc: "n8n · PA 등록 시 선택하는 난이도 등급. 단일 선택. (나만의 비서·AI Agent·ML·Vibe 에는 적용되지 않는다)",
+    desc: "n8n 등록 시 선택하는 난이도 등급. 단일 선택. n8n 전용. (PA·나만의 비서·AI Agent·ML·Vibe·AI 프로젝트 에는 적용되지 않는다)",
     type: "single",
     items: ["쉬움", "보통", "어려움"],
   },
@@ -68,12 +50,6 @@ const INITIAL_PLATFORM_TAXONOMY: Record<string, Category> = {
     type: "single",
     items: ["분류 (Classification)", "회귀 (Regression)", "클러스터링", "NLP / 텍스트", "이미지 인식", "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달"],
   },
-  vibeTools: {
-    label: "Vibe Coding 도구 힌트",
-    desc: "Vibe Coding 등록 시 사용한 AI 코딩 도구 선택 힌트. Vibe 전용.",
-    type: "multi",
-    items: ["GitHub Copilot", "Cursor", "Claude Code", "Codeium", "Tabnine", "Replit AI", "v0", "Bolt", "Lovable", "Continue"],
-  },
 };
 
 // TODO: 실제 연동 시 GET /api/v1/admin/taxonomy/free-tags 응답으로 교체
@@ -81,41 +57,41 @@ const INITIAL_FREE_TAGS: FreeTag[] = [
   {
     tag: "재고관리", count: 2, proposedBy: "김도윤", dept: "생산본부", sourceKind: "n8n",
     sourceItems: [
-      { id: "N8N-010", kind: "n8n", title: "재고 임계치 도달 시 Teams 알림" },
-      { id: "N8N-011", kind: "n8n", title: "재고 입출고 자동 집계" },
+      { id: "N8N-2026-010", kind: "n8n", title: "재고 임계치 도달 시 Teams 알림" },
+      { id: "N8N-2026-011", kind: "n8n", title: "재고 입출고 자동 집계" },
     ],
   },
   {
     tag: "결재자동화", count: 1, proposedBy: "최유진", dept: "구매팀", sourceKind: "pa",
-    sourceItems: [{ id: "PA-003", kind: "pa", title: "구매 결재 자동 승인 플로우" }],
+    sourceItems: [{ id: "PA-2026-003", kind: "pa", title: "구매 결재 자동 승인 플로우" }],
   },
   {
     tag: "신제품기획", count: 1, proposedBy: "한지민", dept: "마케팅팀", sourceKind: "assistant",
-    sourceItems: [{ id: "AST-007", kind: "assistant", title: "신제품 기획서 초안 작성 도우미" }],
+    sourceItems: [{ id: "AST-2026-007", kind: "assistant", title: "신제품 기획서 초안 작성 도우미" }],
   },
   {
     tag: "온프레미스보안", count: 1, proposedBy: "정태영", dept: "IT개발팀", sourceKind: "ai-orchestration",
-    sourceItems: [{ id: "AIO-005", kind: "ai-orchestration", title: "Llama 3 (온프레미스 보안 특화)" }],
+    sourceItems: [{ id: "AIO-2026-005", kind: "ai-orchestration", title: "Llama 3" }],
   },
   {
     tag: "이미지분류", count: 1, proposedBy: "오승현", dept: "연구개발본부", sourceKind: "ml",
-    sourceItems: [{ id: "ML-002", kind: "ml", title: "성분 이미지 품질 분류 모델" }],
+    sourceItems: [{ id: "ML-2026-002", kind: "ml", title: "성분 이미지 품질 분류 모델" }],
   },
   {
     tag: "AI페어프로그래밍", count: 1, proposedBy: "이상민", dept: "IT개발팀", sourceKind: "vibe",
-    sourceItems: [{ id: "VIBE-001", kind: "vibe", title: "Cursor 기반 내부 API 자동 생성" }],
+    sourceItems: [{ id: "VIBE-2026-001", kind: "vibe", title: "Cursor 기반 내부 API 자동 생성" }],
+  },
+  {
+    tag: "AI뉴스", count: 1, proposedBy: "한지민", dept: "DX추진팀", sourceKind: "etc",
+    sourceItems: [{ id: "ETC-2026-001", kind: "etc", title: "사내 AI 뉴스 주간 요약 미니 프로젝트" }],
   },
 ];
 
 const PLATFORM_TABS = [
   { id: "businessDomain", label: "업무 도메인" },
-  { id: "nodeHints", label: "n8n 노드 힌트" },
-  { id: "paConnectors", label: "PA 커넥터 힌트" },
-  { id: "appHints", label: "n8n · PA 연동 앱" },
   { id: "difficulty", label: "구성 난이도" },
   { id: "costTier", label: "비용 등급" },
   { id: "mlTypes", label: "ML 모델 유형" },
-  { id: "vibeTools", label: "Vibe 도구 힌트" },
 ] as const;
 
 const TABS = [
@@ -133,14 +109,8 @@ const SOURCE_STYLE: Record<SourceKind, { color: string; bg: string; label: strin
 // 출처별로 편입 가능한 목적지 분류체계 옵션.
 // assistant: 표준 분류에 편입할 마땅한 카테고리 없음 → 빈 배열 (표준화 버튼 미노출)
 const IMPORT_DEST_OPTIONS: Record<SourceKind, { key: string; label: string }[]> = {
-  n8n: [
-    { key: "nodeHints", label: "n8n 노드 힌트" },
-    { key: "appHints", label: "n8n · PA 공용 연동 앱 힌트" },
-  ],
-  pa: [
-    { key: "paConnectors", label: "PA 커넥터 힌트" },
-    { key: "appHints", label: "n8n · PA 공용 연동 앱 힌트" },
-  ],
+  n8n: [], // n8n: 노드 힌트 폐기 후 편입 대상 없음 (표준화 버튼 미노출)
+  pa: [], // PA: 표준 분류에 편입할 카테고리 없음 (표준화 버튼 미노출)
   assistant: [],
   "ai-orchestration": [
     { key: "costTier", label: "비용 등급" },
@@ -148,9 +118,8 @@ const IMPORT_DEST_OPTIONS: Record<SourceKind, { key: string; label: string }[]> 
   ml: [
     { key: "mlTypes", label: "ML 모델 유형" },
   ],
-  vibe: [
-    { key: "vibeTools", label: "Vibe Coding 도구 힌트" },
-  ],
+  vibe: [], // Vibe: 표준 분류에 편입할 카테고리 없음 (표준화 버튼 미노출)
+  etc: [], // AI 프로젝트: 표준 분류에 편입할 카테고리 없음 (표준화 버튼 미노출)
 };
 
 const inputStyle: React.CSSProperties = {
@@ -215,7 +184,7 @@ const ItemRow = ({
 };
 
 export default function AdminTaxonomy() {
-  const [activeTab, setActiveTab] = useState<TabId>("nodeHints");
+  const [activeTab, setActiveTab] = useState<TabId>("businessDomain");
   const [platformTaxonomy, setPlatformTaxonomy] = useState(INITIAL_PLATFORM_TAXONOMY);
   const [freeTags, setFreeTags] = useState<FreeTag[]>(INITIAL_FREE_TAGS);
   const [freeTagSourceFilter, setFreeTagSourceFilter] = useState<"전체" | SourceKind>("전체");
@@ -223,7 +192,7 @@ export default function AdminTaxonomy() {
   const [editingItem, setEditingItem] = useState<{ key: string; idx: number; value: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ key: string; idx: number } | null>(null);
   const [importTag, setImportTag] = useState<string | null>(null);
-  const [importDest, setImportDest] = useState({ key: "nodeHints" });
+  const [importDest, setImportDest] = useState({ key: "costTier" });
   const [savedMsg, setSavedMsg] = useState("");
   const [selectedFreeTags, setSelectedFreeTags] = useState<string[]>([]);
 
@@ -300,7 +269,7 @@ export default function AdminTaxonomy() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>분류체계 관리</h1>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의비서 · AI Agent · ML · Vibe)의 표준 분류를 관리합니다.</p>
+              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
             </div>
             {savedMsg && (
               <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#065F46" }}>
@@ -368,7 +337,7 @@ export default function AdminTaxonomy() {
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>자유 태그 누적 목록</div>
-                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 6개 플랫폼 타입(n8n · PA · 나만의비서 · AI Agent · ML · Vibe) 등록에서 수집됩니다.</div>
+                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
                     </div>
                     {selectedFreeTags.length > 0 && (
                       <button onClick={() => handleFreeTagDelete(selectedFreeTags)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>선택 삭제 ({selectedFreeTags.length})</button>
@@ -461,8 +430,7 @@ export default function AdminTaxonomy() {
 
               <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
                 <strong>운영 유의사항</strong><br />
-                고정 분류 항목을 삭제하면 기존에 태깅된 AX 플랫폼 항목의 해당 분류가 공란으로 처리될 수 있습니다.
-                노드·커넥터·연동앱 힌트는 단순 추천용이므로 삭제해도 기존 항목의 실제 구성에는 영향이 없습니다.
+                고정 분류 항목(업무 도메인, 구성 난이도, 비용 등급, ML 모델 유형)을 삭제하면 해당 분류가 지정된 기존 항목은 공란으로 처리될 수 있습니다. 삭제 전 사용 중인 항목 수를 확인하세요.
               </div>
             </div>
           </div>

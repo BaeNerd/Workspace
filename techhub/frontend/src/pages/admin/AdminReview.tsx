@@ -2,49 +2,32 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, STATUS_ORDER, BUSINESS_DOMAINS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../../types/platformTypes";
+import { PLATFORMS, BUSINESS_DOMAINS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../../types/platformTypes";
 import type { PlatformId, ApprovalStage, ApprovalSlot, ApprovalSlots, ApprovalSlotKey, ApprovalRecord, BusinessDomain } from "../../types/platformTypes";
+import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
-
-const NODE_SUGGESTIONS = [
-  "Manual Trigger", "Schedule Trigger", "Form Trigger", "Chat Trigger", "Webhook",
-  "Set (Edit Fields)", "Code", "IF", "Switch", "Filter", "Merge", "Aggregate", "Sort",
-  "AI Agent", "Basic LLM Chain",
-];
-const APP_SUGGESTIONS = [
-  "Microsoft Outlook", "Microsoft Teams", "Microsoft One Drive", "Google Sheets",
-  "HTTP Request", "Spreadsheet File", "Respond To Webhook",
-];
-const PA_CONNECTOR_SUGGESTIONS = [
-  "SharePoint", "Microsoft Teams", "Outlook", "Excel Online", "Power BI",
-  "Dataverse", "Forms", "Approvals", "Planner", "OneDrive", "SQL Server",
-];
-const PA_FLOW_TYPES = [
-  "이벤트 발생 시 자동 실행", "버튼 클릭으로 즉시 실행", "정해진 시간에 예약 실행",
-  "데스크톱 자동화 (RPA)", "업무 절차 안내형",
-];
-const PA_RUN_MODES = ["사람이 지켜보며 실행", "무인으로 자동 실행"];
-const PA_CONNECTOR_TIERS = ["기본 커넥터만 사용", "유료(프리미엄) 커넥터 포함"];
-const ASSISTANT_SHARE_SCOPES = ["회사 공통 비서", "팀 공유 비서", "개인 비서 (비공개)"];
+// AI Agent 이용 가능 상태 — 운영 상태(폐기)와 별개 축
+const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"];
 const ASSISTANT_MODEL_HINTS = [
   "웍스 대표 모델", "GPT-5.4", "GPT-5.4 Mini", "Claude Opus 4.8", "Claude Sonnet 5",
   "Gemini", "xAI", "LG AI", "Upstage", "Perplexity",
 ];
-const PROVIDER_OPTIONS = ["웍스 대표 모델", "Anthropic", "Google", "OpenAI", "xAI", "LG AI", "Upstage", "Perplexity"];
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
-const USE_CASE_SUGGESTIONS = ["문서 요약", "코드 생성", "법무 검토", "번역", "데이터 분석", "이미지 분석", "회의록 정리", "제안서 초안"];
 const ML_TYPES = [
   "분류 (Classification)", "회귀 (Regression)", "클러스터링",
   "NLP / 텍스트", "이미지 인식", "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달",
 ];
-const VIBE_TOOL_SUGGESTIONS = [
-  "GitHub Copilot", "Cursor", "Claude Code", "Codeium", "Tabnine", "Replit AI", "v0", "Bolt",
-];
+
+// 인라인 SVG 플레이스홀더 (네트워크 비의존)
+const placeholderImage = (label: string, color: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'><rect width='640' height='360' fill='#F1F5F9'/><rect x='1' y='1' width='638' height='358' fill='none' stroke='${color}' stroke-width='2'/><text x='320' y='188' font-family='sans-serif' font-size='24' fill='${color}' text-anchor='middle'>${label}</text></svg>`
+  )}`;
 
 type SavedPeriod = "일" | "주" | "월" | "년";
 const SAVED_PERIODS: SavedPeriod[] = ["일", "주", "월", "년"];
@@ -177,70 +160,33 @@ function SummaryStrip({ counts, partialCompanyOnly, partialGlobalOnly, active, o
   );
 }
 
-const FULL_COMPANIES = [
-  { code: "KMH", name: "콜마홀딩스", visible: true },
-  { code: "KKM", name: "한국콜마", visible: true },
-  { code: "KBH", name: "콜마비앤에이치", visible: true },
-  { code: "HKN", name: "에이치케이이노엔", visible: true },
-  { code: "YWK", name: "연우", visible: true },
-  { code: "KAF", name: "근오농림", visible: false },
-  { code: "NAB", name: "넥스트앤바이오", visible: false },
-  { code: "HC", name: "콜마생활건강", visible: true },
-  { code: "HNG", name: "에치엔지", visible: false },
-  { code: "MOD", name: "엠오디머티리얼즈", visible: false },
-  { code: "KMG", name: "콜마글로벌", visible: true },
-  { code: "KMSK", name: "콜마스크", visible: true },
-  { code: "KUX", name: "콜마유엑스", visible: false },
-  { code: "KMW", name: "무석콜마", visible: true },
-  { code: "KMB", name: "북경콜마", visible: true },
-  { code: "KBJ", name: "강소콜마", visible: false },
-  { code: "KAY", name: "연태콜마", visible: false },
-  { code: "HKV", name: "한국헬스케어베너", visible: false },
-  { code: "PLT", name: "플래닛147", visible: false },
-  { code: "LSL", name: "레스리", visible: false },
-  { code: "LOD", name: "라우드랩스", visible: false },
-  { code: "KMP", name: "콜마헬스케어필리핀", visible: false },
-  { code: "KMS", name: "에이치케이콜마싱가포르", visible: false },
-  { code: "KML", name: "콜마랩스", visible: false },
-  { code: "KUS", name: "미국콜마", visible: true },
-  { code: "KCA", name: "캐나다콜마", visible: false },
-  { code: "HKJ", name: "에이치케이글로벌퍼팩", visible: false },
-  { code: "KMM", name: "에이치케이콜마말레이시아", visible: false },
-  { code: "KBT", name: "콜마바이오텍", visible: true },
-];
-const SELECTABLE_COMPANIES = FULL_COMPANIES.filter(c => c.visible);
-
-const platformCompanyDisplay = (codes: string[]): string => {
-  if (codes.length === 0) return "전사 공용";
-  const names = codes.map(c => FULL_COMPANIES.find(co => co.code === c)?.name ?? c);
-  if (names.length <= 2) return names.join(", ");
-  return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}곳`;
-};
-
 type Contact = { name: string; dept: string; role: string; email: string };
-type LinkItem = { label: string; url: string };
 
+// 간소화된 7유형 필드 체계 — 삭제된 유형별 필드(flowType·runMode·connectorTier·shareScope·
+// roleDefinition·connectedData·sampleQuestions·nodes·connectedApps·핵심성능·소스저장소 등)는 미보유.
+// company/platformScope는 승인 권한 가드(관계사 슬롯) 판정용 데이터로만 존치 — 편집 UI 없음(전 항목 전사 공용).
 type ReviewPlatformItem = {
   kind: PlatformId;
   id: string; title: string; summary: string; description: string;
   dept: string; submittedBy: string; submittedAt: string;
-  status: string;
-  triggerAction?: string; nodes?: string[]; connectedApps?: string[];
-  expectedTimeSaved?: string; difficulty?: string; specificUrl?: string; itemTags?: string;
+  images?: string[];
+  itemTags?: string;
+  domain?: BusinessDomain;
+  // n8n 워크플로우 시각화 + 예상 효과·난이도
   workflowInput?: WorkflowInput;
   workflowJson?: string;
-  flowType?: string; runMode?: string; connectorTier?: string;
-  shareScope?: string; sharedPrompt?: string; basedModel?: string; roleDefinition?: string;
-  connectedData?: string; sampleQuestions?: string[];
-  provider?: string; modelName?: string; contextWindow?: string;
-  strengths?: string; strengthsDetail?: string; tokenUsageNote?: string;
-  costTier?: string; useCases?: string[];
-  mlType?: string; trainingDataDesc?: string; performanceSummary?: string;
-  devTool?: string; sourceRepo?: string; outputType?: string;
-  domain?: BusinessDomain;
+  expectedTimeSaved?: string; difficulty?: string;
+  // assistant
+  sharedPrompt?: string; basedModel?: string;
+  // ai-orchestration
+  agentAvailability?: string; strengthsDetail?: string; specificUrl?: string;
+  modelName?: string; contextWindow?: string; costTier?: string;
+  // ml
+  mlType?: string; trainingDataDesc?: string; devTool?: string;
+  // 승인 축 (권한 가드용 — 유지)
   company: string[];
   platformScope: "unset" | "company-wide" | "specific";
-  contacts: Contact[]; links: LinkItem[];
+  contacts: Contact[];
   approvalSlots: ApprovalSlots;
   rejected: boolean;
   suspended: boolean;
@@ -294,6 +240,28 @@ const SingleSelectTag = ({ options, value, onChange, disabled }: { options: stri
   </div>
 );
 
+// 이미지 캐러셀 (표시 전용)
+const ImageStripView = ({ images }: { images: string[] }) => {
+  const [idx, setIdx] = useState(0);
+  if (images.length === 0) return null;
+  const safe = Math.min(idx, images.length - 1);
+  const go = (d: number) => setIdx(() => (safe + d + images.length) % images.length);
+  return (
+    <div>
+      <div style={{ position: "relative", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, minHeight: 160 }}>
+        {images.length > 1 && (
+          <button type="button" onClick={() => go(-1)} aria-label="이전 사진" style={{ position: "absolute", left: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>‹</button>
+        )}
+        <img src={images[safe]} alt={`첨부 사진 ${safe + 1}`} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 6 }} />
+        {images.length > 1 && (
+          <button type="button" onClick={() => go(1)} aria-label="다음 사진" style={{ position: "absolute", right: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>›</button>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6, textAlign: "right" }}>{safe + 1} / {images.length}</div>
+    </div>
+  );
+};
+
 const TimeSavedInput = ({
   value, period, onValueChange, onPeriodChange, disabled,
 }: {
@@ -340,85 +308,6 @@ const TimeSavedInput = ({
   );
 };
 
-const ChipEditor = ({ items, onAdd, onRemove, suggestions, placeholder, disabled }: {
-  items: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void;
-  suggestions: string[]; placeholder: string; disabled?: boolean;
-}) => {
-  const [draft, setDraft] = useState("");
-  const commit = () => { const v = draft.trim(); if (!v) return; onAdd(v); setDraft(""); };
-  return (
-    <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: items.length > 0 ? 8 : 0 }}>
-        {items.map(item => (
-          <span key={item} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, background: "#EFF6FF", color: "#1E40AF", padding: "4px 6px 4px 10px", borderRadius: 6, border: "1px solid #BFDBFE" }}>
-            {item}
-            {!disabled && <button onClick={() => onRemove(item)} style={{ background: "none", border: "none", color: "#1E40AF", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>}
-          </span>
-        ))}
-      </div>
-      {!disabled && (
-        <>
-          <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(); } }} placeholder={placeholder} style={{ ...inputStyle, fontSize: 12, padding: "7px 10px" }} />
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
-            {suggestions.filter(s => !items.includes(s)).slice(0, 8).map(s => (
-              <span key={s} onClick={() => onAdd(s)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {s}</span>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-function CompanyMultiSelect({ selected, onChange, disabled }: {
-  selected: string[]; onChange: (codes: string[]) => void; disabled?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const isCompanyWide = selected.length === 0;
-  const filteredCompanies = SELECTABLE_COMPANIES.filter(c =>
-    search === "" || c.name.includes(search) || c.code.includes(search.toUpperCase())
-  );
-  const toggleCompany = (code: string) =>
-    onChange(selected.includes(code) ? selected.filter(c => c !== code) : [...selected, code]);
-
-  return (
-    <div style={{ position: "relative" }}>
-      <button
-        onClick={() => !disabled && setOpen(v => !v)}
-        type="button"
-        disabled={disabled}
-        style={{ ...inputStyle, textAlign: "left", width: "100%", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "space-between", color: "#0F172A", fontWeight: 600 }}
-      >
-        <span>{platformCompanyDisplay(selected)}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      {open && !disabled && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 20, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: "10px 10px 6px", maxHeight: 340, display: "flex", flexDirection: "column" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 8px", borderRadius: 6, cursor: "pointer", background: isCompanyWide ? "#EFF6FF" : "transparent", marginBottom: 6, borderBottom: "1px solid #F1F5F9" }}>
-            <input type="checkbox" checked={isCompanyWide} onChange={() => onChange([])} style={{ cursor: "pointer" }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: isCompanyWide ? "#2563EB" : "#334155" }}>전사 공용 (특정 관계사 한정 없음)</span>
-          </label>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="관계사명 또는 코드로 검색" style={{ ...inputStyle, fontSize: 12, padding: "7px 10px", marginBottom: 6 }} />
-          <div style={{ overflowY: "auto", flex: 1 }}>
-            {filteredCompanies.map(c => (
-              <label key={c.code} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 6, cursor: "pointer", background: selected.includes(c.code) ? "#EFF6FF" : "transparent" }}>
-                <input type="checkbox" checked={selected.includes(c.code)} onChange={() => toggleCompany(c.code)} style={{ cursor: "pointer" }} />
-                <span style={{ fontSize: 12, color: "#334155" }}>{c.name}</span>
-                <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)", marginLeft: "auto" }}>{c.code}</span>
-              </label>
-            ))}
-            {filteredCompanies.length === 0 && <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>}
-          </div>
-          <button onClick={() => setOpen(false)} type="button" style={{ marginTop: 8, background: "#0F172A", color: "#fff", border: "none", borderRadius: 6, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>완료</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // 레거시 stage → 슬롯 초기값(항목별 독립 객체) 구성
 const legacy = (stage: string): { approvalSlots: ApprovalSlots; rejected: boolean; suspended: boolean } => {
   const m = LEGACY_APPROVAL_MAP[stage];
@@ -432,15 +321,13 @@ const legacy = (stage: string): { approvalSlots: ApprovalSlots; rejected: boolea
 const INITIAL_ITEMS: ReviewItem[] = [
   {
     kind: "n8n",
-    id: "N8N-014", title: "협력사 정산서 자동 검증",
+    id: "N8N-2026-014", title: "협력사 정산서 자동 검증",
     summary: "협력사가 제출한 정산서를 ERP 데이터와 자동 대조",
     description: "매월 말 협력사로부터 수신되는 정산서를 ERP 발주 데이터와 자동으로 대조하여 불일치 항목을 표시합니다.",
-    dept: "구매팀", submittedBy: "박성훈", submittedAt: "2025.06.20",
-    status: "준비 중",
-    triggerAction: "Schedule Trigger(매월 말일) → ERP API 조회 → 정산서 파싱 → 대조 → 불일치 시 Teams 알림",
-    nodes: ["Schedule Trigger", "HTTP Request", "Code", "IF"], connectedApps: ["Microsoft Teams"],
-    expectedTimeSaved: "월 4시간", difficulty: "보통", specificUrl: "https://n8n.kolmar.co.kr/workflow/014",
-    itemTags: "정산, 구매자동화",
+    dept: "구매팀", submittedBy: "박성훈", submittedAt: "2026.06.20",
+    images: [placeholderImage("워크플로우 개요", "#EA580C"), placeholderImage("실행 로그", "#059669")],
+    expectedTimeSaved: "월 4시간", difficulty: "보통",
+    itemTags: "정산, 구매자동화", domain: "재무",
     workflowInput: { status: "Active", nodes: [
       { label: "Schedule Trigger", type: "trigger" },
       { label: "ERP API 조회", type: "action" },
@@ -448,79 +335,74 @@ const INITIAL_ITEMS: ReviewItem[] = [
       { label: "불일치 항목 확인", type: "condition" },
       { label: "Teams 알림 발송", type: "output" },
     ]},
-    company: [], platformScope: "unset",
+    company: [], platformScope: "company-wide",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
-    links: [], ...legacy("1차대기"), approvalHistory: [],
+    ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "pa",
-    id: "PA-003", title: "구매 결재 자동 승인 플로우",
+    id: "PA-2026-003", title: "구매 결재 자동 승인 플로우",
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
-    dept: "구매팀", submittedBy: "최유진", submittedAt: "2025.06.25",
-    status: "준비 중",
-    flowType: "이벤트 발생 시 자동 실행", connectorTier: "기본 커넥터만 사용",
-    triggerAction: "Form 제출 → Dataverse 조회 → 조건 분기 → 결재 처리",
-    connectedApps: ["SharePoint", "Dataverse", "Approvals"],
-    specificUrl: "", itemTags: "결재, 구매자동화",
-    company: ["KKM"], platformScope: "specific",
+    dept: "구매팀", submittedBy: "최유진", submittedAt: "2026.06.25",
+    expectedTimeSaved: "주 3시간",
+    itemTags: "결재, 구매자동화", domain: "재무",
+    company: [], platformScope: "company-wide",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
-    links: [], ...legacy("1차대기"), approvalHistory: [],
+    ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "assistant",
-    id: "AST-011", title: "해외법인 계약서 1차 검토 비서",
+    id: "AST-2026-011", title: "해외법인 계약서 1차 검토 비서",
     summary: "해외법인向 영문 계약서의 주요 리스크 조항을 1차 스크리닝",
     description: "미국콜마·북경콜마 등 해외법인에서 체결하는 영문 계약서의 주요 조항을 1차로 스크리닝하여 법무팀 검토 시간을 단축합니다.",
-    dept: "법무팀", submittedBy: "강현우", submittedAt: "2025.06.22",
-    status: "준비 중",
-    shareScope: "팀 공유 비서",
+    dept: "법무팀", submittedBy: "강현우", submittedAt: "2026.06.22",
     sharedPrompt: "당신은 해외법인 계약서를 검토하는 법무 담당자입니다. 업로드된 영문 계약서에서 위험 조항을 찾아 한국어로 요약해 주세요.",
     basedModel: "Claude Opus 4.8",
-    roleDefinition: "해외법인 영문 계약서의 위험 조항을 빠르게 찾아주는 법무 검토 도우미",
-    connectedData: "표준 계약서 템플릿 및 과거 검토 사례 150건",
-    sampleQuestions: ["이 계약서에서 손해배상 조항을 알려줘", "표준 계약서와 다른 부분이 있는지 확인해줘"],
-    specificUrl: "https://assistant.kolmar.co.kr/agents/global-contract-review",
-    itemTags: "계약서, 법무, 해외법인",
-    company: ["KUS", "KMB"], platformScope: "specific",
+    itemTags: "계약서, 법무, 해외법인", domain: "IT",
+    company: [], platformScope: "company-wide",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
-    links: [], ...legacy("2차대기"), approvalHistory: [
-      { slot: "company", action: "승인", at: "2025.06.24", by: "최관리 (관계사관리자)" },
+    ...legacy("2차대기"), approvalHistory: [
+      { slot: "company", action: "승인", at: "2026.06.24", by: "최관리 (관계사관리자)" },
     ],
   },
   {
     kind: "ai-orchestration",
-    id: "AIO-006", title: "GPT-4o (범용 업무 보조)",
+    id: "AIO-2026-006", title: "GPT-4o",
     summary: "전사 직원 누구나 사용할 수 있는 범용 업무 보조 모델",
-    description: "이메일 작성, 보고서 초안, 데이터 요약 등 범용 업무에 적합합니다.",
-    dept: "IT개발팀", submittedBy: "정태영", submittedAt: "2025.06.24",
-    status: "일부 제한",
-    provider: "OpenAI", modelName: "GPT-4o", contextWindow: "문서 여러 장 (수십 페이지)",
-    strengths: "범용성, 빠른 응답속도",
+    description: "이메일 작성, 보고서 초안, 데이터 요약 등 범용 업무에 적합합니다. 제공사는 OpenAI입니다.",
+    dept: "IT개발팀", submittedBy: "정태영", submittedAt: "2026.06.24",
+    agentAvailability: "사용 가능",
     strengthsDetail: "다양한 업무를 무난하게 처리합니다. 이메일 초안, 보고서 요약, 간단한 데이터 정리에 활용해보세요.",
-    tokenUsageNote: "짧은 대화 1회당 약 1,000토큰 내외 사용",
-    costTier: "보통", useCases: ["이메일 작성", "제안서 초안"],
+    modelName: "GPT-4o", contextWindow: "문서 여러 장 (수십 페이지)", costTier: "보통",
     specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4o",
     itemTags: "범용, 업무보조",
     company: [], platformScope: "company-wide",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
-    links: [], ...legacy("1차대기"), approvalHistory: [],
+    ...legacy("1차대기"), approvalHistory: [],
   },
   {
     kind: "ml",
-    id: "ML-002", title: "성분 이미지 품질 분류 모델",
+    id: "ML-2026-002", title: "성분 이미지 품질 분류 모델",
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
-    dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2025.06.26",
-    status: "준비 중",
-    mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장",
-    performanceSummary: "정확도 92.3%, 재현율 89.7%",
-    devTool: "PyTorch", sourceRepo: "gitlab.kolmar.co.kr/ml/ingredient-classifier",
-    outputType: "합격/불합격 바이너리 분류",
-    specificUrl: "", itemTags: "품질관리, 이미지분류",
-    company: ["KKM"], platformScope: "specific",
+    dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2026.06.26",
+    mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장", devTool: "PyTorch",
+    itemTags: "품질관리, 이미지분류", domain: "생산",
+    company: [], platformScope: "company-wide",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
-    links: [], ...legacy("1차대기"), approvalHistory: [],
+    ...legacy("1차대기"), approvalHistory: [],
+  },
+  {
+    kind: "etc",
+    id: "ETC-2026-001", title: "사내 AI 뉴스 주간 요약 미니 프로젝트",
+    summary: "매주 사내에 공유되는 AI 트렌드 뉴스레터를 블로그 형식으로 소개",
+    description: "사내 구성원이 AI 동향을 쉽게 접할 수 있도록 매주 주요 뉴스와 활용 사례를 정리해 공유하는 소규모 프로젝트입니다.",
+    dept: "DX추진팀", submittedBy: "한지민", submittedAt: "2026.06.28",
+    itemTags: "뉴스레터, AI트렌드", domain: "IT",
+    company: [], platformScope: "company-wide",
+    contacts: [{ name: "한지민", dept: "DX추진팀", role: "주담당자", email: "jimin.han@kolmar.co.kr" }],
+    ...legacy("1차대기"), approvalHistory: [],
   },
 ];
 
@@ -541,11 +423,6 @@ export default function AdminReview() {
   const setEdit = <K extends keyof ReviewItem>(k: K, v: ReviewItem[K]) =>
     setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
 
-  const setPlatformCompanies = (codes: string[]) => {
-    setEdit("company", codes);
-    setEdit("platformScope", codes.length === 0 ? "company-wide" : "specific");
-  };
-
   const baseTimeSaved = merged ? deserializeTimeSaved((merged as ReviewPlatformItem).expectedTimeSaved) : { value: "" as number | "", period: "주" as SavedPeriod };
   const currentTimeSavedValue = ((edit as any).timeSavedValue !== undefined ? (edit as any).timeSavedValue : baseTimeSaved.value) as number | "";
   const currentTimeSavedPeriod = ((edit as any).timeSavedPeriod !== undefined ? (edit as any).timeSavedPeriod : baseTimeSaved.period) as SavedPeriod;
@@ -559,22 +436,7 @@ export default function AdminReview() {
     (setEdit as any)("expectedTimeSaved", serializeTimeSaved(currentTimeSavedValue, p));
   };
 
-  const currentNodes = (((edit as any).nodes ?? (merged as any)?.nodes) ?? []) as string[];
-  const currentApps = (((edit as any).connectedApps ?? (merged as any)?.connectedApps) ?? []) as string[];
-  const addNode = (v: string) => { if (!currentNodes.includes(v)) (setEdit as any)("nodes", [...currentNodes, v]); };
-  const removeNode = (v: string) => (setEdit as any)("nodes", currentNodes.filter((n: string) => n !== v));
-  const addApp = (v: string) => { if (!currentApps.includes(v)) (setEdit as any)("connectedApps", [...currentApps, v]); };
-  const removeApp = (v: string) => (setEdit as any)("connectedApps", currentApps.filter((a: string) => a !== v));
-
-  const currentSampleQuestions = (((edit as any).sampleQuestions ?? (merged as any)?.sampleQuestions) ?? []) as string[];
-  const addSampleQuestion = (v: string) => { if (!currentSampleQuestions.includes(v)) (setEdit as any)("sampleQuestions", [...currentSampleQuestions, v]); };
-  const removeSampleQuestion = (v: string) => (setEdit as any)("sampleQuestions", currentSampleQuestions.filter((q: string) => q !== v));
-
-  const currentUseCases = (((edit as any).useCases ?? (merged as any)?.useCases) ?? []) as string[];
-  const addUseCase = (v: string) => { if (!currentUseCases.includes(v)) (setEdit as any)("useCases", [...currentUseCases, v]); };
-  const removeUseCase = (v: string) => (setEdit as any)("useCases", currentUseCases.filter((u: string) => u !== v));
-
-  // ===== 병렬 슬롯 승인 헬퍼 =====
+  // ===== 병렬 슬롯 승인 헬퍼 (승인 모델·권한 가드 — 변경 금지) =====
   const stageOf = (i: ReviewItem) => deriveStage(i.approvalSlots, i.rejected, i.suspended);
   const isTerminalStage = (s: ApprovalStage) => s === "게시됨" || s === "반려" || s === "중지";
   // 담당 범위 일치 (전사 공용(company 비어있음)은 관계사 관리자 권한 대상이 아님)
@@ -598,8 +460,7 @@ export default function AdminReview() {
   // 슬롯 단위 승인 (순서 무관). 관계사 미지정(unset) 항목은 승인 불가.
   const approveSlot = (slotKey: ApprovalSlotKey) => {
     if (!activeItem || !merged) return;
-    const scope = (edit as any).platformScope ?? merged.platformScope;
-    if (scope === "unset") return;
+    if (merged.platformScope === "unset") return;
     const at = "2026.07.10";
     const by = user?.name ?? "관리자";
     const willComplete = merged.approvalSlots[slotKey === "company" ? "global" : "company"].approved;
@@ -674,13 +535,15 @@ export default function AdminReview() {
 
   const stage: ApprovalStage | null = merged ? stageOf(merged) : null;
   const isTerminal = stage ? isTerminalStage(stage) : false;
-  const unsetScope = !!(merged && (((edit as any).platformScope ?? merged.platformScope) === "unset"));
 
   // 편집·반려 가능: 종결 전이고 사용자가 어느 한 슬롯이라도 권한 보유
   const hasAnySlotAuthority = !!merged && (canActCompanySlot(merged) || canActGlobalSlot(merged));
   const canActOnCurrent = !!merged && !isTerminal && hasAnySlotAuthority;
 
   const stageStyle = stage ? APPROVAL_STAGE_STYLE[stage] : null;
+  const mergedImages = merged ? ((edit as any).images ?? (merged as ReviewPlatformItem).images ?? []) as string[] : [];
+  const isModelKind = merged?.kind === "ai-orchestration";
+  const kindLabel = merged ? (isModelKind ? "AI Agent" : SOURCE_STYLE[merged.kind].label) : "";
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -726,7 +589,6 @@ export default function AdminReview() {
                 const isDone = isTerminalStage(st);
                 const isSelected = selected === item.id;
                 const sourceStyle = SOURCE_STYLE[item.kind];
-                const needsAttention = item.platformScope === "unset" && !isDone;
                 const stBadge = APPROVAL_STAGE_STYLE[st];
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
@@ -738,7 +600,6 @@ export default function AdminReview() {
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 9, fontWeight: 700, background: sourceStyle.bg, color: sourceStyle.color, padding: "1px 7px", borderRadius: 20 }}>{sourceStyle.label}</span>
                       <span style={{ fontSize: 9, fontWeight: 700, background: stBadge.bg, color: stBadge.fg, padding: "1px 7px", borderRadius: 20 }}>{stBadge.label}</span>
-                      {needsAttention && <span style={{ fontSize: 9, fontWeight: 700, color: "#DC2626" }}>관계사 미지정</span>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -761,7 +622,7 @@ export default function AdminReview() {
             ) : (
               <div style={{ maxWidth: 720 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, background: SOURCE_STYLE[merged.kind].bg, color: SOURCE_STYLE[merged.kind].color, padding: "3px 10px", borderRadius: 20 }}>{SOURCE_STYLE[merged.kind].label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: SOURCE_STYLE[merged.kind].bg, color: SOURCE_STYLE[merged.kind].color, padding: "3px 10px", borderRadius: 20 }}>{kindLabel}</span>
                   {stageStyle && (
                     <span style={{ fontSize: 11, fontWeight: 700, background: stageStyle.bg, color: stageStyle.fg, padding: "3px 10px", borderRadius: 20 }}>{stageStyle.label}</span>
                   )}
@@ -804,6 +665,11 @@ export default function AdminReview() {
 
                 {/* ===== 공통: 기본 정보 ===== */}
                 <SectionBlock title="기본 정보">
+                  {mergedImages.length > 0 && (
+                    <FieldRow label="첨부 사진">
+                      <ImageStripView images={mergedImages} />
+                    </FieldRow>
+                  )}
                   <FieldRow label="제목">
                     <input value={(edit as any).title ?? merged.title} onChange={e => (setEdit as any)("title", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                   </FieldRow>
@@ -813,120 +679,42 @@ export default function AdminReview() {
                   <FieldRow label="상세 설명">
                     <textarea value={(edit as any).description ?? merged.description} onChange={e => (setEdit as any)("description", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                   </FieldRow>
-                  {merged.kind !== "ai-orchestration" && (
-                    <FieldRow label="업무 도메인">
-                      <div style={{ marginTop: 4 }}>
-                        <SingleSelectTag options={[...BUSINESS_DOMAINS]} value={(edit as any).domain ?? merged.domain ?? ""} onChange={v => (setEdit as any)("domain", v)} disabled={!canActOnCurrent} />
-                      </div>
-                    </FieldRow>
-                  )}
-                </SectionBlock>
-
-                {/* ===== 소속/대상 관계사 · 상태 (공통) ===== */}
-                <SectionBlock title="소속 / 대상 관계사">
-                  <CompanyMultiSelect
-                    selected={(edit as any).company ?? merged.company}
-                    onChange={setPlatformCompanies}
-                    disabled={!canActOnCurrent}
-                  />
-                  {canActOnCurrent && unsetScope && (
-                    <div style={{ fontSize: 11, color: "#DC2626", marginTop: 6 }}>
-                      신청자가 관계사 범위를 선택하지 않았습니다. 승인 전 직접 확인하여 선택해주세요.
+                  <FieldRow label="업무 도메인">
+                    <div style={{ marginTop: 4 }}>
+                      <SingleSelectTag options={[...BUSINESS_DOMAINS]} value={(edit as any).domain ?? merged.domain ?? ""} onChange={v => (setEdit as any)("domain", v)} disabled={!canActOnCurrent} />
                     </div>
-                  )}
-                  <FieldRow label="항목 상태">
-                    <div style={{ marginTop: 8 }}>
-                      <SingleSelectTag options={STATUS_ORDER} value={(edit as any).status ?? merged.status} onChange={v => (setEdit as any)("status", v)} disabled={!canActOnCurrent} />
-                    </div>
+                  </FieldRow>
+                  <FieldRow label="태그">
+                    <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} placeholder="쉼표로 구분" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                   </FieldRow>
                 </SectionBlock>
 
-                {/* ===== 분기: n8n / Power Automate — 워크플로우형 ===== */}
+                {/* ===== 분기: n8n / Power Automate ===== */}
                 {(merged.kind === "n8n" || merged.kind === "pa") && (
-                  <>
-                    <SectionBlock title={`${SOURCE_STYLE[merged.kind].label} 동작 정보`}>
-                      {merged.kind === "pa" && (
-                        <>
-                          <FieldRow label="흐름 유형">
-                            <SingleSelectTag options={PA_FLOW_TYPES} value={(edit as any).flowType ?? (merged as ReviewPlatformItem).flowType ?? ""} onChange={v => (setEdit as any)("flowType", v)} disabled={!canActOnCurrent} />
-                          </FieldRow>
-                          {((edit as any).flowType ?? (merged as ReviewPlatformItem).flowType) === "데스크톱 자동화 (RPA)" && (
-                            <FieldRow label="실행 방식">
-                              <SingleSelectTag options={PA_RUN_MODES} value={(edit as any).runMode ?? (merged as ReviewPlatformItem).runMode ?? ""} onChange={v => (setEdit as any)("runMode", v)} disabled={!canActOnCurrent} />
-                            </FieldRow>
-                          )}
-                        </>
-                      )}
-                      <FieldRow label="트리거 · 동작 설명">
-                        <textarea value={(edit as any).triggerAction ?? (merged as ReviewPlatformItem).triggerAction ?? ""} onChange={e => (setEdit as any)("triggerAction", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 70, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                      <FieldRow label={merged.kind === "pa" ? "실행 위치" : "실행 URL"}>
-                        <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                      <FieldRow label="태그">
-                        <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                    </SectionBlock>
-
-                    <SectionBlock title={merged.kind === "pa" ? "커넥터 구성" : "노드 구성"}>
-                      <FieldRow label={merged.kind === "pa" ? "사용된 커넥터" : "사용된 노드"}>
-                        <ChipEditor
-                          items={merged.kind === "pa" ? currentApps : currentNodes}
-                          onAdd={merged.kind === "pa" ? addApp : addNode}
-                          onRemove={merged.kind === "pa" ? removeApp : removeNode}
-                          suggestions={merged.kind === "pa" ? PA_CONNECTOR_SUGGESTIONS : NODE_SUGGESTIONS}
-                          placeholder={merged.kind === "pa" ? "커넥터명 입력 후 Enter" : "노드명 입력 후 Enter"}
-                          disabled={!canActOnCurrent}
-                        />
-                      </FieldRow>
-                      {merged.kind === "pa" && (
-                        <FieldRow label="커넥터 등급">
-                          <SingleSelectTag options={PA_CONNECTOR_TIERS} value={(edit as any).connectorTier ?? (merged as ReviewPlatformItem).connectorTier ?? ""} onChange={v => (setEdit as any)("connectorTier", v)} disabled={!canActOnCurrent} />
+                  <SectionBlock title={`${SOURCE_STYLE[merged.kind].label} 구성 · 효과`}>
+                    {merged.kind === "n8n" && (() => {
+                      const wfInput = (edit as any).workflowInput ?? (merged as ReviewPlatformItem).workflowInput;
+                      const wf = wfInput ? toWorkflowDef(wfInput) : undefined;
+                      return wf ? (
+                        <FieldRow label="워크플로우 다이어그램">
+                          <WorkflowDiagram wf={wf} />
                         </FieldRow>
-                      )}
-                      {merged.kind === "n8n" && (
-                        <>
-                          <FieldRow label="연동 앱·서비스">
-                            <ChipEditor items={currentApps} onAdd={addApp} onRemove={removeApp} suggestions={APP_SUGGESTIONS} placeholder="연동 앱명 입력 후 Enter" disabled={!canActOnCurrent} />
-                          </FieldRow>
-                          {(merged as ReviewPlatformItem).workflowJson && (
-                            <FieldRow label="워크플로우 JSON">
-                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>✓ JSON 첨부됨</span>
-                                <button onClick={() => {
-                                  const content = (merged as ReviewPlatformItem).workflowJson!;
-                                  const blob = new Blob([content], { type: "application/json" });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement("a");
-                                  a.href = url; a.download = `${merged.id.toLowerCase()}-workflow.json`; a.click();
-                                  URL.revokeObjectURL(url);
-                                }} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "4px 12px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                                  JSON 다운로드
-                                </button>
-                              </div>
-                            </FieldRow>
-                          )}
-                        </>
-                      )}
-                    </SectionBlock>
-
-                    <SectionBlock title="예상 효과">
-                      <FieldRow label="예상 절감 시간">
-                        <TimeSavedInput value={currentTimeSavedValue} period={currentTimeSavedPeriod} onValueChange={setTimeSavedValue} onPeriodChange={setTimeSavedPeriod} disabled={!canActOnCurrent} />
-                      </FieldRow>
+                      ) : null;
+                    })()}
+                    <FieldRow label="예상 절감 시간">
+                      <TimeSavedInput value={currentTimeSavedValue} period={currentTimeSavedPeriod} onValueChange={setTimeSavedValue} onPeriodChange={setTimeSavedPeriod} disabled={!canActOnCurrent} />
+                    </FieldRow>
+                    {merged.kind === "n8n" && (
                       <FieldRow label="구성 난이도">
                         <SingleSelectTag options={DIFFICULTY_LEVELS} value={(edit as any).difficulty ?? (merged as ReviewPlatformItem).difficulty ?? "보통"} onChange={v => (setEdit as any)("difficulty", v)} disabled={!canActOnCurrent} />
                       </FieldRow>
-                    </SectionBlock>
-                  </>
+                    )}
+                  </SectionBlock>
                 )}
 
                 {/* ===== 분기: 나만의 비서 ===== */}
                 {merged.kind === "assistant" && (
                   <SectionBlock title="비서 구성">
-                    <FieldRow label="공유 범위">
-                      <SingleSelectTag options={ASSISTANT_SHARE_SCOPES} value={(edit as any).shareScope ?? (merged as ReviewPlatformItem).shareScope ?? ""} onChange={v => (setEdit as any)("shareScope", v)} disabled={!canActOnCurrent} />
-                    </FieldRow>
                     <FieldRow label="공유 프롬프트">
                       <textarea value={(edit as any).sharedPrompt ?? (merged as ReviewPlatformItem).sharedPrompt ?? ""} onChange={e => (setEdit as any)("sharedPrompt", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 100, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)", opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
@@ -938,58 +726,29 @@ export default function AdminReview() {
                         </div>
                       )}
                     </FieldRow>
-                    <FieldRow label="비서 소개">
-                      <input value={(edit as any).roleDefinition ?? (merged as ReviewPlatformItem).roleDefinition ?? ""} onChange={e => (setEdit as any)("roleDefinition", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="연결된 데이터·문서">
-                      <textarea value={(edit as any).connectedData ?? (merged as ReviewPlatformItem).connectedData ?? ""} onChange={e => (setEdit as any)("connectedData", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 60, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="예시 질문">
-                      <ChipEditor items={currentSampleQuestions} onAdd={addSampleQuestion} onRemove={removeSampleQuestion} suggestions={[]} placeholder="예시 질문 입력 후 Enter" disabled={!canActOnCurrent} />
-                    </FieldRow>
-                    <FieldRow label="접속 URL">
-                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="태그">
-                      <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
                   </SectionBlock>
                 )}
 
                 {/* ===== 분기: AI Agent — 모델 사양 ===== */}
                 {merged.kind === "ai-orchestration" && (
-                  <SectionBlock title="모델 사양">
-                    <FieldRow label="제공사">
-                      <SingleSelectTag options={PROVIDER_OPTIONS} value={(edit as any).provider ?? (merged as ReviewPlatformItem).provider ?? ""} onChange={v => (setEdit as any)("provider", v)} disabled={!canActOnCurrent} />
+                  <SectionBlock title="모델 정보">
+                    <FieldRow label="이용 가능 여부">
+                      <SingleSelectTag options={AGENT_AVAILABILITY} value={(edit as any).agentAvailability ?? (merged as ReviewPlatformItem).agentAvailability ?? ""} onChange={v => (setEdit as any)("agentAvailability", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                     <FieldRow label="강점 및 활용 방법">
                       <textarea value={(edit as any).strengthsDetail ?? (merged as ReviewPlatformItem).strengthsDetail ?? ""} onChange={e => (setEdit as any)("strengthsDetail", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <FieldRow label="세부 모델명">
-                        <input value={(edit as any).modelName ?? (merged as ReviewPlatformItem).modelName ?? ""} onChange={e => (setEdit as any)("modelName", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                      <FieldRow label="1회 사용량">
-                        <input value={(edit as any).tokenUsageNote ?? (merged as ReviewPlatformItem).tokenUsageNote ?? ""} onChange={e => (setEdit as any)("tokenUsageNote", e.target.value)} disabled={!canActOnCurrent} placeholder="예: 문서 1페이지당 약 500토큰" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                    </div>
+                    <FieldRow label="모델 접속 URL">
+                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} placeholder="https://" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                    </FieldRow>
+                    <FieldRow label="세부 모델명">
+                      <input value={(edit as any).modelName ?? (merged as ReviewPlatformItem).modelName ?? ""} onChange={e => (setEdit as any)("modelName", e.target.value)} disabled={!canActOnCurrent} placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                    </FieldRow>
                     <FieldRow label="처리 가능한 글 분량">
                       <SingleSelectTag options={CONTEXT_SIZE_OPTIONS} value={(edit as any).contextWindow ?? (merged as ReviewPlatformItem).contextWindow ?? ""} onChange={v => (setEdit as any)("contextWindow", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                     <FieldRow label="비용 등급">
                       <SingleSelectTag options={COST_TIERS} value={(edit as any).costTier ?? (merged as ReviewPlatformItem).costTier ?? "보통"} onChange={v => (setEdit as any)("costTier", v)} disabled={!canActOnCurrent} />
-                    </FieldRow>
-                    <FieldRow label="핵심 키워드">
-                      <input value={(edit as any).strengths ?? (merged as ReviewPlatformItem).strengths ?? ""} onChange={e => (setEdit as any)("strengths", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="권장 사용 시나리오">
-                      <ChipEditor items={currentUseCases} onAdd={addUseCase} onRemove={removeUseCase} suggestions={USE_CASE_SUGGESTIONS} placeholder="예: 문서 요약" disabled={!canActOnCurrent} />
-                    </FieldRow>
-                    <FieldRow label="모델 접속 URL">
-                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="태그">
-                      <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                   </SectionBlock>
                 )}
@@ -1000,59 +759,16 @@ export default function AdminReview() {
                     <FieldRow label="모델 유형">
                       <SingleSelectTag options={ML_TYPES} value={(edit as any).mlType ?? (merged as ReviewPlatformItem).mlType ?? ""} onChange={v => (setEdit as any)("mlType", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
-                    <FieldRow label="핵심 성능">
-                      <input value={(edit as any).performanceSummary ?? (merged as ReviewPlatformItem).performanceSummary ?? ""} onChange={e => (setEdit as any)("performanceSummary", e.target.value)} disabled={!canActOnCurrent} placeholder="예: 정확도 92%, 또는 평균 오차 5% 이내" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
                     <FieldRow label="학습 데이터 개요">
                       <input value={(edit as any).trainingDataDesc ?? (merged as ReviewPlatformItem).trainingDataDesc ?? ""} onChange={e => (setEdit as any)("trainingDataDesc", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <FieldRow label="개발 도구">
-                        <input value={(edit as any).devTool ?? (merged as ReviewPlatformItem).devTool ?? ""} onChange={e => (setEdit as any)("devTool", e.target.value)} disabled={!canActOnCurrent} placeholder="예: PyTorch, TensorFlow" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                      <FieldRow label="출력 형태">
-                        <input value={(edit as any).outputType ?? (merged as ReviewPlatformItem).outputType ?? ""} onChange={e => (setEdit as any)("outputType", e.target.value)} disabled={!canActOnCurrent} placeholder="예: 합격/불합격 분류" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      </FieldRow>
-                    </div>
-                    <FieldRow label="소스 저장소">
-                      <input value={(edit as any).sourceRepo ?? (merged as ReviewPlatformItem).sourceRepo ?? ""} onChange={e => (setEdit as any)("sourceRepo", e.target.value)} disabled={!canActOnCurrent} placeholder="예: gitlab.kolmar.co.kr/ml/…" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="모델 접속 URL">
-                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="태그">
-                      <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                    <FieldRow label="개발 도구">
+                      <input value={(edit as any).devTool ?? (merged as ReviewPlatformItem).devTool ?? ""} onChange={e => (setEdit as any)("devTool", e.target.value)} disabled={!canActOnCurrent} placeholder="예: PyTorch, TensorFlow" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                   </SectionBlock>
                 )}
 
-                {/* ===== 분기: Vibe Coding ===== */}
-                {merged.kind === "vibe" && (
-                  <SectionBlock title="Vibe Coding 정보">
-                    <FieldRow label="사용한 AI 도구">
-                      <input value={(edit as any).devTool ?? (merged as ReviewPlatformItem).devTool ?? ""} onChange={e => (setEdit as any)("devTool", e.target.value)} disabled={!canActOnCurrent} placeholder="예: Cursor, GitHub Copilot" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                      {canActOnCurrent && (
-                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
-                          {VIBE_TOOL_SUGGESTIONS.map(s => (
-                            <span key={s} onClick={() => (setEdit as any)("devTool", s)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {s}</span>
-                          ))}
-                        </div>
-                      )}
-                    </FieldRow>
-                    <FieldRow label="결과물 형태">
-                      <input value={(edit as any).outputType ?? (merged as ReviewPlatformItem).outputType ?? ""} onChange={e => (setEdit as any)("outputType", e.target.value)} disabled={!canActOnCurrent} placeholder="예: React 웹앱, Python 스크립트" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="소스 저장소">
-                      <input value={(edit as any).sourceRepo ?? (merged as ReviewPlatformItem).sourceRepo ?? ""} onChange={e => (setEdit as any)("sourceRepo", e.target.value)} disabled={!canActOnCurrent} placeholder="예: gitlab.kolmar.co.kr/vibe/…" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="접속 URL">
-                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                    <FieldRow label="태그">
-                      <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
-                    </FieldRow>
-                  </SectionBlock>
-                )}
+                {/* vibe · etc: 공통 정보만 (별도 유형 섹션 없음) */}
 
                 {/* ===== 공통: 담당자 ===== */}
                 <SectionBlock title="담당자">
@@ -1108,23 +824,18 @@ export default function AdminReview() {
                 {/* ===== 승인 슬롯 (순서 없는 병렬 2슬롯) / 반려 ===== */}
                 {!isTerminal && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {unsetScope && (
-                      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 14px", fontSize: 12, color: "#991B1B" }}>
-                        관계사 범위가 선택되지 않아 승인할 수 없습니다. "소속 / 대상 관계사"에서 해당 관계사를 선택해주세요.
-                      </div>
-                    )}
                     <div style={{ display: "flex", gap: 12 }}>
                       <SlotCard
                         slotKey="company"
                         slot={merged.approvalSlots.company}
-                        canApprove={canActCompanySlot(merged) && !unsetScope}
+                        canApprove={canActCompanySlot(merged)}
                         disabledReason={merged.company.length === 0 ? "전사 공용 항목은 전사 관리자만 승인할 수 있습니다." : "담당 관계사 범위가 아닙니다."}
                         onApprove={() => approveSlot("company")}
                       />
                       <SlotCard
                         slotKey="global"
                         slot={merged.approvalSlots.global}
-                        canApprove={canActGlobalSlot(merged) && !unsetScope}
+                        canApprove={canActGlobalSlot(merged)}
                         disabledReason="전사 관리자만 승인할 수 있습니다."
                         onApprove={() => approveSlot("global")}
                       />

@@ -44,8 +44,7 @@ const GLOBAL_CSS = `
 
 const HERO_FACTS = [
   { k: "29", v: "개 관계사" },
-  { k: "6", v: "가지 자산 유형" },
-  { k: "4", v: "단계 표준 상태" },
+  { k: "7", v: "가지 자산 유형" },
 ];
 
 const PROBLEM_SOLUTION = [
@@ -90,6 +89,7 @@ const GROUP_LABEL: Record<PlatformId, string> = {
   "ai-orchestration": "AI Agent (LLM)",
   ml: "ML",
   vibe: "VIBE",
+  etc: "AI 프로젝트",
 };
 
 const TYPE_ONELINE: Record<PlatformId, string> = {
@@ -99,6 +99,7 @@ const TYPE_ONELINE: Record<PlatformId, string> = {
   "ai-orchestration": "\u201C나는 어떤 모델을 써야 할까\u201D에 답하는 AI 모델 카탈로그",
   ml: "독립적으로 개발·운영되는 머신러닝·통계 모델",
   vibe: "AI 코딩 도구로 직원이 직접 만든 프로그램",
+  etc: "팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개",
 };
 
 const CONCEPT_CARDS = [
@@ -119,14 +120,6 @@ const CONCEPT_CARDS = [
   },
 ];
 
-const STATUS_STEPS = [
-  // TODO: 상태 통일 작업(platformTypes.ts STATUS_ORDER/STATUS_COLOR) 반영 시 공용 상수로 교체
-  { label: "사용 가능", desc: "지금 바로 쓸 수 있어요", fg: "#059669", bg: "#F0FDF7" },
-  { label: "준비 중", desc: "개발·테스트 중이에요", fg: "#1C6BFF", bg: "#F3F7FE" },
-  { label: "일부 제한", desc: "조건부로 쓸 수 있어요", fg: "#D97706", bg: "#FFFAF0" },
-  { label: "사용 중지", desc: "더 이상 운영하지 않아요", fg: "#DC2626", bg: "#FEF5F5" },
-];
-
 const FLOW_STEPS = [
   { step: "01", title: "탐색", desc: "검색하거나 관계사 × 유형 지도에서 자산을 찾습니다." },
   { step: "02", title: "확인", desc: "상세 페이지에서 사용법을 확인하고 담당자에게 문의합니다." },
@@ -145,7 +138,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "무엇이든 등록할 수 있나요?",
-    a: "여섯 가지 유형에 해당하는 자동화·AI 자산만 다룹니다. 일반 IT 프로젝트, 시스템 구축·개선 과제(MES·SRM·ERP 등), 플랫폼 인프라 구축, BI는 등록 대상이 아닙니다.",
+    a: "일곱 가지 유형에 해당하는 자동화·AI 자산만 다룹니다. 일반 IT 프로젝트, 시스템 구축·개선 과제(MES·SRM·ERP 등), 플랫폼 인프라 구축, BI는 등록 대상이 아닙니다.",
   },
   {
     q: "문의는 어디로 하나요?",
@@ -370,6 +363,14 @@ function TypeIcon({ id, color }: { id: PlatformId; color: string }) {
           <polyline points="8 6 3 12 8 18" />
           <polyline points="16 6 21 12 16 18" />
           <path d="M13 4l-2 16" />
+        </svg>
+      );
+    case "etc":
+      return (
+        <svg {...common}>
+          <path d="M5 3h10l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+          <path d="M15 3v4h4" />
+          <path d="M8 12h7M8 16h7" />
         </svg>
       );
     default:
@@ -698,44 +699,10 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* 04 — 상태는 신호등처럼 */}
+        {/* 04 — 어떻게 이용하나 */}
         <div style={{ marginBottom: 88 }}>
           <SectionHeading
             index="04"
-            eyebrow="Status"
-            title="상태는 신호등처럼"
-            sub="모든 자산의 상태는 네 가지로 통일되어 있어 한눈에 판단할 수 있습니다."
-          />
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-            background: T.surface, borderRadius: T.radiusLg, overflow: "hidden",
-            borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
-            borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
-            boxShadow: T.shadowCard,
-          }}>
-            {STATUS_STEPS.map((s, i) => (
-              <div key={s.label} style={{
-                padding: "22px 18px",
-                background: s.bg,
-                borderLeft: i === 0 ? "none" : `1px solid ${T.line}`,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
-                  <span style={{
-                    width: 9, height: 9, borderRadius: "50%", background: s.fg,
-                    boxShadow: `0 0 0 3px ${s.fg}22`, display: "inline-block",
-                  }} />
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: s.fg }}>{s.label}</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: T.slate500, lineHeight: 1.6 }}>{s.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 05 — 어떻게 이용하나 */}
-        <div style={{ marginBottom: 88 }}>
-          <SectionHeading
-            index="05"
             eyebrow="How It Works"
             title="어떻게 이용하나요?"
           />
@@ -771,9 +738,9 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* 06 — FAQ */}
+        {/* 05 — FAQ */}
         <div style={{ marginBottom: 72 }}>
-          <SectionHeading index="06" eyebrow="FAQ" title="자주 묻는 질문" />
+          <SectionHeading index="05" eyebrow="FAQ" title="자주 묻는 질문" />
           <div style={{
             background: T.surface, borderRadius: T.radiusLg, padding: "6px 22px",
             borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,

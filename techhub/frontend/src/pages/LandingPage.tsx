@@ -77,7 +77,7 @@ const ALL_ITEMS: FeedItem[] = [
 
 // TODO: 실제 연동 시 GET /api/v1/stats/by-platform 응답으로 교체
 const PLATFORM_COUNTS: Record<PlatformId, number> = {
-  n8n: 62, pa: 31, assistant: 48, "ai-orchestration": 12, ml: 23, vibe: 32,
+  n8n: 62, pa: 31, assistant: 48, "ai-orchestration": 12, ml: 23, vibe: 32, etc: 0,
 };
 
 const VISIBLE_ITEMS = ALL_ITEMS.filter(i => i.status !== "준비 중");

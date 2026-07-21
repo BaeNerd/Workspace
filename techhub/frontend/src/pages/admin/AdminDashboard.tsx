@@ -13,15 +13,9 @@ import {
 } from "../../mocks/statsMockData";
 import type { SourceKey, StatCompany } from "../../mocks/statsMockData";
 
-// 출처 표시용 정의 — PLATFORMS 색상과 동기화
-const SOURCES: { key: SourceKey; label: string; color: string }[] = [
-  { key: "n8n", label: "n8n", color: "#EA580C" },
-  { key: "pa", label: "Power Automate", color: "#0078D4" },
-  { key: "assistant", label: "나만의비서", color: "#2563EB" },
-  { key: "ai-orchestration", label: "AI Agent", color: "#7C3AED" },
-  { key: "ml", label: "ML 모델", color: "#0891B2" },
-  { key: "vibe", label: "Vibe Coding", color: "#9333EA" },
-];
+// 출처 표시용 정의 — PLATFORMS 단일 소스에서 파생 (7유형: etc 포함)
+const SOURCES: { key: SourceKey; label: string; color: string }[] =
+  PLATFORMS.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 const sourceColor = (key: SourceKey) => SOURCES.find(s => s.key === key)!.color;
 const sourceLabel = (key: SourceKey) => SOURCES.find(s => s.key === key)!.label;
@@ -41,19 +35,19 @@ const slots = (company: boolean, global: boolean): ApprovalSlots => ({ company: 
 
 type PendingItem = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: StatCompany; approvalSlots: ApprovalSlots };
 const PENDING_ALL: PendingItem[] = [
-  { id: "N8N-2025-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2025.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM", approvalSlots: slots(false, false) },
-  { id: "AST-2025-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2025.06.03", type: "나만의비서", source: "assistant", company: "KBH", approvalSlots: slots(true, false) },
-  { id: "PA-2025-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2025.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG", approvalSlots: slots(false, false) },
-  { id: "AIO-2025-007", title: "원료 추천 에이전트", dept: "IT개발팀", submittedAt: "2025.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
-  { id: "ML-2025-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2025.06.06", type: "ML 모델", source: "ml", company: "KKM", approvalSlots: slots(false, false) },
+  { id: "N8N-2026-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2026.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM", approvalSlots: slots(false, false) },
+  { id: "AST-2026-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2026.06.03", type: "나만의 비서", source: "assistant", company: "KBH", approvalSlots: slots(true, false) },
+  { id: "PA-2026-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2026.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG", approvalSlots: slots(false, false) },
+  { id: "AIO-2026-007", title: "GPT-5.4 Mini", dept: "IT개발팀", submittedAt: "2026.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
+  { id: "ML-2026-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2026.06.06", type: "ML 모델", source: "ml", company: "KKM", approvalSlots: slots(false, false) },
 ];
 
 type ApprovedItem = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey; company: StatCompany };
 const RECENT_APPROVED_ALL: ApprovedItem[] = [
-  { id: "AIO-005", title: "원료 안전성 문의 봇", dept: "메이크업연구소", approvedAt: "2025.05.31", source: "ai-orchestration", company: "KKM" },
-  { id: "N8N-029", title: "일일 매출 리포트 자동 발송", dept: "재무팀", approvedAt: "2025.05.29", source: "n8n", company: "KBH" },
-  { id: "PA-2025-009", title: "신규 입사자 IT 장비 신청 흐름", dept: "인사팀", approvedAt: "2025.05.28", source: "pa", company: "HC" },
-  { id: "VIBE-2025-001", title: "주간 보고서 초안 생성 도구", dept: "경영지원팀", approvedAt: "2025.05.27", source: "vibe", company: "KKM" },
+  { id: "AIO-2026-005", title: "Claude Sonnet 5", dept: "메이크업연구소", approvedAt: "2026.05.31", source: "ai-orchestration", company: "KKM" },
+  { id: "N8N-2026-029", title: "일일 매출 리포트 자동 발송", dept: "재무팀", approvedAt: "2026.05.29", source: "n8n", company: "KBH" },
+  { id: "PA-2026-009", title: "신규 입사자 IT 장비 신청 흐름", dept: "인사팀", approvedAt: "2026.05.28", source: "pa", company: "HC" },
+  { id: "VIBE-2026-001", title: "주간 보고서 초안 생성 도구", dept: "경영지원팀", approvedAt: "2026.05.27", source: "vibe", company: "KKM" },
 ];
 
 const ACTIVE_TOOLS_BY_COMPANY: Record<StatCompany, number> = {
@@ -118,7 +112,7 @@ export default function AdminDashboard() {
 
   const totalRegistrations =
     sourceTotal.n8n + sourceTotal.pa + sourceTotal.assistant +
-    sourceTotal["ai-orchestration"] + sourceTotal.ml + sourceTotal.vibe;
+    sourceTotal["ai-orchestration"] + sourceTotal.ml + sourceTotal.vibe + sourceTotal.etc;
   const thisMonthTotal = monthTotal(monthly[monthly.length - 1]);
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
   const totalDomain = domain.reduce((s, x) => s + x.count, 0) || 1;
@@ -126,8 +120,8 @@ export default function AdminDashboard() {
   const KPIS = [
     { label: "전체 등록물", value: String(totalRegistrations), sub: "자동화·AI 도구 합산", subColor: "#059669" },
     { label: "승인 대기", value: String(pending.length), sub: `부분 승인 ${agg.partialCount}건 포함`, subColor: "#D97706" },
-    { label: "이번 달 신규", value: String(thisMonthTotal), sub: "6개 플랫폼 합산", subColor: "#2563EB" },
-    { label: "사용 가능 도구", value: String(agg.activeTools), sub: "바로 쓸 수 있는 자동화·AI", subColor: "#7C3AED" },
+    { label: "이번 달 신규", value: String(thisMonthTotal), sub: "전체 유형 합산", subColor: "#2563EB" },
+    { label: "게시된 도구", value: String(agg.activeTools), sub: "승인 완료·게시 항목", subColor: "#7C3AED" },
     { label: "누적 활용 후기", value: String(agg.reviewTotal), sub: "전체 항목 합산", subColor: "#059669" },
   ];
 
@@ -150,7 +144,7 @@ export default function AdminDashboard() {
                 </span>
               ) : null}
             </div>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의비서 · AI Agent · ML · Vibe) 통합 현황 · 2025년 6월 기준</p>
+            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 통합 현황</p>
           </div>
 
           {noScope && (
@@ -240,7 +234,7 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>월별 등록 추이 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>2025 · 플랫폼별</span></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>월별 등록 추이 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>2025 · 카테고리별</span></div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {SOURCES.map(s => (
                     <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -272,7 +266,7 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>플랫폼별 구성 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>누적 {totalRegistrations}건</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>카테고리별 구성 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>누적 {totalRegistrations}건</span></div>
               <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
                 {SOURCES.map(s => sourceTotal[s.key] > 0 && <div key={s.key} title={`${s.label}: ${sourceTotal[s.key]}건`} style={{ flex: sourceTotal[s.key], background: s.color }} />)}
               </div>

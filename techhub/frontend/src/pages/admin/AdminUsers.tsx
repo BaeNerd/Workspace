@@ -621,7 +621,7 @@ export default function AdminUsers() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{REGISTRANTS.length}명</span></div>
-                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>AX 플랫폼 항목(n8n · PA · 나만의비서 · AI Agent · ML · Vibe) 등록 이력을 통합 집계합니다.</div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>AX 플랫폼 항목(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
                 </div>
                 <input value={regSearch} onChange={e => setRegSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />
               </div>

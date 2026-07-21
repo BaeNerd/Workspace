@@ -74,6 +74,7 @@ export default function App() {
           <Route path="/ai-orchestration/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/ml/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/vibe/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/etc/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminDashboard /></ProtectedRoute>} />

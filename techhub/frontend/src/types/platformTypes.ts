@@ -1,6 +1,6 @@
 // ===== types/platformTypes.ts =====
 
-export type PlatformId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe";
+export type PlatformId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe" | "etc";
 
 // ============================================================
 // 아이콘 프리셋 레지스트리 (라벨 + 24x24 stroke 라인 아이콘 path)
@@ -35,6 +35,7 @@ export const ICON_PRESETS: Record<string, { label: string; path: string }> = {
   cloud:      { label: "클라우드",        path: "M7 19a4 4 0 01-.8-7.9 5.5 5.5 0 0110.7-1.6A3.5 3.5 0 0117 19H7z" },
   shield:     { label: "보안 (방패)",     path: "M12 3l7 3v5c0 4-3 7-7 8.5C8 17 5 14 5 10V6z M9.5 11.5l2 2 3.5-3.5" },
   puzzle:     { label: "연동 (퍼즐)",     path: "M10 4a2 2 0 014 0v1h3a1 1 0 011 1v3h1a2 2 0 010 4h-1v3a1 1 0 01-1 1h-3v-1a2 2 0 00-4 0v1H6a1 1 0 01-1-1v-3H4a2 2 0 010-4h1V6a1 1 0 011-1h4z" },
+  etc:        { label: "AI 프로젝트 (블로그/문서)", path: "M5 3h10l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z M15 3v4h4 M8 12h7 M8 16h7" },
 };
 
 // 아이콘 키 — ICON_PRESETS 레지스트리 기반 (Record<string,…>이므로 string)
@@ -57,13 +58,36 @@ export const PLATFORMS: Platform[] = [
   { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#DBEAFE", icon: "assistant" },
   { id: "ai-orchestration", name: "AI Agent", shortDesc: "업무 니즈에 맞는 AI 모델을 선택해 사용하는 사내 AI 게이트웨이(HK GPT)", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
   { id: "ml", name: "ML 모델", shortDesc: "특정 플랫폼에 속하지 않는 독립 머신러닝 모델", path: "/ml", accessUrl: null, color: "#0891B2", bg: "#ECFEFF", icon: "ml" },
-  { id: "vibe", name: "Vibe Coding", shortDesc: "AI 코딩 도구로 직접 개발된 독립 소프트웨어·자동화 스크립트", path: "/vibe", accessUrl: null, color: "#9333EA", bg: "#FAF5FF", icon: "vibe" },
+  { id: "vibe", name: "Vibe Coding", shortDesc: "AI 코딩 도구로 직접 개발된 독립 소프트웨어·자동화 스크립트", path: "/vibe", accessUrl: null, color: "#DB2777", bg: "#FDF2F8", icon: "vibe" },
+  { id: "etc", name: "AI 프로젝트", shortDesc: "팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개", path: "/etc", accessUrl: null, color: "#475569", bg: "#F1F5F9", icon: "etc" },
 ];
 
+// ===== 항목 ID 체계 =====
+// 형식: {PREFIX}-{YYYY}-{NNN} (예: N8N-2026-001)
+// 원칙: 카테고리별·연도별 독립 순번 / 결번 재사용 금지 / 승인 전후 ID 불변.
+export const ID_PREFIX: Record<PlatformId, string> = {
+  n8n: "N8N", pa: "PA", assistant: "AST",
+  "ai-orchestration": "AIO", ml: "ML", vibe: "VIBE", etc: "ETC",
+};
+
+// TODO: 백엔드 연동 시 서버 발급 ID로 교체 (PostgreSQL 카테고리·연도별 시퀀스, INSERT 시 원자적 발급)
+export const makeItemId = (platformId: PlatformId, seq: number, year = new Date().getFullYear()): string =>
+  `${ID_PREFIX[platformId]}-${year}-${String(seq).padStart(3, "0")}`;
+
+/**
+ * @deprecated 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기되었습니다.
+ * 등록·검토·관리·상세·통계 어디에도 상태 표시/편집/필터/집계 UI를 두지 않습니다.
+ * 유일한 예외는 AI Agent 전용 `agentAvailability`("사용 가능"/"사용 불가")로 별개 축입니다.
+ * 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)는 상태와 무관하게 유지됩니다.
+ * 현재 잔존 참조는 LandingPage.tsx(타인 교체 예정)뿐이며, 정리 완료 시 아래 정의를 삭제합니다.
+ * 신규 참조 금지: STATUS_ORDER · STATUS_COLOR · STATUS_QUERY_KEY · LEGACY_STATUS_MAP · normalizeStatus · countAvailable.
+ */
 export type PlatformItemStatus = "사용 가능" | "준비 중" | "일부 제한" | "사용 중지";
 
+/** @deprecated 운영 상태 폐기 — {@link PlatformItemStatus} 참조. */
 export const STATUS_ORDER: PlatformItemStatus[] = ["사용 가능", "준비 중", "일부 제한", "사용 중지"];
 
+/** @deprecated 운영 상태 폐기 — {@link PlatformItemStatus} 참조. */
 export const STATUS_COLOR: Record<PlatformItemStatus, { fg: string; bg: string }> = {
   "사용 가능": { bg: "#D1FAE5", fg: "#065F46" },
   "준비 중":   { bg: "#DBEAFE", fg: "#1E40AF" },
@@ -102,9 +126,16 @@ export type PlatformItem = {
   owner: string;
   ownerEmail: string;
   tags: string[];
+  // ai-orchestration "모델 접속 URL" 용도로만 계속 사용 (다른 카테고리 등록 폼에서는 제거됨)
   specificUrl: string;
   updatedAt: string;
   likes: number;
+
+  // 워크플로우/설명 스크린샷 (최대 10장). 데모 단계에서는 data URL로 저장.
+  images?: string[];
+
+  // AI Agent(ai-orchestration) 전용 이용 가능 상태. 기존 PlatformItemStatus 4종과 별개 축.
+  agentAvailability?: "사용 가능" | "사용 불가";
 
   // 소속/대상 관계사 (복수 선택, 관계사 코드 배열). 비워두거나 생략하면 전사 공용.
   company?: string[];
@@ -117,25 +148,25 @@ export type PlatformItem = {
   };
   workflowJson?: string;
 
-  // n8n / pa 공용 — 노드(커넥터) 구성·연동 앱·트리거 설명·예상 효과
+  // n8n / pa 공용 — 트리거 설명·예상 효과
   triggerAction?: string;
-  nodes?: string[];
-  connectedApps?: string[];
+  nodes?: string[];         // @deprecated 등록 폼 제거 — 기존 목업·상세 호환 위해 유지, 후속 정리 예정
+  connectedApps?: string[]; // @deprecated 등록 폼 제거 — 기존 목업·상세 호환 위해 유지, 후속 정리 예정
   expectedTimeSaved?: string;
   difficulty?: "쉬움" | "보통" | "어려움";
 
-  // pa 전용
+  // pa 전용 — @deprecated 등록 폼 제거 (기존 목업·상세 호환 위해 유지, 후속 정리 예정)
   flowType?: string;
   runMode?: string;
   connectorTier?: string;
 
   // 나만의 비서(assistant) 전용
-  shareScope?: string;
+  shareScope?: string;        // @deprecated 등록 폼 제거 — 호환 위해 유지
   sharedPrompt?: string;
   basedModel?: string;
-  roleDefinition?: string;
-  connectedData?: string;
-  sampleQuestions?: string[];
+  roleDefinition?: string;    // @deprecated 등록 폼 제거 — 호환 위해 유지
+  connectedData?: string;     // @deprecated 등록 폼 제거 — 호환 위해 유지
+  sampleQuestions?: string[]; // @deprecated 등록 폼 제거 — 호환 위해 유지
 
   // AI Agent(ai-orchestration) 전용
   modelMeta?: {
@@ -152,12 +183,12 @@ export type PlatformItem = {
   // ML 전용
   mlType?: string;
   trainingDataDesc?: string;
-  performanceSummary?: string;
+  performanceSummary?: string; // @deprecated 등록 폼 제거 — 호환 위해 유지
 
   // ML / Vibe 공용
-  devTool?: string;
-  sourceRepo?: string;
-  outputType?: string;
+  devTool?: string;    // @deprecated 등록 폼(vibe) 제거 — 호환 위해 유지
+  sourceRepo?: string; // @deprecated 등록 폼 제거 — 호환 위해 유지
+  outputType?: string; // @deprecated 등록 폼(vibe) 제거 — 호환 위해 유지
 
   // 상태 사유 — "일부 제한" / "사용 중지" 항목에 제한·중단 이유 기재
   statusNote?: string;
@@ -254,4 +285,5 @@ export const PLATFORM_ICON_PATH: Record<Platform["icon"], string> = {
   pa: "M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4m14 6V17a4 4 0 00-4-4H3",
   ml: "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
   vibe: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
+  etc: "M5 3h10l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z M15 3v4h4 M8 12h7 M8 16h7",
 };
