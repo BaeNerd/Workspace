@@ -250,7 +250,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 
 ## 아이콘 체계 (`types/platformTypes.ts`)
 
-- **`ICON_PRESETS`** — `Record<string, { label: string; path: string }>` 아이콘 레지스트리. 기존 6종(`automation`·`assistant`·`orchestration`·`pa`·`ml`·`vibe`, path·키 변경 금지) + 신규 14종(`bot`·`document`·`barChart`·`lineChart`·`branch`·`database`·`settings`·`chat`·`search`·`calendar`·`mail`·`cloud`·`shield`·`puzzle`) = **20종**.
+- **`ICON_PRESETS`** — `Record<string, { label: string; path: string }>` 아이콘 레지스트리. 기존 6종(`automation`·`assistant`·`orchestration`·`pa`·`ml`·`vibe`, path·키 변경 금지) + 신규 14종(`bot`·`document`·`barChart`·`lineChart`·`branch`·`database`·`settings`·`chat`·`search`·`calendar`·`mail`·`cloud`·`shield`·`puzzle`) + `etc`(AI 프로젝트) = **21종**(§공용 타입과 일치).
 - **`IconKey = keyof typeof ICON_PRESETS`** — `Record<string, …>` 기반이라 사실상 `string`. 리터럴 유니온이 아닌 이유는 기존 `PLATFORM_ICON_PATH`(`Record<Platform["icon"], string>` = `Record<string, string>`)의 6개 매핑 호환을 유지하기 위함(추가 키 요구 없음).
 - **AdminPlatforms `IconPicker`** — `AdminScopeSelect`와 동일 패턴의 그리드 선택 패널(`repeat(3, 1fr)`). `ICON_OPTION_KEYS = Object.keys(ICON_PRESETS)`를 순회하므로 신규 프리셋이 자동 노출. 트리거는 미리보기 + `iconLabelOf(value)` + 회전 셰브론.
 - **`iconPreset(icon)` 폴백** — 미등록 키는 `console.warn` 후 `ICON_PRESETS.automation`으로 대체(서버 비정상 값 방어). `PlatformIcon`이 `iconPreset(icon).path`로 SVG 렌더.
@@ -334,7 +334,7 @@ techhub/
         │   └── api.ts        # 백엔드 연동 대비 스텁 (현재 미사용)
         ├── config/
         │   ├── shareMode.ts  # IS_SHARE_MODE 단일 참조점
-        │   └── operations.ts # TEAMS_CHANNEL_URL 등 운영 상수 단일 참조점
+        │   └── operations.ts # TEAMS_CHANNEL_URL 단일 상수 (운영 설정 참조점)
         ├── context/
         │   ├── AuthContext.tsx
         │   ├── useAuth.ts
@@ -415,24 +415,26 @@ flex column 루트의 다단 구성(빈 상태 안내 내장):
 
 #### `AboutPage.tsx` — `/about`
 
-정적 소개 페이지. 문제 정의 → 작동 방식 → 핵심 가치 → 로드맵 → CTA.
+정적 소개 페이지. 섹션 구성: **01 왜 AX Platform인가**(문제→해법) → **02 무엇을 다루나**(카테고리 카드) → **03 질문에서 출발**(콘텐츠 콘셉트) → **04 어떻게 이용하나**(4-step 흐름) → **05 FAQ** → **CTA 배너**. (로드맵 성격 문구는 CTA 배너에 포함.)
 
 #### `ProjectListPage.tsx` — `/projects`
 
 AX 플랫폼 탐색. 상단 **sticky 2행 필터 바**(좌측 사이드바 아님) + 본문 헤더 정렬.
 
-- **필터 축**: `플랫폼`(`source`) · `도메인`(`domainFilter`, `BUSINESS_DOMAINS`) · `이용 구분`(`usage` — 바로 사용/담당자 문의/사용 중지, 관리자에겐 준비 중 추가) · `관계사`(`company`, `CompanyFilterDropdown`) · 인기 태그 칩 · `초기화`.
+- **필터 바 2행**: 1행 = `카테고리`(`source`) + `도메인`(`domainFilter`, `BUSINESS_DOMAINS`), 2행 = 인기 태그 칩 + `초기화`. (별도의 usage 필터·관계사 필터·상태 필터는 없음 — 운영 상태 폐기.)
 - **정렬**: `SORT_OPTIONS` = 최신순/인기순/이름순.
-- **URL 파라미터**: `?q=`(검색) · `?platform=` · `?status=`(available/restricted/stopped/preparing) · `?domain=`. `location.state._resetAt`로 필터 리셋.
-- **주요 state**: `search`, `source`, `usage`, `company`, `sort`, `domainFilter`, `visibleCount`(24씩 더 보기), `hovered`. (`sidebarOpen` 없음.)
-- **내부 컴포넌트**(모듈 레벨): `HeartIcon`, `CompanyFilterDropdown`.
+- **URL 파라미터**: `?q=`(검색) · `?platform=` · `?domain=`만 읽는다. 상태 파라미터는 읽지 않는다. `location.state._resetAt`로 필터 리셋.
+- **주요 state**: `search`, `source`, `sort`, `domainFilter`, `visibleCount`(24씩 더 보기), `hovered`. (`usage`·`company`·`sidebarOpen` state 없음.)
+- **`company` 필드 용도**: 표시 필터가 아니라 **비노출 관계사 접근 게이팅**에만 사용 — 비그룹뷰어에게 비노출 관계사(`visible: false`) 항목을 숨기는 `filtered` 메모 조건.
+- **내부 컴포넌트**(모듈 레벨): `HeartIcon` 하나뿐.
 
-#### `PlatformItemDetailPage.tsx` — `/n8n/:itemId` 외 5개 경로
+#### `PlatformItemDetailPage.tsx` — `/n8n/:itemId` 외 6개 경로
 
-AX 항목 상세. 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓글·복사.
+AX 항목 상세(총 7경로, `/etc/:itemId` 포함). 플랫폼 종류별 섹션 조건부 렌더링. 좋아요·댓글·복사.
 
+- **탭 구성**: `TABS` = 개요 / 상세(유형별, `vibe`·`etc`는 `hasDetailTab=false`로 숨기고 개요에 통합) / 담당자 / 업데이트·논의(posts).
 - **localStorage**: 방문 시 `ax_recent_viewed`에 itemId 추가 (최대 10개).
-- **후기 탭**: 게시된 항목에서 `PlatformReview` 등록 가능.
+- **후기 등록**: 별도 탭이 아니라 **개요 탭 내부의 후기 섹션**에서 `PlatformReview` 등록.
 
 ---
 
@@ -587,8 +589,8 @@ AuthProvider
 | `Platform` | 플랫폼 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
 | `PLATFORMS` | **7개** 플랫폼 메타 배열. 출처 색상·경로 SSOT (변경 금지) |
 | ~~`PlatformItemStatus`~~ | **@deprecated 운영 상태 폐기.** `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"`. 제품 UI에서 전면 제거됨 — LandingPage 잔존 참조 정리 시 타입 삭제 예정. |
-| ~~`STATUS_ORDER` / `STATUS_COLOR` / `STATUS_QUERY_KEY`~~ | **@deprecated** 운영 상태 4종 배열·색상·URL 키. 신규 참조 금지. |
-| ~~`LEGACY_STATUS_MAP` / `normalizeStatus`~~ | **@deprecated** 레거시 상태 문자열 정규화. |
+| ~~`STATUS_ORDER` / `STATUS_COLOR`~~ | **자체 `@deprecated` 태그 보유.** 운영 상태 4종 배열·색상. 신규 참조 금지. |
+| ~~`STATUS_QUERY_KEY` / `LEGACY_STATUS_MAP` / `normalizeStatus` / `countAvailable`~~ | **자체 태그 없음** — `PlatformItemStatus` JSDoc의 "신규 참조 금지" prose로만 언급(deprecated 취급). URL 키·레거시 정규화·`사용 가능` 항목 카운트. LandingPage 정리 시 일괄 삭제. |
 | `agentAvailability` (PlatformItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Agent(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 기존 4종 상태 체계와 별개 축. |
 | `BUSINESS_DOMAINS` / `BusinessDomain` | 업무 도메인 축 `["영업","생산","연구","재무","HR","IT"]` |
 | `ApprovalSlotKey` / `ApprovalSlot` / `ApprovalSlots` | 병렬 2슬롯 승인 (`company` / `global`) |
@@ -620,7 +622,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 - **운영 상태 4종(`사용 가능`/`준비 중`/`일부 제한`/`사용 중지`)은 제품에서 전면 폐기.** 등록·검토·관리·상세·통계 어디에도 상태 표시·편집·필터·집계 UI를 두지 않는다.
 - **유일한 예외**: AI Agent(ai-orchestration)의 `agentAvailability`(`사용 가능`/`사용 불가`) — 운영 상태와 별개 축.
 - **승인 수명주기는 유지** — `승인 대기`/`부분 승인`/`게시됨`/`반려`/`중지`는 상태와 별개 개념으로 존치(위 [승인 흐름] 참조).
-- `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR`·`STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`는 **deprecated**. 현재 잔존 참조는 `LandingPage.tsx`뿐이며, 정리 완료 시 타입 정의 자체를 삭제한다.
+- **deprecated 인벤토리**: 자체 `@deprecated` JSDoc 태그는 `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR` 3종에만 있고, `STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`·`countAvailable`은 별도 태그 없이 `PlatformItemStatus` JSDoc prose로만 표기(모두 deprecated 취급). `countAvailable`은 여전히 `item.status === "사용 가능"`을 참조하므로 LandingPage 정리 시 일괄 삭제 대상. 현재 잔존 참조는 `LandingPage.tsx`뿐이며, 정리 완료 시 타입 정의 자체를 삭제한다.
 
 ### 항목 URL·관계사 표시 정책
 

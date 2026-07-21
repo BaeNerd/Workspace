@@ -246,9 +246,9 @@ const MOCK_ITEMS: PlatformItem[] = [
   },
   // AI Agent 카탈로그 (11건)
   {
-    id: "AIO-2026-001", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "GPT-5.4 (OpenAI)",
+    id: "AIO-2026-001", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "GPT-5.4",
     summary: "범용 업무 전반에 무난한 기본 선택지입니다.",
-    description: "범용 업무 전반에 무난한 기본 선택지입니다. 최신 지식 반영이 좋고 응답 속도가 빨라 이메일·보고서 초안, 일반 질의응답, 문서 제작·편집에 두루 적합합니다.",
+    description: "OpenAI의 범용 대표 모델로, 업무 전반에 무난한 기본 선택지입니다. 최신 지식 반영이 좋고 응답 속도가 빨라 이메일·보고서 초안, 일반 질의응답, 문서 제작·편집에 두루 적합합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["범용", "빠른 응답", "문서 작성"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 38, company: [],
     modelMeta: {
@@ -261,9 +261,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-002", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "GPT-5.4 Mini (OpenAI)",
+    id: "AIO-2026-002", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "GPT-5.4 Mini",
     summary: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다.",
-    description: "단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다. 본 모델(GPT-5.4) 대비 약 1/3 비용으로, 분류·정리·짧은 요약·코딩 보조처럼 양이 많은 일상 작업에 적합합니다.",
+    description: "OpenAI의 경량 모델로, 단순하고 반복적인 작업을 빠르고 저렴하게 처리합니다. 본 모델(GPT-5.4) 대비 약 1/3 비용으로, 분류·정리·짧은 요약·코딩 보조처럼 양이 많은 일상 작업에 적합합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["저비용", "반복 작업", "코딩 보조"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 22, company: [],
     modelMeta: {
@@ -276,9 +276,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-003", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Opus 4.8 (Anthropic)",
+    id: "AIO-2026-003", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Opus 4.8",
     summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.",
-    description: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다. 복잡한 추론, 에이전트형 코딩, 여러 단계를 거치는 심층 분석에 적합합니다.",
+    description: "Anthropic의 최상위 모델로, 가장 어려운 문제를 끝까지 푸는 데 강합니다. 복잡한 추론, 에이전트형 코딩, 여러 단계를 거치는 심층 분석에 적합합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["복잡한 추론", "에이전트 코딩", "다단계 분석"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 29, company: [],
     modelMeta: {
@@ -291,9 +291,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-004", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Sonnet 4.6 (Anthropic)",
+    id: "AIO-2026-004", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Sonnet 4.6",
     summary: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다.",
-    description: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다. 문서 요약, 회의록 정리, 계약서 검토처럼 긴 글을 읽고 정확하게 정리하는 일에 특히 강합니다.",
+    description: "Anthropic의 균형형 모델로, 일상 업무의 기본기가 가장 탄탄합니다. 문서 요약, 회의록 정리, 계약서 검토처럼 긴 글을 읽고 정확하게 정리하는 일에 특히 강합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["문서 분석", "균형", "긴 문서"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 35, company: [],
     images: [PLACEHOLDER_IMG_1],
@@ -307,9 +307,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-005", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Haiku 4.5 (Anthropic)",
+    id: "AIO-2026-005", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Claude Haiku 4.5",
     summary: "가장 빠른 응답이 필요할 때 선택합니다.",
-    description: "가장 빠른 응답이 필요할 때 선택합니다. 텍스트 분류, 정보 추출, 1차 응대처럼 짧고 많은 요청을 대량으로 처리하는 업무에 적합하며 비용도 낮습니다.",
+    description: "Anthropic의 초경량 모델로, 가장 빠른 응답이 필요할 때 선택합니다. 텍스트 분류, 정보 추출, 1차 응대처럼 짧고 많은 요청을 대량으로 처리하는 업무에 적합하며 비용도 낮습니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["최고 속도", "분류·추출", "대량 처리"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 18, company: [],
     modelMeta: {
@@ -322,9 +322,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-006", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Gemini 3.1 Pro (Google)",
+    id: "AIO-2026-006", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Gemini 3.1 Pro",
     summary: "아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업에 강합니다.",
-    description: "아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업과 추상적 추론에 강하며, 같은 급 모델 대비 비용 효율이 좋습니다.",
+    description: "Google의 대형 모델로, 아주 긴 문서에서 필요한 내용을 찾아내는 검색형 작업과 추상적 추론에 강하며, 같은 급 모델 대비 비용 효율이 좋습니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["긴 문서 검색", "이미지 분석", "비용 효율"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 15, company: [],
     modelMeta: {
@@ -337,9 +337,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-007", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Gemini 3.5 Flash (Google)",
+    id: "AIO-2026-007", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Gemini 3.5 Flash",
     summary: "도구 연동이 필요한 에이전트 작업을 빠르고 저렴하게 처리합니다.",
-    description: "도구 연동이 필요한 에이전트 작업과 이미지·영상을 다루는 멀티모달 작업을 빠르고 저렴하게 처리합니다.",
+    description: "Google의 경량 멀티모달 모델로, 도구 연동이 필요한 에이전트 작업과 이미지·영상을 다루는 작업을 빠르고 저렴하게 처리합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["도구 연동", "멀티모달", "빠른 처리"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 11, company: [],
     modelMeta: {
@@ -352,9 +352,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-008", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "EXAONE 4.5 (LG AI)",
+    id: "AIO-2026-008", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "EXAONE 4.5",
     summary: "계약서, 도면, 재무제표 등 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있습니다.",
-    description: "계약서, 도면, 재무제표, 스캔 문서처럼 표와 서식이 섞인 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있으며 한국어 처리가 강합니다.",
+    description: "LG AI의 국산 모델로, 계약서·도면·재무제표·스캔 문서처럼 표와 서식이 섞인 산업 현장 문서를 시각적으로 이해하는 데 특화되어 있으며 한국어 처리가 강합니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["산업 문서", "시각적 이해", "한국어"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 8, company: [],
     modelMeta: {
@@ -367,9 +367,9 @@ const MOCK_ITEMS: PlatformItem[] = [
     },
   },
   {
-    id: "AIO-2026-009", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Solar Pro 3 (Upstage)",
+    id: "AIO-2026-009", platformId: "ai-orchestration", agentAvailability: "사용 가능", title: "Solar Pro 3",
     summary: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다.",
-    description: "한국어 업무 문서 처리와 에이전트 작업에 강한 국산 모델입니다. 응답이 빠르고 비용이 낮아 한국어 중심의 일상 문서 업무에 부담 없이 사용할 수 있습니다.",
+    description: "Upstage의 국산 모델로, 한국어 업무 문서 처리와 에이전트 작업에 강합니다. 응답이 빠르고 비용이 낮아 한국어 중심의 일상 문서 업무에 부담 없이 사용할 수 있습니다.",
     status: "사용 가능", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
     tags: ["한국어 문서", "빠른 응답", "저비용"], specificUrl: "https://hkgpt.kolmar.co.kr", updatedAt: "2026.07.01", likes: 7, company: [],
     modelMeta: {
@@ -391,7 +391,7 @@ const MOCK_ITEMS: PlatformItem[] = [
       provider: "웍스 대표 모델", modelName: "현재 GPT-5.4 기반",
       contextWindow: "매우 긴 문서 (책 한 권 분량)",
       strengths: ["사내 기본", "최신 유지", "고민 불필요"],
-      strengthsDetail: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다. 현재 GPT-5.4를 기반으로 하며, 웍스 정책에 따라 항상 최신 모델로 수시 교체됩니다. 세부 특성은 GPT-5.4 (OpenAI) 카드를 참고하세요.",
+      strengthsDetail: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다. 현재 GPT-5.4를 기반으로 하며, 웍스 정책에 따라 항상 최신 모델로 수시 교체됩니다. 세부 특성은 GPT-5.4 카드를 참고하세요.",
       tokenUsageNote: "문서 10페이지 요약 시 약 1.1만~1.3만 토큰",
       costTier: "보통", useCases: ["일반 업무 전반 (기본 선택지)"],
     },
@@ -596,7 +596,7 @@ const MOCK_ITEMS: PlatformItem[] = [
     sourceRepo: "gitlab.kolmar.co.kr/ml/demand-channel",
   },
   // ── AI Agent 추가 ──────────────────────────────────────────────────────────
-  { id: "AIO-2026-011", platformId: "ai-orchestration", agentAvailability: "사용 불가", title: "DeepSeek R2 (DeepSeek)",
+  { id: "AIO-2026-011", platformId: "ai-orchestration", agentAvailability: "사용 불가", title: "DeepSeek R2",
     summary: "중국어 문서 번역·분석에 최적화된 고성능 오픈소스 모델입니다.",
     description: "중국어 문서 번역 및 분석에 최적화된 고성능 오픈소스 모델입니다. 중국 현지 법인 업무 대응 및 중국어 계약서·보고서 처리에 활용합니다. 단, 보안 정책에 따라 비공개 데이터 입력은 금지됩니다.",
     status: "일부 제한", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",

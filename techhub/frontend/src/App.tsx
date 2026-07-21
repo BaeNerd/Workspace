@@ -67,7 +67,7 @@ export default function App() {
           <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
           <Route path="/edit-request/:id" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
 
-          {/* AX 플랫폼 항목 상세 — 6개 플랫폼 타입별 경로 */}
+          {/* AX 플랫폼 항목 상세 — 7개 카테고리별 경로 */}
           <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/pa/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
           <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
