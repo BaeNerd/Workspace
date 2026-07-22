@@ -67,9 +67,9 @@ const INITIAL_DEPTS: Dept[] = [
 
 // ★ AssetItem 관계사 집계용 최소 타입 + 목업 데이터
 // TODO: 실제 연동 시 GET /api/v1/admin/platform-items?fields=company 응답으로 교체
-type PlatformItemRef = { id: string; company: string[] };
+type AssetItemRef = { id: string; company: string[] };
 
-const ASSET_ITEM_REFS: PlatformItemRef[] = [
+const ASSET_ITEM_REFS: AssetItemRef[] = [
   { id: "N8N-001", company: ["KKM"] },
   { id: "N8N-002", company: ["KKM"] },
   { id: "N8N-003", company: ["KKM", "KMG"] },
@@ -84,9 +84,9 @@ const ASSET_ITEM_REFS: PlatformItemRef[] = [
   { id: "AIO-004", company: [] },
 ];
 
-const companyWidePlatformItemCount = ASSET_ITEM_REFS.filter(p => p.company.length === 0).length;
-const platformItemCountByCompany = (code: string): number =>
-  companyWidePlatformItemCount + ASSET_ITEM_REFS.filter(p => p.company.includes(code)).length;
+const companyWideAssetItemCount = ASSET_ITEM_REFS.filter(p => p.company.length === 0).length;
+const assetItemCountByCompany = (code: string): number =>
+  companyWideAssetItemCount + ASSET_ITEM_REFS.filter(p => p.company.includes(code)).length;
 
 const PARENTS = ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"];
 const NO_PARENT = "본부 없음 (관계사 직속)";
@@ -192,7 +192,7 @@ function CompanyVisibilityDropdown({ companies, onToggle }: { companies: Company
 
           <div style={{ overflowY: "auto", flex: 1 }}>
             {filteredCompanies.map(c => {
-              const itemCount = platformItemCountByCompany(c.code);
+              const itemCount = assetItemCountByCompany(c.code);
               return (
                 <label key={c.code} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "7px 8px",
@@ -521,7 +521,7 @@ export default function AdminOrg() {
                 노출 {visibleCount} / 전체 {companies.length}
               </span>
               <span style={{ fontSize: 11, fontWeight: 700, background: "#F5F3FF", color: "#6D28D9", padding: "2px 9px", borderRadius: 20 }}>
-                전사 공용 자동화·AI 도구 항목 {companyWidePlatformItemCount}건 (모든 관계사 영향)
+                전사 공용 자동화·AI 도구 항목 {companyWideAssetItemCount}건 (모든 관계사 영향)
               </span>
             </div>
 
@@ -685,7 +685,7 @@ export default function AdminOrg() {
                         { label: "동기화 주기", value: autoSync ? apiConfig.syncInterval : "수동" },
                         { label: "Teams 연동 부서", value: `${teamsLinkedCount}개` },
                         { label: "관계사 노출 현황", value: `${visibleCount} / ${companies.length}개 노출` },
-                        { label: "자동화·AI 도구 항목 총 개수", value: `${ASSET_ITEM_REFS.length}건 (전사 공용 ${companyWidePlatformItemCount}건 포함)` },
+                        { label: "자동화·AI 도구 항목 총 개수", value: `${ASSET_ITEM_REFS.length}건 (전사 공용 ${companyWideAssetItemCount}건 포함)` },
                       ].map((r, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #F8FAFC", fontSize: 12 }}>
                           <span style={{ color: "#94A3B8", fontWeight: 600 }}>{r.label}</span>

@@ -75,7 +75,7 @@ type FormState = {
   // ml 전용
   mlType: string; trainingDataDesc: string; devTool: string;
   // 관계사 범위 — 입력 UI 제거, 전사 공용([])으로 고정 (타입 필드만 유지)
-  platformCompanies: string[];
+  assetCompanies: string[];
 };
 
 // ===== 공용 스타일 (모듈 레벨) =====
@@ -341,7 +341,7 @@ export default function ProjectRegisterPage() {
     contextWindow: "", costTier: "보통",
     mlType: "", trainingDataDesc: "", devTool: "",
     // 사용 부서 파악은 담당자 소속 부서 + 업무 도메인으로 대체 — 관계사 범위는 전사 공용
-    platformCompanies: [],
+    assetCompanies: [],
   });
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm(p => ({ ...p, [k]: v }));
@@ -437,7 +437,7 @@ export default function ProjectRegisterPage() {
       title: form.title, summary: form.summary, description: form.description,
       domain: form.domain || undefined,
       tags: form.tags,
-      company: form.platformCompanies, // 전사 공용([])
+      company: form.assetCompanies, // 전사 공용([])
       contacts: form.contacts,
       agentAvailability: kind === "ai-orchestration" ? (form.agentAvailability || undefined) : undefined,
       specificUrl: kind === "ai-orchestration" ? form.specificUrl : undefined,

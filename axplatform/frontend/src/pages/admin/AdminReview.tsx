@@ -165,7 +165,7 @@ type Contact = { name: string; dept: string; role: string; email: string };
 // 간소화된 7유형 필드 체계 — 삭제된 유형별 필드(flowType·runMode·connectorTier·shareScope·
 // roleDefinition·connectedData·sampleQuestions·nodes·connectedApps·핵심성능·소스저장소 등)는 미보유.
 // company/companyScope는 승인 권한 가드(관계사 슬롯) 판정용 데이터로만 존치 — 편집 UI 없음(전 항목 전사 공용).
-type ReviewPlatformItem = {
+type ReviewAssetItem = {
   kind: CategoryId;
   id: string; title: string; summary: string; description: string;
   dept: string; submittedBy: string; submittedAt: string;
@@ -194,7 +194,7 @@ type ReviewPlatformItem = {
   rejectionReason?: string;
 };
 
-type ReviewItem = ReviewPlatformItem;
+type ReviewItem = ReviewAssetItem;
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = Object.fromEntries(
   CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
@@ -423,7 +423,7 @@ export default function AdminReview() {
   const setEdit = <K extends keyof ReviewItem>(k: K, v: ReviewItem[K]) =>
     setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
 
-  const baseTimeSaved = merged ? deserializeTimeSaved((merged as ReviewPlatformItem).expectedTimeSaved) : { value: "" as number | "", period: "주" as SavedPeriod };
+  const baseTimeSaved = merged ? deserializeTimeSaved((merged as ReviewAssetItem).expectedTimeSaved) : { value: "" as number | "", period: "주" as SavedPeriod };
   const currentTimeSavedValue = ((edit as any).timeSavedValue !== undefined ? (edit as any).timeSavedValue : baseTimeSaved.value) as number | "";
   const currentTimeSavedPeriod = ((edit as any).timeSavedPeriod !== undefined ? (edit as any).timeSavedPeriod : baseTimeSaved.period) as SavedPeriod;
 
@@ -541,7 +541,7 @@ export default function AdminReview() {
   const canActOnCurrent = !!merged && !isTerminal && hasAnySlotAuthority;
 
   const stageStyle = stage ? APPROVAL_STAGE_STYLE[stage] : null;
-  const mergedImages = merged ? ((edit as any).images ?? (merged as ReviewPlatformItem).images ?? []) as string[] : [];
+  const mergedImages = merged ? ((edit as any).images ?? (merged as ReviewAssetItem).images ?? []) as string[] : [];
   const isModelKind = merged?.kind === "ai-orchestration";
   const kindLabel = merged ? (isModelKind ? "AI Agent" : SOURCE_STYLE[merged.kind].label) : "";
 
@@ -685,7 +685,7 @@ export default function AdminReview() {
                     </div>
                   </FieldRow>
                   <FieldRow label="태그">
-                    <input value={(edit as any).itemTags ?? (merged as ReviewPlatformItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} placeholder="쉼표로 구분" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                    <input value={(edit as any).itemTags ?? (merged as ReviewAssetItem).itemTags ?? ""} onChange={e => (setEdit as any)("itemTags", e.target.value)} disabled={!canActOnCurrent} placeholder="쉼표로 구분" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                   </FieldRow>
                 </SectionBlock>
 
@@ -693,7 +693,7 @@ export default function AdminReview() {
                 {(merged.kind === "n8n" || merged.kind === "pa") && (
                   <SectionBlock title={`${SOURCE_STYLE[merged.kind].label} 구성 · 효과`}>
                     {merged.kind === "n8n" && (() => {
-                      const wfInput = (edit as any).workflowInput ?? (merged as ReviewPlatformItem).workflowInput;
+                      const wfInput = (edit as any).workflowInput ?? (merged as ReviewAssetItem).workflowInput;
                       const wf = wfInput ? toWorkflowDef(wfInput) : undefined;
                       return wf ? (
                         <FieldRow label="워크플로우 다이어그램">
@@ -706,7 +706,7 @@ export default function AdminReview() {
                     </FieldRow>
                     {merged.kind === "n8n" && (
                       <FieldRow label="구성 난이도">
-                        <SingleSelectTag options={DIFFICULTY_LEVELS} value={(edit as any).difficulty ?? (merged as ReviewPlatformItem).difficulty ?? "보통"} onChange={v => (setEdit as any)("difficulty", v)} disabled={!canActOnCurrent} />
+                        <SingleSelectTag options={DIFFICULTY_LEVELS} value={(edit as any).difficulty ?? (merged as ReviewAssetItem).difficulty ?? "보통"} onChange={v => (setEdit as any)("difficulty", v)} disabled={!canActOnCurrent} />
                       </FieldRow>
                     )}
                   </SectionBlock>
@@ -716,10 +716,10 @@ export default function AdminReview() {
                 {merged.kind === "assistant" && (
                   <SectionBlock title="비서 구성">
                     <FieldRow label="공유 프롬프트">
-                      <textarea value={(edit as any).sharedPrompt ?? (merged as ReviewPlatformItem).sharedPrompt ?? ""} onChange={e => (setEdit as any)("sharedPrompt", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 100, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)", opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <textarea value={(edit as any).sharedPrompt ?? (merged as ReviewAssetItem).sharedPrompt ?? ""} onChange={e => (setEdit as any)("sharedPrompt", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 100, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)", opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                     <FieldRow label="기반 모델">
-                      <input value={(edit as any).basedModel ?? (merged as ReviewPlatformItem).basedModel ?? ""} onChange={e => (setEdit as any)("basedModel", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <input value={(edit as any).basedModel ?? (merged as ReviewAssetItem).basedModel ?? ""} onChange={e => (setEdit as any)("basedModel", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                       {canActOnCurrent && (
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
                           {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => (setEdit as any)("basedModel", m)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
@@ -733,22 +733,22 @@ export default function AdminReview() {
                 {merged.kind === "ai-orchestration" && (
                   <SectionBlock title="모델 정보">
                     <FieldRow label="이용 가능 여부">
-                      <SingleSelectTag options={AGENT_AVAILABILITY} value={(edit as any).agentAvailability ?? (merged as ReviewPlatformItem).agentAvailability ?? ""} onChange={v => (setEdit as any)("agentAvailability", v)} disabled={!canActOnCurrent} />
+                      <SingleSelectTag options={AGENT_AVAILABILITY} value={(edit as any).agentAvailability ?? (merged as ReviewAssetItem).agentAvailability ?? ""} onChange={v => (setEdit as any)("agentAvailability", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                     <FieldRow label="강점 및 활용 방법">
-                      <textarea value={(edit as any).strengthsDetail ?? (merged as ReviewPlatformItem).strengthsDetail ?? ""} onChange={e => (setEdit as any)("strengthsDetail", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <textarea value={(edit as any).strengthsDetail ?? (merged as ReviewAssetItem).strengthsDetail ?? ""} onChange={e => (setEdit as any)("strengthsDetail", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                     <FieldRow label="모델 접속 URL">
-                      <input value={(edit as any).specificUrl ?? (merged as ReviewPlatformItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} placeholder="https://" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <input value={(edit as any).specificUrl ?? (merged as ReviewAssetItem).specificUrl ?? ""} onChange={e => (setEdit as any)("specificUrl", e.target.value)} disabled={!canActOnCurrent} placeholder="https://" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                     <FieldRow label="세부 모델명">
-                      <input value={(edit as any).modelName ?? (merged as ReviewPlatformItem).modelName ?? ""} onChange={e => (setEdit as any)("modelName", e.target.value)} disabled={!canActOnCurrent} placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <input value={(edit as any).modelName ?? (merged as ReviewAssetItem).modelName ?? ""} onChange={e => (setEdit as any)("modelName", e.target.value)} disabled={!canActOnCurrent} placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                     <FieldRow label="처리 가능한 글 분량">
-                      <SingleSelectTag options={CONTEXT_SIZE_OPTIONS} value={(edit as any).contextWindow ?? (merged as ReviewPlatformItem).contextWindow ?? ""} onChange={v => (setEdit as any)("contextWindow", v)} disabled={!canActOnCurrent} />
+                      <SingleSelectTag options={CONTEXT_SIZE_OPTIONS} value={(edit as any).contextWindow ?? (merged as ReviewAssetItem).contextWindow ?? ""} onChange={v => (setEdit as any)("contextWindow", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                     <FieldRow label="비용 등급">
-                      <SingleSelectTag options={COST_TIERS} value={(edit as any).costTier ?? (merged as ReviewPlatformItem).costTier ?? "보통"} onChange={v => (setEdit as any)("costTier", v)} disabled={!canActOnCurrent} />
+                      <SingleSelectTag options={COST_TIERS} value={(edit as any).costTier ?? (merged as ReviewAssetItem).costTier ?? "보통"} onChange={v => (setEdit as any)("costTier", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                   </SectionBlock>
                 )}
@@ -757,13 +757,13 @@ export default function AdminReview() {
                 {merged.kind === "ml" && (
                   <SectionBlock title="ML 모델 정보">
                     <FieldRow label="모델 유형">
-                      <SingleSelectTag options={ML_TYPES} value={(edit as any).mlType ?? (merged as ReviewPlatformItem).mlType ?? ""} onChange={v => (setEdit as any)("mlType", v)} disabled={!canActOnCurrent} />
+                      <SingleSelectTag options={ML_TYPES} value={(edit as any).mlType ?? (merged as ReviewAssetItem).mlType ?? ""} onChange={v => (setEdit as any)("mlType", v)} disabled={!canActOnCurrent} />
                     </FieldRow>
                     <FieldRow label="학습 데이터 개요">
-                      <input value={(edit as any).trainingDataDesc ?? (merged as ReviewPlatformItem).trainingDataDesc ?? ""} onChange={e => (setEdit as any)("trainingDataDesc", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <input value={(edit as any).trainingDataDesc ?? (merged as ReviewAssetItem).trainingDataDesc ?? ""} onChange={e => (setEdit as any)("trainingDataDesc", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                     <FieldRow label="개발 도구">
-                      <input value={(edit as any).devTool ?? (merged as ReviewPlatformItem).devTool ?? ""} onChange={e => (setEdit as any)("devTool", e.target.value)} disabled={!canActOnCurrent} placeholder="예: PyTorch, TensorFlow" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
+                      <input value={(edit as any).devTool ?? (merged as ReviewAssetItem).devTool ?? ""} onChange={e => (setEdit as any)("devTool", e.target.value)} disabled={!canActOnCurrent} placeholder="예: PyTorch, TensorFlow" style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                     </FieldRow>
                   </SectionBlock>
                 )}

@@ -75,7 +75,7 @@ type Contact = { name: string; dept: string; role: string; email: string };
 
 // 간소화된 7유형 필드 체계 — 운영 상태·관계사 편집·실행 URL·삭제된 유형별 필드는 미보유.
 // company/companyScope는 companyAdmin 조회 범위 판정용 데이터로만 존치 (편집 UI 없음, 전 항목 전사 공용).
-type ManagedPlatformItem = {
+type ManagedAssetItem = {
   kind: CategoryId;
   id: string; title: string; dept: string;
   summary: string; description: string; contacts: Contact[];
@@ -102,7 +102,7 @@ type ManagedPlatformItem = {
   isWeeklyDiscover?: boolean;
 };
 
-type ManagedItem = ManagedPlatformItem;
+type ManagedItem = ManagedAssetItem;
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = Object.fromEntries(
   CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
@@ -195,7 +195,7 @@ const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled
 };
 
 // TODO: 실제 연동 시 GET /api/v1/admin/platform-items 응답으로 교체
-const INITIAL_ASSET_ITEMS: ManagedPlatformItem[] = [
+const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   {
     kind: "n8n",
     id: "N8N-2026-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀",
@@ -292,7 +292,7 @@ const INITIAL_ASSET_ITEMS: ManagedPlatformItem[] = [
   },
 ];
 
-const emptyPlatformItem = (kind: CategoryId): ManagedPlatformItem => ({
+const emptyAssetItem = (kind: CategoryId): ManagedAssetItem => ({
   kind,
   id: "", title: "", summary: "", description: "", dept: "",
   contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], updatedAt: "",
@@ -315,7 +315,7 @@ const emptyPlatformItem = (kind: CategoryId): ManagedPlatformItem => ({
 });
 
 // 예상 절감 시간·워크플로우 다이어그램 대상은 n8n / pa로 한정.
-const isWorkflowKind = (item: ManagedPlatformItem): boolean =>
+const isWorkflowKind = (item: ManagedAssetItem): boolean =>
   item.kind === "n8n" || item.kind === "pa";
 
 export default function AdminProjectManage() {
@@ -339,7 +339,7 @@ export default function AdminProjectManage() {
   ];
 
   // canManageItem 판정 — companyAdmin은 담당 관계사 범위 + 전사 공용만 관리 (원본 판정 구조 유지)
-  const canManageItem = (i: ManagedPlatformItem): boolean => {
+  const canManageItem = (i: ManagedAssetItem): boolean => {
     if (isAdmin) return true;
     if (isCompanyAdmin) return i.company.length === 0 || i.company.some(c => managedCompanies.includes(c));
     return false;
@@ -362,7 +362,7 @@ export default function AdminProjectManage() {
   const displayData = editMode || isNew ? editData : activeItem;
   const isEditing = editMode || isNew;
 
-  const loadTimeSavedFrom = (item: ManagedPlatformItem) => {
+  const loadTimeSavedFrom = (item: ManagedAssetItem) => {
     if (isWorkflowKind(item)) {
       const { value, period } = deserializeTimeSaved(item.expectedTimeSaved);
       setTimeSavedValue(value);
@@ -383,7 +383,7 @@ export default function AdminProjectManage() {
   };
 
   const startNew = (kind: CategoryId) => {
-    setEditData({ ...emptyPlatformItem(kind), id: makeItemId(kind, Math.floor(Math.random() * 900) + 100, 2026) });
+    setEditData({ ...emptyAssetItem(kind), id: makeItemId(kind, Math.floor(Math.random() * 900) + 100, 2026) });
     setTimeSavedValue("");
     setTimeSavedPeriod("주");
     setIsNew(true); setEditMode(false); setSaved(false);
@@ -394,7 +394,7 @@ export default function AdminProjectManage() {
     setTimeSavedValue(""); setTimeSavedPeriod("주");
   };
 
-  const setF = (k: keyof ManagedPlatformItem, v: unknown) =>
+  const setF = (k: keyof ManagedAssetItem, v: unknown) =>
     setEditData(p => p ? { ...p, [k]: v } as ManagedItem : p);
 
   const addContact = () => { if (!editData) return; setF("contacts", [...editData.contacts, { name: "", dept: "", role: "공동담당자", email: "" }]); };

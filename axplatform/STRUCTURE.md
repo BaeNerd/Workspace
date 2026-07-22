@@ -253,7 +253,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 - **`ICON_PRESETS`** — `Record<string, { label: string; path: string }>` 아이콘 레지스트리. 기존 6종(`automation`·`assistant`·`orchestration`·`pa`·`ml`·`vibe`, path·키 변경 금지) + 신규 14종(`bot`·`document`·`barChart`·`lineChart`·`branch`·`database`·`settings`·`chat`·`search`·`calendar`·`mail`·`cloud`·`shield`·`puzzle`) + `etc`(AI 프로젝트) = **21종**(§공용 타입과 일치).
 - **`IconKey = keyof typeof ICON_PRESETS`** — `Record<string, …>` 기반이라 사실상 `string`. 리터럴 유니온이 아닌 이유는 기존 `CATEGORY_ICON_PATH`(`Record<Category["icon"], string>` = `Record<string, string>`)의 6개 매핑 호환을 유지하기 위함(추가 키 요구 없음).
 - **AdminCategories `IconPicker`** — `AdminScopeSelect`와 동일 패턴의 그리드 선택 패널(`repeat(3, 1fr)`). `ICON_OPTION_KEYS = Object.keys(ICON_PRESETS)`를 순회하므로 신규 프리셋이 자동 노출. 트리거는 미리보기 + `iconLabelOf(value)` + 회전 셰브론.
-- **`iconPreset(icon)` 폴백** — 미등록 키는 `console.warn` 후 `ICON_PRESETS.automation`으로 대체(서버 비정상 값 방어). `PlatformIcon`이 `iconPreset(icon).path`로 SVG 렌더.
+- **`iconPreset(icon)` 폴백** — 미등록 키는 `console.warn` 후 `ICON_PRESETS.automation`으로 대체(서버 비정상 값 방어). `CategoryIcon`이 `iconPreset(icon).path`로 SVG 렌더.
 
 ---
 
@@ -514,7 +514,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 
 #### `AdminCategories.tsx` — `/admin/platforms` (admin)
 
-7개 카테고리 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `PlatformIcon`. (표시 문자열은 "카테고리", 파일·코드 심볼은 category 계열로 rename(`AdminCategories`), 라우트 `/admin/platforms`와 로컬 `PlatformIcon`은 현행 유지. 위 [아이콘 체계] 참조.)
+7개 카테고리 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `CategoryIcon`. (표시 문자열은 "카테고리", 파일·코드 심볼은 category 계열로 rename(`AdminCategories`·`CategoryIcon`), 라우트 `/admin/platforms`는 현행 유지. 위 [아이콘 체계] 참조.)
 
 ---
 
@@ -715,7 +715,7 @@ Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 
 
 - **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
 - **`etc` 표시 라벨 = "AI 프로젝트"**: 내부 식별자(`CategoryId` 값 `"etc"`, ID 접두어 `ETC`, 라우트 `/etc`)는 **불변**. 사용자 노출 라벨만 "기타" → "AI 프로젝트"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영).
-- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭, `PlatformItemStatus` 계열(@deprecated), 그리고 일부 로컬 헬퍼 심볼(`PlatformIcon`·`PlatformItemRef` 등).
+- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭, `PlatformItemStatus` 계열(@deprecated). 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
 - **AI Agent 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
 - **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
 - **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.

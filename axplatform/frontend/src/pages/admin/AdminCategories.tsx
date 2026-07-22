@@ -80,7 +80,7 @@ const iconPreset = (icon: IconKey) => {
 };
 
 // 플랫폼 아이콘 미리보기 (색상 배경 위에 SVG path) — ICON_PRESETS 레지스트리 참조
-const PlatformIcon = ({ icon, color, bg, size = 40 }: { icon: IconKey; color: string; bg: string; size?: number }) => (
+const CategoryIcon = ({ icon, color, bg, size = 40 }: { icon: IconKey; color: string; bg: string; size?: number }) => (
   <div style={{
     width: size, height: size, borderRadius: 10, background: bg, flexShrink: 0,
     display: "flex", alignItems: "center", justifyContent: "center",
@@ -108,7 +108,7 @@ const IconPicker = ({ value, color, bg, onChange }: { value: IconKey; color: str
     <div ref={rootRef} style={{ position: "relative", maxWidth: 360 }}>
       <button type="button" onClick={() => setOpen(v => !v)} style={iconTriggerStyle}>
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <PlatformIcon icon={value} color={color} bg={bg} size={28} />
+          <CategoryIcon icon={value} color={color} bg={bg} size={28} />
           <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{iconLabelOf(value)}</span>
         </span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
@@ -125,7 +125,7 @@ const IconPicker = ({ value, color, bg, onChange }: { value: IconKey; color: str
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 6px", borderRadius: 8, cursor: "pointer",
                   border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff",
                 }}>
-                  <PlatformIcon icon={k} color={color} bg={bg} size={30} />
+                  <CategoryIcon icon={k} color={color} bg={bg} size={30} />
                   <span style={{ fontSize: 10.5, fontWeight: 600, color: on ? "#2563EB" : "#475569", textAlign: "center", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{ICON_PRESETS[k].label}</span>
                 </button>
               );
@@ -270,7 +270,7 @@ export default function AdminCategories() {
                       borderLeft: `3px solid ${isSelected ? "#2563EB" : "transparent"}`,
                     }}
                   >
-                    <PlatformIcon icon={p.icon} color={p.color} bg={p.bg} size={36} />
+                    <CategoryIcon icon={p.icon} color={p.color} bg={p.bg} size={36} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -305,7 +305,7 @@ export default function AdminCategories() {
                 {/* 헤더 — 미리보기 + 액션 버튼 */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
-                    <PlatformIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={48} />
+                    <CategoryIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={48} />
                     <div style={{ minWidth: 0 }}>
                       <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {displayData.name || "(이름 없음)"}
@@ -412,7 +412,7 @@ export default function AdminCategories() {
                       <IconPicker value={displayData.icon} color={displayData.color} bg={displayData.bg} onChange={k => setF("icon", k)} />
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <PlatformIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={28} />
+                        <CategoryIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={28} />
                         <span style={{ fontSize: 13, color: "#334155" }}>{iconLabelOf(displayData.icon)}</span>
                       </div>
                     )}

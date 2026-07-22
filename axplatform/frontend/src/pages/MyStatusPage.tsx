@@ -170,7 +170,7 @@ function ParallelApprovalIndicator({ slots, stage }: { slots: ApprovalSlots; sta
   );
 }
 
-const platformPathOf = (kind: CategoryId, id: string) => {
+const categoryPathOf = (kind: CategoryId, id: string) => {
   const p = CATEGORIES.find(pl => pl.id === kind);
   return p ? `${p.path}/${id}` : "/projects";
 };
@@ -299,7 +299,7 @@ export default function MyStatusPage() {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
                     <div
                       style={{ flex: 1, minWidth: 0, cursor: isPublished ? "pointer" : "default" }}
-                      onClick={() => isPublished && navigate(platformPathOf(item.kind, item.id))}
+                      onClick={() => isPublished && navigate(categoryPathOf(item.kind, item.id))}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "#94A3B8" }}>{item.id}</span>
