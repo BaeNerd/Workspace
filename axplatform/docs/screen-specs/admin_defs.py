@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""PHASE 2 — 관리자 화면 p0(정의 슬라이드) 콘텐츠. STRUCTURE.md 정책 기반."""
+"""PHASE 2 참고 자료 — 관리자 화면 p0 콘텐츠 초안(STRUCTURE.md·기획설명서 기반).
+※ v3 빌드는 build_admin.py가 def_slide 호출에 콘텐츠를 인라인하므로 이 모듈은 import되지 않는다(참고용)."""
 
 DEFS = {
     "ADM-01": dict(
@@ -20,7 +21,7 @@ DEFS = {
         ],
         intent=[
             "권한 범위(baseScope)와 조회 범위(viewScope)를 분리해 companyAdmin도 안전하게 조망.",
-            "출처 색상·라벨을 PLATFORMS에서 파생(etc 포함)해 일관성 유지.",
+            "출처 색상·라벨을 CATEGORIES에서 파생(etc 포함)해 일관성 유지.",
         ],
     ),
     "ADM-02": dict(
@@ -84,7 +85,7 @@ DEFS = {
         ],
         intent=[
             "baseScope/viewScope·AdminScopeSelect 구조를 대시보드와 공유.",
-            "출처 색상은 PLATFORMS에서 파생해 차트 일관성 유지.",
+            "출처 색상은 CATEGORIES에서 파생해 차트 일관성 유지.",
         ],
     ),
     "ADM-05": dict(
@@ -101,11 +102,11 @@ DEFS = {
             "탭 4종: 업무 도메인 · 구성 난이도 · 비용 등급 · ML 모델 유형.",
             "구성 난이도는 n8n 전용.",
             "자유 태그 출처(sourceKind)는 etc(표시명 'AI 프로젝트') 포함 7유형 대응.",
-            "고아 분류(n8n 노드 힌트·PA 커넥터·연동 앱·Vibe 도구 힌트)는 삭제됨.",
+            "등록 폼에서 입력이 사라진 고아 분류(수동 입력 힌트 계열)는 삭제됨.",
         ],
         intent=[
             "등록 폼에서 사라진 입력의 분류는 정리해 데이터 정합성 유지.",
-            "n8n은 JSON 업로드 전환으로 수동 노드 입력이 없어 관련 분류 제거.",
+            "n8n은 JSON 업로드 전환으로 수동 입력이 없어 관련 분류 제거.",
         ],
     ),
     "ADM-06": dict(
@@ -119,13 +120,14 @@ DEFS = {
             "신규 아이콘 프리셋을 즉시 반영.",
         ],
         rules=[
-            "표시 문자열은 '카테고리', 라우트/파일명/코드 심볼은 platform 계열 유지.",
+            "표시 용어는 '카테고리', 파일·심볼은 AdminCategories·CategoryIcon(신규 명칭).",
+            "라우트 /admin/platforms·쿼리 키 ?platform=·카테고리 값 문자열은 현행 유지.",
             "IconPicker는 ICON_PRESETS 그리드(repeat(3,1fr))로 선택.",
             "미등록 아이콘 키는 iconPreset() 폴백(automation)으로 방어.",
-            "PlatformIcon이 iconPreset(icon).path로 SVG 렌더.",
+            "CategoryIcon이 iconPreset(icon).path로 SVG 렌더.",
         ],
         intent=[
-            "출처 색상·경로 SSOT(PLATFORMS)를 편집하는 단일 지점.",
+            "출처 색상·경로 SSOT(CATEGORIES)를 편집하는 단일 지점.",
             "아이콘 레지스트리 확장이 선택 패널에 자동 노출되도록 설계.",
         ],
     ),
