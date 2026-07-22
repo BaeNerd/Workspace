@@ -302,7 +302,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 ## 디렉터리 트리
 
 ```
-techhub/
+axplatform/
 ├── docker-compose.yml
 ├── .env / .env.example
 ├── STRUCTURE.md              ← 이 문서
