@@ -2,14 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../types/platformTypes";
-import type { PlatformId, ApprovalStage, ApprovalSlots, ApprovalSlotKey, PlatformReview } from "../types/platformTypes";
+import { CATEGORIES, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../types/categoryTypes";
+import type { CategoryId, ApprovalStage, ApprovalSlots, ApprovalSlotKey, AssetReview } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 
 // 운영 상태(PlatformItemStatus)는 폐기. 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)만 유지.
 type MyItem = {
   id: string;
-  kind: PlatformId;
+  kind: CategoryId;
   title: string;
   summary: string;
   submittedAt: string;
@@ -94,7 +94,7 @@ const INITIAL_ITEMS: MyItem[] = [
 ];
 
 // TODO: 실제 연동 시 GET /api/v1/reviews/mine 응답으로 교체
-const MOCK_MY_REVIEWS: PlatformReview[] = [
+const MOCK_MY_REVIEWS: AssetReview[] = [
   {
     id: "mr1", itemId: "N8N-2026-001", itemTitle: "신규 입사자 계정 자동 생성",
     itemKind: "n8n", author: "나", dept: "IT인프라팀",
@@ -170,8 +170,8 @@ function ParallelApprovalIndicator({ slots, stage }: { slots: ApprovalSlots; sta
   );
 }
 
-const platformPathOf = (kind: PlatformId, id: string) => {
-  const p = PLATFORMS.find(pl => pl.id === kind);
+const platformPathOf = (kind: CategoryId, id: string) => {
+  const p = CATEGORIES.find(pl => pl.id === kind);
   return p ? `${p.path}/${id}` : "/projects";
 };
 
@@ -284,7 +284,7 @@ export default function MyStatusPage() {
             const isExpanded = expanded === item.id;
             const isResubmit = resubmit === item.id;
             const isDeleteConfirm = deleteConfirm === item.id;
-            const platformMeta = PLATFORMS.find(p => p.id === item.kind);
+            const categoryMeta = CATEGORIES.find(p => p.id === item.kind);
             const isPublished = item.approvalStage === "게시됨";
             const isPending = item.approvalStage === "승인 대기" || item.approvalStage === "부분 승인";
             const isRejected = item.approvalStage === "반려";
@@ -303,8 +303,8 @@ export default function MyStatusPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "#94A3B8" }}>{item.id}</span>
-                        {platformMeta && (
-                          <span style={{ fontSize: 10, fontWeight: 700, background: platformMeta.bg, color: platformMeta.color, padding: "2px 8px", borderRadius: 20 }}>{platformMeta.name}</span>
+                        {categoryMeta && (
+                          <span style={{ fontSize: 10, fontWeight: 700, background: categoryMeta.bg, color: categoryMeta.color, padding: "2px 8px", borderRadius: 20 }}>{categoryMeta.name}</span>
                         )}
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27", marginBottom: 4 }}>{item.title}</div>
@@ -374,7 +374,7 @@ export default function MyStatusPage() {
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#697386", marginBottom: 10 }}>등록 내용 요약</div>
                     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px 16px", fontSize: 12 }}>
                       <span style={{ color: "#94A3B8", fontWeight: 600 }}>카테고리</span>
-                      <span style={{ color: "#334155" }}>{platformMeta?.name ?? item.kind}</span>
+                      <span style={{ color: "#334155" }}>{categoryMeta?.name ?? item.kind}</span>
                       <span style={{ color: "#94A3B8", fontWeight: 600 }}>항목 ID</span>
                       <span style={{ color: "#334155", fontFamily: "var(--font-mono)" }}>{item.id}</span>
                       {item.kind === "n8n" && item.difficulty && (
@@ -421,12 +421,12 @@ export default function MyStatusPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {MOCK_MY_REVIEWS.map(r => {
-                const platform = PLATFORMS.find(p => p.id === r.itemKind);
+                const category = CATEGORIES.find(p => p.id === r.itemKind);
                 return (
                   <div key={r.id} style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      {platform && (
-                        <span style={{ fontSize: 10, fontWeight: 700, background: platform.bg, color: platform.color, padding: "2px 7px", borderRadius: 20 }}>{platform.name}</span>
+                      {category && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: category.bg, color: category.color, padding: "2px 7px", borderRadius: 20 }}>{category.name}</span>
                       )}
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27" }}>{r.itemTitle}</span>
                     </div>

@@ -4,8 +4,8 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
-import { PLATFORMS } from "../../types/platformTypes";
-import type { ApprovalSlots } from "../../types/platformTypes";
+import { CATEGORIES } from "../../types/categoryTypes";
+import type { ApprovalSlots } from "../../types/categoryTypes";
 import { useAuth } from "../../context/useAuth";
 import {
   scopedCompanies, aggregateSourceTotal, aggregateMonthly, aggregateDomain,
@@ -13,16 +13,16 @@ import {
 } from "../../mocks/statsMockData";
 import type { SourceKey, StatCompany } from "../../mocks/statsMockData";
 
-// 출처 표시용 정의 — PLATFORMS 단일 소스에서 파생 (7유형: etc 포함)
+// 출처 표시용 정의 — CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
-  PLATFORMS.map(p => ({ key: p.id, label: p.name, color: p.color }));
+  CATEGORIES.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 const sourceColor = (key: SourceKey) => SOURCES.find(s => s.key === key)!.color;
 const sourceLabel = (key: SourceKey) => SOURCES.find(s => s.key === key)!.label;
 
 const detailPathOf = (source: SourceKey, id: string) => {
-  const platform = PLATFORMS.find(p => p.id === source)!;
-  return `${platform.path}/${id}`;
+  const category = CATEGORIES.find(p => p.id === source)!;
+  return `${category.path}/${id}`;
 };
 
 // ============================================================

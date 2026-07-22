@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS } from "../types/platformTypes";
-import type { PlatformId } from "../types/platformTypes";
+import { CATEGORIES } from "../types/categoryTypes";
+import type { CategoryId } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 
 /* ============================================================
@@ -82,7 +82,7 @@ const PROBLEM_SOLUTION = [
   },
 ];
 
-const GROUP_LABEL: Record<PlatformId, string> = {
+const GROUP_LABEL: Record<CategoryId, string> = {
   n8n: "자동화도구",
   pa: "자동화도구",
   assistant: "AI Agent (LLM)",
@@ -92,7 +92,7 @@ const GROUP_LABEL: Record<PlatformId, string> = {
   etc: "AI 프로젝트",
 };
 
-const TYPE_ONELINE: Record<PlatformId, string> = {
+const TYPE_ONELINE: Record<CategoryId, string> = {
   n8n: "사내 n8n 서버에서 상시 실행되는 워크플로우 자동화",
   pa: "Microsoft 환경(클라우드·개인 PC)에서 실행되는 자동화",
   assistant: "HK GPT 모델에 프롬프트를 입혀 만든, 복사해 쓸 수 있는 맞춤 비서",
@@ -313,7 +313,7 @@ function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
   );
 }
 
-function TypeIcon({ id, color }: { id: PlatformId; color: string }) {
+function TypeIcon({ id, color }: { id: CategoryId; color: string }) {
   const common = {
     width: 19, height: 19, viewBox: "0 0 24 24", fill: "none",
     stroke: color, strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
@@ -379,7 +379,7 @@ function TypeIcon({ id, color }: { id: PlatformId; color: string }) {
 }
 
 function TypeCard({ id, name, color, bg, onClick }: {
-  id: PlatformId; name: string; color: string; bg: string; onClick: () => void;
+  id: CategoryId; name: string; color: string; bg: string; onClick: () => void;
 }) {
   return (
     <button
@@ -655,7 +655,7 @@ export default function AboutPage() {
             sub={"자산은 기술이 아니라 \u201C쓰려면 어디로 가야 하는가\u201D를 기준으로 나눕니다."}
           />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 14 }}>
-            {PLATFORMS.map((p) => (
+            {CATEGORIES.map((p) => (
               <TypeCard
                 key={p.id}
                 id={p.id}

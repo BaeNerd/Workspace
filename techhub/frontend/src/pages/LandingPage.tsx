@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { PLATFORMS, PLATFORM_ICON_PATH } from "../types/platformTypes";
-import type { PlatformId, PlatformItemStatus, Platform } from "../types/platformTypes";
+import { CATEGORIES, CATEGORY_ICON_PATH } from "../types/categoryTypes";
+import type { CategoryId, PlatformItemStatus, Category } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { useShareNotice } from "../context/ShareNoticeContext";
 
-const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Platform["icon"] }> =
-  Object.fromEntries(PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
+const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Category["icon"] }> =
+  Object.fromEntries(CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
 
 const DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
 type Domain = typeof DOMAINS[number];
@@ -36,7 +36,7 @@ const STAT_CARDS = [
 ];
 
 type FeedItem = {
-  id: string; kind: PlatformId; title: string; summary: string;
+  id: string; kind: CategoryId; title: string; summary: string;
   dept: string; status: PlatformItemStatus; tags: string[]; likes: number; views: number;
   updated: string; path: string; domain: Domain;
 };
@@ -76,7 +76,7 @@ const ALL_ITEMS: FeedItem[] = [
 ];
 
 // TODO: 실제 연동 시 GET /api/v1/stats/by-platform 응답으로 교체
-const PLATFORM_COUNTS: Record<PlatformId, number> = {
+const CATEGORY_COUNTS: Record<CategoryId, number> = {
   n8n: 62, pa: 31, assistant: 48, "ai-orchestration": 12, ml: 23, vibe: 32, etc: 0,
 };
 
@@ -113,8 +113,8 @@ const LATEST_FEED = [...VISIBLE_ITEMS]
 
 // ===== [존 A] 개인화 데이터 =====
 
-// 최근 본 항목 localStorage 키 — 상세 페이지(PlatformItemDetailPage 등)에서 조회 시 id 배열을 push하도록 후속 반영 필요
-// TODO: PlatformItemDetailPage.tsx / ProjectDetailPage.tsx에 기록 로직 추가
+// 최근 본 항목 localStorage 키 — 상세 페이지(AssetItemDetailPage 등)에서 조회 시 id 배열을 push하도록 후속 반영 필요
+// TODO: AssetItemDetailPage.tsx / ProjectDetailPage.tsx에 기록 로직 추가
 const RECENT_VIEWED_KEY = "ax_recent_viewed";
 
 const readRecentViewed = (): FeedItem[] => {
@@ -158,7 +158,7 @@ const MY_COMPANY_WEEKLY = MY_COMPANY_ITEMS.filter(i =>
 
 // ===== [존 C] 에디터스 픽 + 활용 후기 + 문의 채널 데이터 =====
 
-// TODO: 실제 연동 시 GET /api/v1/editors-pick 응답으로 교체 (PlatformItem에 editorNote 필드 추가 검토)
+// TODO: 실제 연동 시 GET /api/v1/editors-pick 응답으로 교체 (AssetItem에 editorNote 필드 추가 검토)
 // null 이면 EmptyHint 표시 (운영자가 아직 선정하지 않은 경우)
 const EDITORS_PICK: { item: FeedItem; note: string; editor: string } | null = {
   item: ALL_ITEMS.find(i => i.id === "N8N-005")!,
@@ -166,7 +166,7 @@ const EDITORS_PICK: { item: FeedItem; note: string; editor: string } | null = {
   editor: "AX 플랫폼 운영팀",
 };
 
-type Review = { text: string; author: string; itemTitle: string; itemPath: string; itemKind: PlatformId };
+type Review = { text: string; author: string; itemTitle: string; itemPath: string; itemKind: CategoryId };
 
 // TODO: 실제 연동 시 GET /api/v1/reviews/highlights 응답으로 교체
 const REVIEWS: Review[] = [
@@ -452,14 +452,14 @@ function PersonalStrip({
 function TypeMedallion({
   color, bg, icon, label,
 }: {
-  color: string; bg: string; icon: Platform["icon"]; label: string;
+  color: string; bg: string; icon: Category["icon"]; label: string;
 }) {
   return (
     <svg width="44" height="44" viewBox="0 0 44 44" style={{ flexShrink: 0 }}>
       <title>{label}</title>
       <circle cx="22" cy="22" r="22" fill={bg} />
       <path
-        d={PLATFORM_ICON_PATH[icon]}
+        d={CATEGORY_ICON_PATH[icon]}
         fill="none"
         stroke={color}
         strokeWidth="2"
@@ -866,7 +866,7 @@ export default function LandingPage() {
               <SectionLabel>유형별 둘러보기</SectionLabel>
             </div>
             <div className="ax-type-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
-              {PLATFORMS.map(p => (
+              {CATEGORIES.map(p => (
                 <div
                   key={p.id}
                   onClick={() => navigate(`/projects?platform=${p.id}`)}
@@ -885,7 +885,7 @@ export default function LandingPage() {
                 >
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
                     <span style={{ fontSize: 20, fontWeight: 800, color: p.color, letterSpacing: "-0.02em" }}>
-                      {PLATFORM_COUNTS[p.id]}
+                      {CATEGORY_COUNTS[p.id]}
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "#1A1F27" }}>{p.name}</span>
                   </div>

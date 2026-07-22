@@ -1,6 +1,6 @@
-import type { PlatformItem } from "../types/platformTypes";
+import type { AssetItem } from "../types/categoryTypes";
 
-export type WorkflowDef = NonNullable<PlatformItem["workflowDef"]>;
+export type WorkflowDef = NonNullable<AssetItem["workflowDef"]>;
 export type WFNode = WorkflowDef["nodes"][number];
 
 // Simplified editor-friendly shape (linear order, auto-generates edges)

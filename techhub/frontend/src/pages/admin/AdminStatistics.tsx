@@ -4,7 +4,7 @@ import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { useAuth } from "../../context/useAuth";
-import { PLATFORMS } from "../../types/platformTypes";
+import { CATEGORIES } from "../../types/categoryTypes";
 import {
   STAT_COMPANIES,
   scopedCompanies, aggregateMonthly, aggregateSourceTotal, aggregateDomain,
@@ -17,9 +17,9 @@ type Period = typeof PERIODS[number];
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-// 유형 색상·라벨은 PLATFORMS 단일 소스에서 파생 (7유형: etc 포함)
+// 유형 색상·라벨은 CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
-  PLATFORMS.map(p => ({ key: p.id, label: p.name, color: p.color }));
+  CATEGORIES.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 // ============================================================
 // ★ 화면 고유 더미 — 상태·부서·난이도·비용·ML유형·키워드·절감시간

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, ICON_PRESETS } from "../../types/platformTypes";
-import type { Platform, PlatformId, IconKey } from "../../types/platformTypes";
+import { CATEGORIES, ICON_PRESETS } from "../../types/categoryTypes";
+import type { Category, CategoryId, IconKey } from "../../types/categoryTypes";
 
 // ============================================================
 // AD-09 자동화·AI 도구(플랫폼) 관리 화면
@@ -12,7 +12,7 @@ import type { Platform, PlatformId, IconKey } from "../../types/platformTypes";
 
 // 관리 화면 내부에서만 쓰는 확장 타입 — active(노출 여부) 플래그 추가.
 // TODO: 백엔드 Platform 스키마에 active(또는 visible) 필드 반영 필요.
-type ManagedPlatform = Platform & { active: boolean };
+type ManagedCategory = Category & { active: boolean };
 
 // 아이콘 선택지 — ICON_PRESETS 레지스트리 전체를 참조 (프리셋 추가 시 자동 반영)
 const ICON_OPTION_KEYS: IconKey[] = Object.keys(ICON_PRESETS);
@@ -30,12 +30,12 @@ const COLOR_PRESETS: { label: string; color: string; bg: string }[] = [
   { label: "바이올렛", color: "#9333EA", bg: "#FAF5FF" },
 ];
 
-// 초기 목업 — PLATFORMS를 관리 화면용으로 로드. 전부 active=true로 시작.
+// 초기 목업 — CATEGORIES를 관리 화면용으로 로드. 전부 active=true로 시작.
 // TODO: 실제 연동 시 GET /api/v1/admin/platforms 응답으로 교체.
-const INITIAL_PLATFORMS: ManagedPlatform[] = PLATFORMS.map(p => ({ ...p, active: true }));
+const INITIAL_CATEGORIES: ManagedCategory[] = CATEGORIES.map(p => ({ ...p, active: true }));
 
-const emptyDraft = (): ManagedPlatform => ({
-  id: "" as PlatformId,
+const emptyDraft = (): ManagedCategory => ({
+  id: "" as CategoryId,
   name: "",
   shortDesc: "",
   path: "",
@@ -75,7 +75,7 @@ const SectionBlock = ({ title, children }: { title: string; children: React.Reac
 const iconPreset = (icon: IconKey) => {
   const preset = ICON_PRESETS[icon];
   if (preset) return preset;
-  console.warn(`[AdminPlatforms] 알 수 없는 아이콘 키 "${icon}" — 기본 아이콘으로 대체합니다.`);
+  console.warn(`[AdminCategories] 알 수 없는 아이콘 키 "${icon}" — 기본 아이콘으로 대체합니다.`);
   return ICON_PRESETS.automation;
 };
 
@@ -140,21 +140,21 @@ const IconPicker = ({ value, color, bg, onChange }: { value: IconKey; color: str
   );
 };
 
-export default function AdminPlatforms() {
-  const [platforms, setPlatforms] = useState<ManagedPlatform[]>(INITIAL_PLATFORMS);
-  const [selected, setSelected] = useState<string>(INITIAL_PLATFORMS[0]?.id ?? "");
+export default function AdminCategories() {
+  const [categories, setCategories] = useState<ManagedCategory[]>(INITIAL_CATEGORIES);
+  const [selected, setSelected] = useState<string>(INITIAL_CATEGORIES[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
   const [isNew, setIsNew] = useState(false);
-  const [draft, setDraft] = useState<ManagedPlatform | null>(null);
+  const [draft, setDraft] = useState<ManagedCategory | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const activeItem = isNew ? draft : platforms.find(p => p.id === selected) ?? null;
+  const activeItem = isNew ? draft : categories.find(p => p.id === selected) ?? null;
   const displayData = editMode || isNew ? draft : activeItem;
   const isEditing = editMode || isNew;
 
-  const setF = <K extends keyof ManagedPlatform>(k: K, v: ManagedPlatform[K]) =>
+  const setF = <K extends keyof ManagedCategory>(k: K, v: ManagedCategory[K]) =>
     setDraft(p => p ? { ...p, [k]: v } : p);
 
   const startEdit = () => {
@@ -182,7 +182,7 @@ export default function AdminPlatforms() {
   };
 
   // 저장 전 유효성 검증
-  const validate = (d: ManagedPlatform): string => {
+  const validate = (d: ManagedCategory): string => {
     if (!d.name.trim()) return "표시명을 입력해주세요.";
     if (!d.shortDesc.trim()) return "짧은 설명을 입력해주세요.";
     if (!d.path.trim()) return "라우트 경로를 입력해주세요.";
@@ -190,10 +190,10 @@ export default function AdminPlatforms() {
     if (isNew) {
       if (!d.id.trim()) return "식별자(ID)를 입력해주세요.";
       if (!/^[a-z0-9-]+$/.test(d.id)) return "식별자는 소문자·숫자·하이픈만 사용할 수 있습니다.";
-      if (platforms.some(p => p.id === d.id)) return "이미 존재하는 식별자입니다. 다른 값을 사용해주세요.";
-      if (platforms.some(p => p.path === d.path)) return "이미 사용 중인 라우트 경로입니다.";
+      if (categories.some(p => p.id === d.id)) return "이미 존재하는 식별자입니다. 다른 값을 사용해주세요.";
+      if (categories.some(p => p.path === d.path)) return "이미 사용 중인 라우트 경로입니다.";
     } else {
-      if (platforms.some(p => p.path === d.path && p.id !== d.id)) return "이미 사용 중인 라우트 경로입니다.";
+      if (categories.some(p => p.path === d.path && p.id !== d.id)) return "이미 사용 중인 라우트 경로입니다.";
     }
     return "";
   };
@@ -207,10 +207,10 @@ export default function AdminPlatforms() {
     //   isNew  → POST /api/v1/admin/platforms
     //   아니면 → PUT  /api/v1/admin/platforms/:id
     if (isNew) {
-      setPlatforms(prev => [...prev, draft]);
+      setCategories(prev => [...prev, draft]);
       setSelected(draft.id);
     } else {
-      setPlatforms(prev => prev.map(p => p.id === draft.id ? draft : p));
+      setCategories(prev => prev.map(p => p.id === draft.id ? draft : p));
     }
     setEditMode(false);
     setIsNew(false);
@@ -222,13 +222,13 @@ export default function AdminPlatforms() {
 
   // 비활성화/활성화 토글
   const toggleActive = (id: string) => {
-    setPlatforms(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
+    setCategories(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
   };
 
   const handleDelete = (id: string) => {
-    setPlatforms(prev => prev.filter(p => p.id !== id));
+    setCategories(prev => prev.filter(p => p.id !== id));
     setDeleteConfirm(null);
-    const remaining = platforms.filter(p => p.id !== id);
+    const remaining = categories.filter(p => p.id !== id);
     if (remaining.length > 0) setSelected(remaining[0].id);
     else setSelected("");
   };
@@ -246,7 +246,7 @@ export default function AdminPlatforms() {
           <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>카테고리 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{platforms.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>카테고리 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{categories.length}</span></span>
                 <button onClick={startNew} style={{
                   background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
                   padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -258,7 +258,7 @@ export default function AdminPlatforms() {
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-              {platforms.map(p => {
+              {categories.map(p => {
                 const isSelected = selected === p.id && !isNew;
                 return (
                   <div
@@ -283,7 +283,7 @@ export default function AdminPlatforms() {
                   </div>
                 );
               })}
-              {platforms.length === 0 && (
+              {categories.length === 0 && (
                 <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>등록된 도구가 없습니다.</div>
               )}
             </div>
@@ -364,7 +364,7 @@ export default function AdminPlatforms() {
                 <SectionBlock title="기본 정보">
                   <FieldRow label="식별자 (ID)" hint={isNew ? "소문자·숫자·하이픈, 저장 후 변경 불가" : "변경 불가"}>
                     {isNew ? (
-                      <input value={displayData.id} onChange={e => setF("id", e.target.value as PlatformId)} placeholder="예: my-tool" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
+                      <input value={displayData.id} onChange={e => setF("id", e.target.value as CategoryId)} placeholder="예: my-tool" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
                     ) : (
                       <div style={{ ...inputStyle, background: "#F8FAFC", color: "#64748B", fontFamily: "var(--font-mono)" }}>{displayData.id}</div>
                     )}

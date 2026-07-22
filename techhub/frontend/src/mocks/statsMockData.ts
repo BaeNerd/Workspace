@@ -11,10 +11,10 @@
 // 공용화하지 않고 각 화면 파일에 그대로 둔다.
 // ============================================================
 
-import type { PlatformId } from "../types/platformTypes";
+import type { CategoryId } from "../types/categoryTypes";
 
 // 출처 키 = 7개 플랫폼 타입 그대로 (etc 포함, 운영 상태 필드 없음)
-export type SourceKey = PlatformId;
+export type SourceKey = CategoryId;
 
 // 월별 포인트 — 두 화면이 각기 쓰던 키를 모두 제공(key/m/month)
 export type MonthPoint = {

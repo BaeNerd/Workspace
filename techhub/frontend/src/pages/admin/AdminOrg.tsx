@@ -65,11 +65,11 @@ const INITIAL_DEPTS: Dept[] = [
   { id: 15, name: "전략기획팀", parent: null, company: "KMH", projectCount: 1, source: "manual" },
 ];
 
-// ★ PlatformItem 관계사 집계용 최소 타입 + 목업 데이터
+// ★ AssetItem 관계사 집계용 최소 타입 + 목업 데이터
 // TODO: 실제 연동 시 GET /api/v1/admin/platform-items?fields=company 응답으로 교체
 type PlatformItemRef = { id: string; company: string[] };
 
-const PLATFORM_ITEM_REFS: PlatformItemRef[] = [
+const ASSET_ITEM_REFS: PlatformItemRef[] = [
   { id: "N8N-001", company: ["KKM"] },
   { id: "N8N-002", company: ["KKM"] },
   { id: "N8N-003", company: ["KKM", "KMG"] },
@@ -84,9 +84,9 @@ const PLATFORM_ITEM_REFS: PlatformItemRef[] = [
   { id: "AIO-004", company: [] },
 ];
 
-const companyWidePlatformItemCount = PLATFORM_ITEM_REFS.filter(p => p.company.length === 0).length;
+const companyWidePlatformItemCount = ASSET_ITEM_REFS.filter(p => p.company.length === 0).length;
 const platformItemCountByCompany = (code: string): number =>
-  companyWidePlatformItemCount + PLATFORM_ITEM_REFS.filter(p => p.company.includes(code)).length;
+  companyWidePlatformItemCount + ASSET_ITEM_REFS.filter(p => p.company.includes(code)).length;
 
 const PARENTS = ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"];
 const NO_PARENT = "본부 없음 (관계사 직속)";
@@ -685,7 +685,7 @@ export default function AdminOrg() {
                         { label: "동기화 주기", value: autoSync ? apiConfig.syncInterval : "수동" },
                         { label: "Teams 연동 부서", value: `${teamsLinkedCount}개` },
                         { label: "관계사 노출 현황", value: `${visibleCount} / ${companies.length}개 노출` },
-                        { label: "자동화·AI 도구 항목 총 개수", value: `${PLATFORM_ITEM_REFS.length}건 (전사 공용 ${companyWidePlatformItemCount}건 포함)` },
+                        { label: "자동화·AI 도구 항목 총 개수", value: `${ASSET_ITEM_REFS.length}건 (전사 공용 ${companyWidePlatformItemCount}건 포함)` },
                       ].map((r, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #F8FAFC", fontSize: 12 }}>
                           <span style={{ color: "#94A3B8", fontWeight: 600 }}>{r.label}</span>

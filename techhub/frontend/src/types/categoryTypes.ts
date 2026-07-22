@@ -1,14 +1,14 @@
-// ===== types/platformTypes.ts =====
+// ===== types/categoryTypes.ts =====
 
-export type PlatformId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe" | "etc";
+export type CategoryId = "n8n" | "pa" | "assistant" | "ai-orchestration" | "ml" | "vibe" | "etc";
 
 // ============================================================
 // 아이콘 프리셋 레지스트리 (라벨 + 24x24 stroke 라인 아이콘 path)
 // ------------------------------------------------------------
-// 기존 6개 키(automation…vibe)는 PLATFORM_ICON_PATH와 동일한 path를 그대로 포함(데이터 호환).
-// AdminPlatforms의 아이콘 선택지·미리보기는 이 레지스트리를 단일 소스로 참조한다.
+// 기존 6개 키(automation…vibe)는 CATEGORY_ICON_PATH와 동일한 path를 그대로 포함(데이터 호환).
+// AdminCategories의 아이콘 선택지·미리보기는 이 레지스트리를 단일 소스로 참조한다.
 // Record<string, …>로 두어 keyof(=IconKey)가 문자열이 되게 하며, 이로써 기존
-// PLATFORM_ICON_PATH(Record<Platform["icon"], string> = Record<string,string>)의
+// CATEGORY_ICON_PATH(Record<Category["icon"], string> = Record<string,string>)의
 // 6개 매핑이 그대로 유효하다(추가 키 요구 없음).
 // TODO: 실제 연동 시 서버 아이콘 카탈로그로 교체.
 // ============================================================
@@ -41,8 +41,8 @@ export const ICON_PRESETS: Record<string, { label: string; path: string }> = {
 // 아이콘 키 — ICON_PRESETS 레지스트리 기반 (Record<string,…>이므로 string)
 export type IconKey = keyof typeof ICON_PRESETS;
 
-export type Platform = {
-  id: PlatformId;
+export type Category = {
+  id: CategoryId;
   name: string;
   shortDesc: string;
   path: string;
@@ -52,7 +52,7 @@ export type Platform = {
   icon: IconKey;
 };
 
-export const PLATFORMS: Platform[] = [
+export const CATEGORIES: Category[] = [
   { id: "n8n", name: "n8n", shortDesc: "업무 자동화 워크플로우 플랫폼", path: "/n8n", accessUrl: "https://n8n.kolmar.co.kr", color: "#EA580C", bg: "#FFF7ED", icon: "automation" },
   { id: "pa", name: "Power Automate", shortDesc: "클라우드 플로우와 데스크톱 자동화(RPA)를 아우르는 Microsoft 자동화 도구", path: "/pa", accessUrl: null, color: "#0078D4", bg: "#EFF6FF", icon: "pa" },
   { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#DBEAFE", icon: "assistant" },
@@ -65,14 +65,14 @@ export const PLATFORMS: Platform[] = [
 // ===== 항목 ID 체계 =====
 // 형식: {PREFIX}-{YYYY}-{NNN} (예: N8N-2026-001)
 // 원칙: 카테고리별·연도별 독립 순번 / 결번 재사용 금지 / 승인 전후 ID 불변.
-export const ID_PREFIX: Record<PlatformId, string> = {
+export const ID_PREFIX: Record<CategoryId, string> = {
   n8n: "N8N", pa: "PA", assistant: "AST",
   "ai-orchestration": "AIO", ml: "ML", vibe: "VIBE", etc: "ETC",
 };
 
 // TODO: 백엔드 연동 시 서버 발급 ID로 교체 (PostgreSQL 카테고리·연도별 시퀀스, INSERT 시 원자적 발급)
-export const makeItemId = (platformId: PlatformId, seq: number, year = new Date().getFullYear()): string =>
-  `${ID_PREFIX[platformId]}-${year}-${String(seq).padStart(3, "0")}`;
+export const makeItemId = (categoryId: CategoryId, seq: number, year = new Date().getFullYear()): string =>
+  `${ID_PREFIX[categoryId]}-${year}-${String(seq).padStart(3, "0")}`;
 
 /**
  * @deprecated 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기되었습니다.
@@ -115,9 +115,9 @@ export const STATUS_QUERY_KEY: Record<PlatformItemStatus, string> = {
 export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
 export type BusinessDomain = typeof BUSINESS_DOMAINS[number];
 
-export type PlatformItem = {
+export type AssetItem = {
   id: string;
-  platformId: PlatformId;
+  categoryId: CategoryId;
   title: string;
   summary: string;
   description: string;
@@ -200,15 +200,15 @@ export type PlatformItem = {
   domain?: BusinessDomain;
 };
 
-export const countAvailable = (items: PlatformItem[]): number =>
+export const countAvailable = (items: AssetItem[]): number =>
   items.filter(item => item.status === "사용 가능").length;
 
 // ===== 활용 후기 =====
-export type PlatformReview = {
+export type AssetReview = {
   id: string;
   itemId: string;
   itemTitle: string;
-  itemKind: PlatformId;
+  itemKind: CategoryId;
   author: string;
   dept: string;
   text: string;
@@ -278,7 +278,7 @@ export type DeletionRecord = {
   reason: string;
 };
 
-export const PLATFORM_ICON_PATH: Record<Platform["icon"], string> = {
+export const CATEGORY_ICON_PATH: Record<Category["icon"], string> = {
   automation: "M13 2L3 14h7l-1 8 10-12h-7l1-8z",
   assistant: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 16v-4M12 8h.01",
   orchestration: "M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z",

@@ -17,7 +17,7 @@ import ProjectListPage from "./pages/ProjectListPage";
 import ProjectRegisterPage from "./pages/ProjectRegisterPage";
 import MyStatusPage from "./pages/MyStatusPage";
 import EditRequestPage from "./pages/EditRequestPage";
-import PlatformItemDetailPage from "./pages/PlatformItemDetailPage";
+import AssetItemDetailPage from "./pages/AssetItemDetailPage";
 
 // 관리자 전용 페이지
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -27,7 +27,7 @@ import AdminTaxonomy from "./pages/admin/AdminTaxonomy";
 import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
-import AdminPlatforms from "./pages/admin/AdminPlatforms";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 export default function App() {
   // ===== 공유 모드: 랜딩(/)만 마운트, 그 외 이동은 ShareRedirect가 가로채 안내 후 랜딩 유지 =====
@@ -68,13 +68,13 @@ export default function App() {
           <Route path="/edit-request/:id" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
 
           {/* AX 플랫폼 항목 상세 — 7개 카테고리별 경로 */}
-          <Route path="/n8n/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/pa/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/assistant/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/ai-orchestration/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/ml/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/vibe/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
-          <Route path="/etc/:itemId" element={<ProtectedRoute><PlatformItemDetailPage /></ProtectedRoute>} />
+          <Route path="/n8n/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/pa/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/assistant/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/ai-orchestration/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/ml/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/vibe/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
+          <Route path="/etc/:itemId" element={<ProtectedRoute><AssetItemDetailPage /></ProtectedRoute>} />
 
           {/* ===== 관리자 전용 ===== */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminDashboard /></ProtectedRoute>} />
@@ -84,7 +84,7 @@ export default function App() {
           <Route path="/admin/org" element={<ProtectedRoute requireAdmin><AdminOrg /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
           <Route path="/admin/statistics" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminStatistics /></ProtectedRoute>} />
-          <Route path="/admin/platforms" element={<ProtectedRoute requireAdmin><AdminPlatforms /></ProtectedRoute>} />
+          <Route path="/admin/platforms" element={<ProtectedRoute requireAdmin><AdminCategories /></ProtectedRoute>} />
 
         </Routes>
       </BrowserRouter>

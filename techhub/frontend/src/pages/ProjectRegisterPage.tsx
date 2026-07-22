@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { PLATFORMS, BUSINESS_DOMAINS, ID_PREFIX, makeItemId } from "../types/platformTypes";
-import type { PlatformId, BusinessDomain } from "../types/platformTypes";
+import { CATEGORIES, BUSINESS_DOMAINS, ID_PREFIX, makeItemId } from "../types/categoryTypes";
+import type { CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 import N8nFlowPreview from "../components/N8nFlowPreview";
@@ -44,8 +44,8 @@ const ML_TYPES = [
 
 type Contact = { name: string; dept: string; role: string; email: string };
 
-// Step 0 유형 카드 — PLATFORMS 기반 + 일부 유형은 설명 문구를 등록 맥락에 맞게 보정
-const KIND_OPTIONS: { key: PlatformId; label: string; desc: string; color: string; bg: string }[] = PLATFORMS.map(p => {
+// Step 0 유형 카드 — CATEGORIES 기반 + 일부 유형은 설명 문구를 등록 맥락에 맞게 보정
+const KIND_OPTIONS: { key: CategoryId; label: string; desc: string; color: string; bg: string }[] = CATEGORIES.map(p => {
   if (p.id === "assistant") return { key: p.id, label: p.name, desc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", color: p.color, bg: p.bg };
   if (p.id === "ai-orchestration") return { key: p.id, label: "AI Agent", desc: p.shortDesc, color: p.color, bg: p.bg };
   if (p.id === "etc") return { key: p.id, label: p.name, desc: "팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개합니다. (일반 IT 시스템 구축 과제는 제외)", color: p.color, bg: p.bg };
@@ -320,7 +320,7 @@ export default function ProjectRegisterPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [step, setStep] = useState(0);
-  const [kind, setKind] = useState<PlatformId | null>(null);
+  const [kind, setKind] = useState<CategoryId | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [issuedId, setIssuedId] = useState<string | null>(null);

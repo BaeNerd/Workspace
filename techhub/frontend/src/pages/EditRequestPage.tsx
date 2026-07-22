@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { PLATFORMS, BUSINESS_DOMAINS } from "../types/platformTypes";
-import type { PlatformId, BusinessDomain } from "../types/platformTypes";
+import { CATEGORIES, BUSINESS_DOMAINS } from "../types/categoryTypes";
+import type { CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 import N8nFlowPreview from "../components/N8nFlowPreview";
@@ -50,7 +50,7 @@ const placeholderImage = (label: string, color: string) =>
 // TODO: 실제 연동 시 GET /api/v1/platform-items/:id 응답으로 교체
 type CurrentItem = {
   id: string;
-  kind: PlatformId;
+  kind: CategoryId;
   images: string[];
   title: string; summary: string; description: string;
   domain: BusinessDomain | "";
@@ -348,7 +348,7 @@ export default function EditRequestPage() {
   const current = MOCK_CURRENT; // TODO: id로 실제 조회 결과 사용
   void id;
 
-  const kindMeta = PLATFORMS.find(p => p.id === current.kind);
+  const kindMeta = CATEGORIES.find(p => p.id === current.kind);
   const kindLabel = current.kind === "ai-orchestration" ? "AI Agent" : (kindMeta?.name ?? current.kind);
 
   const [form, setForm] = useState<FormState>({
@@ -449,7 +449,7 @@ export default function EditRequestPage() {
     // TODO: 실제 연동 시 POST /api/v1/platform-items/:id/edit-requests
     const _payload = {
       id: current.id,
-      platformId: current.kind,
+      categoryId: current.kind,
       images: form.images,
       title: form.title, summary: form.summary, description: form.description,
       domain: form.domain || undefined,

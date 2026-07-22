@@ -2,8 +2,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, BUSINESS_DOMAINS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../../types/platformTypes";
-import type { PlatformId, ApprovalStage, ApprovalSlot, ApprovalSlots, ApprovalSlotKey, ApprovalRecord, BusinessDomain } from "../../types/platformTypes";
+import { CATEGORIES, BUSINESS_DOMAINS, APPROVAL_SLOT_LABEL, deriveStage, LEGACY_APPROVAL_MAP } from "../../types/categoryTypes";
+import type { CategoryId, ApprovalStage, ApprovalSlot, ApprovalSlots, ApprovalSlotKey, ApprovalRecord, BusinessDomain } from "../../types/categoryTypes";
 import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
@@ -164,9 +164,9 @@ type Contact = { name: string; dept: string; role: string; email: string };
 
 // 간소화된 7유형 필드 체계 — 삭제된 유형별 필드(flowType·runMode·connectorTier·shareScope·
 // roleDefinition·connectedData·sampleQuestions·nodes·connectedApps·핵심성능·소스저장소 등)는 미보유.
-// company/platformScope는 승인 권한 가드(관계사 슬롯) 판정용 데이터로만 존치 — 편집 UI 없음(전 항목 전사 공용).
+// company/companyScope는 승인 권한 가드(관계사 슬롯) 판정용 데이터로만 존치 — 편집 UI 없음(전 항목 전사 공용).
 type ReviewPlatformItem = {
-  kind: PlatformId;
+  kind: CategoryId;
   id: string; title: string; summary: string; description: string;
   dept: string; submittedBy: string; submittedAt: string;
   images?: string[];
@@ -185,7 +185,7 @@ type ReviewPlatformItem = {
   mlType?: string; trainingDataDesc?: string; devTool?: string;
   // 승인 축 (권한 가드용 — 유지)
   company: string[];
-  platformScope: "unset" | "company-wide" | "specific";
+  companyScope: "unset" | "company-wide" | "specific";
   contacts: Contact[];
   approvalSlots: ApprovalSlots;
   rejected: boolean;
@@ -197,7 +197,7 @@ type ReviewPlatformItem = {
 type ReviewItem = ReviewPlatformItem;
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = Object.fromEntries(
-  PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
+  CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
 );
 
 const inputStyle: React.CSSProperties = {
@@ -335,7 +335,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
       { label: "불일치 항목 확인", type: "condition" },
       { label: "Teams 알림 발송", type: "output" },
     ]},
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -347,7 +347,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     dept: "구매팀", submittedBy: "최유진", submittedAt: "2026.06.25",
     expectedTimeSaved: "주 3시간",
     itemTags: "결재, 구매자동화", domain: "재무",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -360,7 +360,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     sharedPrompt: "당신은 해외법인 계약서를 검토하는 법무 담당자입니다. 업로드된 영문 계약서에서 위험 조항을 찾아 한국어로 요약해 주세요.",
     basedModel: "Claude Opus 4.8",
     itemTags: "계약서, 법무, 해외법인", domain: "IT",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
     ...legacy("2차대기"), approvalHistory: [
       { slot: "company", action: "승인", at: "2026.06.24", by: "최관리 (관계사관리자)" },
@@ -377,7 +377,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     modelName: "GPT-4o", contextWindow: "문서 여러 장 (수십 페이지)", costTier: "보통",
     specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4o",
     itemTags: "범용, 업무보조",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -389,7 +389,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2026.06.26",
     mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장", devTool: "PyTorch",
     itemTags: "품질관리, 이미지분류", domain: "생산",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -400,7 +400,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
     description: "사내 구성원이 AI 동향을 쉽게 접할 수 있도록 매주 주요 뉴스와 활용 사례를 정리해 공유하는 소규모 프로젝트입니다.",
     dept: "DX추진팀", submittedBy: "한지민", submittedAt: "2026.06.28",
     itemTags: "뉴스레터, AI트렌드", domain: "IT",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     contacts: [{ name: "한지민", dept: "DX추진팀", role: "주담당자", email: "jimin.han@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -412,7 +412,7 @@ export default function AdminReview() {
   const [selected, setSelected] = useState<string>(INITIAL_ITEMS[0]?.id ?? "");
   const [edits, setEdits] = useState<Record<string, Partial<ReviewItem>>>({});
   const [filter, setFilter] = useState<ReviewFilterKey>("전체");
-  const [sourceFilter, setSourceFilter] = useState<"전체" | PlatformId>("전체");
+  const [sourceFilter, setSourceFilter] = useState<"전체" | CategoryId>("전체");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -460,7 +460,7 @@ export default function AdminReview() {
   // 슬롯 단위 승인 (순서 무관). 관계사 미지정(unset) 항목은 승인 불가.
   const approveSlot = (slotKey: ApprovalSlotKey) => {
     if (!activeItem || !merged) return;
-    if (merged.platformScope === "unset") return;
+    if (merged.companyScope === "unset") return;
     const at = "2026.07.10";
     const by = user?.name ?? "관리자";
     const willComplete = merged.approvalSlots[slotKey === "company" ? "global" : "company"].approved;
@@ -528,9 +528,9 @@ export default function AdminReview() {
     })
     .filter(i => sourceFilter === "전체" ? true : i.kind === sourceFilter);
 
-  const SOURCE_OPTIONS: { key: "전체" | PlatformId; label: string }[] = [
+  const SOURCE_OPTIONS: { key: "전체" | CategoryId; label: string }[] = [
     { key: "전체", label: "전체" },
-    ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
+    ...CATEGORIES.map(p => ({ key: p.id, label: p.name })),
   ];
 
   const stage: ApprovalStage | null = merged ? stageOf(merged) : null;
@@ -578,7 +578,7 @@ export default function AdminReview() {
                 onSelect={setFilter}
               />
 
-              <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value as "전체" | PlatformId)} style={{ ...selectStyle, fontSize: 11, padding: "6px 28px 6px 10px" }}>
+              <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value as "전체" | CategoryId)} style={{ ...selectStyle, fontSize: 11, padding: "6px 28px 6px 10px" }}>
                 {SOURCE_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
               </select>
             </div>

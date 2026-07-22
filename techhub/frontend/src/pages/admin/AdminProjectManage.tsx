@@ -2,8 +2,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, BUSINESS_DOMAINS, makeItemId } from "../../types/platformTypes";
-import type { PlatformId, BusinessDomain } from "../../types/platformTypes";
+import { CATEGORIES, BUSINESS_DOMAINS, makeItemId } from "../../types/categoryTypes";
+import type { CategoryId, BusinessDomain } from "../../types/categoryTypes";
 import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
@@ -74,9 +74,9 @@ const timeSavedDisplay = (raw: string | undefined): string => {
 type Contact = { name: string; dept: string; role: string; email: string };
 
 // 간소화된 7유형 필드 체계 — 운영 상태·관계사 편집·실행 URL·삭제된 유형별 필드는 미보유.
-// company/platformScope는 companyAdmin 조회 범위 판정용 데이터로만 존치 (편집 UI 없음, 전 항목 전사 공용).
+// company/companyScope는 companyAdmin 조회 범위 판정용 데이터로만 존치 (편집 UI 없음, 전 항목 전사 공용).
 type ManagedPlatformItem = {
-  kind: PlatformId;
+  kind: CategoryId;
   id: string; title: string; dept: string;
   summary: string; description: string; contacts: Contact[];
   updatedAt: string;
@@ -85,7 +85,7 @@ type ManagedPlatformItem = {
   images?: string[];
   domain?: BusinessDomain;
   company: string[];
-  platformScope: "unset" | "company-wide" | "specific";
+  companyScope: "unset" | "company-wide" | "specific";
   // n8n / pa 전용
   expectedTimeSaved?: string; difficulty?: string;
   workflowInput?: WorkflowInput;
@@ -105,7 +105,7 @@ type ManagedPlatformItem = {
 type ManagedItem = ManagedPlatformItem;
 
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }> = Object.fromEntries(
-  PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
+  CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
 );
 
 const inputStyle: React.CSSProperties = {
@@ -195,7 +195,7 @@ const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled
 };
 
 // TODO: 실제 연동 시 GET /api/v1/admin/platform-items 응답으로 교체
-const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
+const INITIAL_ASSET_ITEMS: ManagedPlatformItem[] = [
   {
     kind: "n8n",
     id: "N8N-2026-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀",
@@ -206,7 +206,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     tags: "Outlook, 긴급메일, 자동전달",
     images: [placeholderImage("워크플로우 개요", "#EA580C")],
     domain: "IT",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     expectedTimeSaved: "주 2시간", difficulty: "쉬움",
     workflowInput: {
       status: "Stable",
@@ -226,7 +226,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     updatedAt: "2026.06.25", createdByEmail: "yujin.choi@kolmar.co.kr",
     tags: "결재, 구매자동화",
     domain: "재무",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     expectedTimeSaved: "주 3시간",
   },
   {
@@ -238,7 +238,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     updatedAt: "2026.06.22", createdByEmail: "hyunwoo.kang@kolmar.co.kr",
     tags: "계약서, 법무, 해외법인",
     domain: "IT",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     sharedPrompt: "당신은 해외법인 계약서를 검토하는 법무 담당자입니다. 업로드된 영문 계약서에서 위험 조항을 찾아 한국어로 요약해 주세요.",
     basedModel: "Claude Opus 4.8",
   },
@@ -250,7 +250,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
     updatedAt: "2026.06.12", createdByEmail: "taeyoung.jung@kolmar.co.kr",
     tags: "문서분석, 긴컨텍스트, 법무",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     agentAvailability: "사용 가능",
     strengthsDetail: "긴 문서를 한 번에 읽고 핵심을 요약하는 데 강합니다. 계약서 검토나 보고서 분석에 활용해보세요.",
     specificUrl: "https://ai-gateway.kolmar.co.kr/models/claude",
@@ -265,7 +265,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     updatedAt: "2026.06.26", createdByEmail: "seunghyun.oh@kolmar.co.kr",
     tags: "품질관리, 이미지분류",
     domain: "생산",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
     mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장", devTool: "PyTorch",
   },
   {
@@ -277,7 +277,7 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     updatedAt: "2026.07.01", createdByEmail: "sohee.park@kolmar.co.kr",
     tags: "원가, 재무자동화",
     domain: "재무",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
   },
   {
     kind: "etc",
@@ -288,17 +288,17 @@ const INITIAL_PLATFORM_ITEMS: ManagedPlatformItem[] = [
     updatedAt: "2026.06.28", createdByEmail: "jimin.han@kolmar.co.kr",
     tags: "뉴스레터, AI트렌드",
     domain: "IT",
-    company: [], platformScope: "company-wide",
+    company: [], companyScope: "company-wide",
   },
 ];
 
-const emptyPlatformItem = (kind: PlatformId): ManagedPlatformItem => ({
+const emptyPlatformItem = (kind: CategoryId): ManagedPlatformItem => ({
   kind,
   id: "", title: "", summary: "", description: "", dept: "",
   contacts: [{ name: "", dept: "", role: "주담당자", email: "" }], updatedAt: "",
   createdByEmail: "",
   tags: "", images: [],
-  company: [], platformScope: "company-wide",
+  company: [], companyScope: "company-wide",
   expectedTimeSaved: (kind === "n8n" || kind === "pa") ? "" : undefined,
   difficulty: kind === "n8n" ? "보통" : undefined,
   sharedPrompt: kind === "assistant" ? "" : undefined,
@@ -320,22 +320,22 @@ const isWorkflowKind = (item: ManagedPlatformItem): boolean =>
 
 export default function AdminProjectManage() {
   const { isAdmin, isCompanyAdmin, managedCompanies } = useAuth();
-  const [items, setItems] = useState<ManagedItem[]>(INITIAL_PLATFORM_ITEMS);
-  const [selected, setSelected] = useState<string>(INITIAL_PLATFORM_ITEMS[0]?.id ?? "");
+  const [items, setItems] = useState<ManagedItem[]>(INITIAL_ASSET_ITEMS);
+  const [selected, setSelected] = useState<string>(INITIAL_ASSET_ITEMS[0]?.id ?? "");
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<ManagedItem | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState<"전체" | PlatformId>("전체");
+  const [sourceFilter, setSourceFilter] = useState<"전체" | CategoryId>("전체");
   const [saved, setSaved] = useState(false);
 
   const [timeSavedValue, setTimeSavedValue] = useState("");
   const [timeSavedPeriod, setTimeSavedPeriod] = useState<TimePeriod>("주");
 
-  const SOURCE_OPTIONS: { key: "전체" | PlatformId; label: string }[] = [
+  const SOURCE_OPTIONS: { key: "전체" | CategoryId; label: string }[] = [
     { key: "전체", label: "전체" },
-    ...PLATFORMS.map(p => ({ key: p.id, label: p.name })),
+    ...CATEGORIES.map(p => ({ key: p.id, label: p.name })),
   ];
 
   // canManageItem 판정 — companyAdmin은 담당 관계사 범위 + 전사 공용만 관리 (원본 판정 구조 유지)
@@ -382,7 +382,7 @@ export default function AdminProjectManage() {
     }
   };
 
-  const startNew = (kind: PlatformId) => {
+  const startNew = (kind: CategoryId) => {
     setEditData({ ...emptyPlatformItem(kind), id: makeItemId(kind, Math.floor(Math.random() * 900) + 100, 2026) });
     setTimeSavedValue("");
     setTimeSavedPeriod("주");
@@ -446,11 +446,11 @@ export default function AdminProjectManage() {
                 {isAdmin && (
                   <select
                     value=""
-                    onChange={e => { if (e.target.value) startNew(e.target.value as PlatformId); }}
+                    onChange={e => { if (e.target.value) startNew(e.target.value as CategoryId); }}
                     style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}
                   >
                     <option value="" disabled>+ 직접 등록</option>
-                    {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {CATEGORIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 )}
                 {isCompanyAdmin && (

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { PLATFORMS, BUSINESS_DOMAINS } from "../../types/platformTypes";
-import type { PlatformId } from "../../types/platformTypes";
+import { CATEGORIES, BUSINESS_DOMAINS } from "../../types/categoryTypes";
+import type { CategoryId } from "../../types/categoryTypes";
 
 // ===== 타입 정의 =====
 type Category = {
@@ -10,7 +10,7 @@ type Category = {
   items?: string[];
 };
 
-type SourceKind = PlatformId;
+type SourceKind = CategoryId;
 type SourceItem = { id: string; kind: SourceKind; title: string };
 type FreeTag = {
   tag: string; count: number; proposedBy: string; dept: string;
@@ -25,7 +25,7 @@ const freeTagContext = (t: FreeTag): string => {
 
 // ===== AX 플랫폼 분류체계 =====
 // TODO: 실제 연동 시 GET /api/v1/admin/taxonomy?scope=platform 응답으로 교체
-const INITIAL_PLATFORM_TAXONOMY: Record<string, Category> = {
+const INITIAL_CATEGORY_TAXONOMY: Record<string, Category> = {
   businessDomain: {
     label: "업무 도메인",
     desc: "AX 플랫폼 항목에 배정되는 업무 도메인 분류. 단일 선택. 등록 시 선택 가능한 값 목록을 관리한다.",
@@ -87,7 +87,7 @@ const INITIAL_FREE_TAGS: FreeTag[] = [
   },
 ];
 
-const PLATFORM_TABS = [
+const CATEGORY_TABS = [
   { id: "businessDomain", label: "업무 도메인" },
   { id: "difficulty", label: "구성 난이도" },
   { id: "costTier", label: "비용 등급" },
@@ -95,16 +95,16 @@ const PLATFORM_TABS = [
 ] as const;
 
 const TABS = [
-  ...PLATFORM_TABS,
+  ...CATEGORY_TABS,
   { id: "freeTags", label: "자유 태그" } as const,
 ];
 
 type TabId = typeof TABS[number]["id"];
 
-// ===== 출처 표시 스타일 (PLATFORMS 기반) =====
+// ===== 출처 표시 스타일 (CATEGORIES 기반) =====
 const SOURCE_STYLE: Record<SourceKind, { color: string; bg: string; label: string }> = Object.fromEntries(
-  PLATFORMS.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
-) as Record<PlatformId, { color: string; bg: string; label: string }>;
+  CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name }])
+) as Record<CategoryId, { color: string; bg: string; label: string }>;
 
 // 출처별로 편입 가능한 목적지 분류체계 옵션.
 // assistant: 표준 분류에 편입할 마땅한 카테고리 없음 → 빈 배열 (표준화 버튼 미노출)
@@ -185,7 +185,7 @@ const ItemRow = ({
 
 export default function AdminTaxonomy() {
   const [activeTab, setActiveTab] = useState<TabId>("businessDomain");
-  const [platformTaxonomy, setPlatformTaxonomy] = useState(INITIAL_PLATFORM_TAXONOMY);
+  const [categoryTaxonomy, setCategoryTaxonomy] = useState(INITIAL_CATEGORY_TAXONOMY);
   const [freeTags, setFreeTags] = useState<FreeTag[]>(INITIAL_FREE_TAGS);
   const [freeTagSourceFilter, setFreeTagSourceFilter] = useState<"전체" | SourceKind>("전체");
   const [newItem, setNewItem] = useState("");
@@ -198,20 +198,20 @@ export default function AdminTaxonomy() {
 
   const showSaved = (msg: string) => { setSavedMsg(msg); setTimeout(() => setSavedMsg(""), 2200); };
 
-  const cat = activeTab !== "freeTags" ? platformTaxonomy[activeTab] : null;
+  const cat = activeTab !== "freeTags" ? categoryTaxonomy[activeTab] : null;
   const filteredFreeTags = freeTags.filter(t => freeTagSourceFilter === "전체" || t.sourceKind === freeTagSourceFilter);
 
   const handleAdd = () => {
     if (!newItem.trim() || activeTab === "freeTags") return;
     // TODO: 실제 연동 시 POST /api/v1/admin/taxonomy/:category/items
-    setPlatformTaxonomy(p => ({ ...p, [activeTab]: { ...p[activeTab], items: [...(p[activeTab].items || []), newItem.trim()] } }));
+    setCategoryTaxonomy(p => ({ ...p, [activeTab]: { ...p[activeTab], items: [...(p[activeTab].items || []), newItem.trim()] } }));
     setNewItem("");
     showSaved("항목이 추가되었습니다.");
   };
 
   const handleDelete = (key: string, idx: number) => {
     // TODO: 실제 연동 시 DELETE /api/v1/admin/taxonomy/:category/items/:idx
-    setPlatformTaxonomy(p => ({ ...p, [key]: { ...p[key], items: p[key].items!.filter((_, i) => i !== idx) } }));
+    setCategoryTaxonomy(p => ({ ...p, [key]: { ...p[key], items: p[key].items!.filter((_, i) => i !== idx) } }));
     setDeleteConfirm(null);
     showSaved("항목이 삭제되었습니다.");
   };
@@ -220,7 +220,7 @@ export default function AdminTaxonomy() {
     if (!editingItem || !editingItem.value.trim()) return;
     const { key, idx, value } = editingItem;
     // TODO: 실제 연동 시 PUT /api/v1/admin/taxonomy/:category/items/:idx
-    setPlatformTaxonomy(p => ({ ...p, [key]: { ...p[key], items: p[key].items!.map((v, i) => i === idx ? value : v) } }));
+    setCategoryTaxonomy(p => ({ ...p, [key]: { ...p[key], items: p[key].items!.map((v, i) => i === idx ? value : v) } }));
     setEditingItem(null);
     showSaved("항목이 수정되었습니다.");
   };
@@ -230,7 +230,7 @@ export default function AdminTaxonomy() {
     if (!target) return;
     // TODO: 실제 연동 시 POST /api/v1/admin/taxonomy/free-tags/:tag/promote
     const { key } = importDest;
-    setPlatformTaxonomy(p => ({ ...p, [key]: { ...p[key], items: [...(p[key].items || []), tag] } }));
+    setCategoryTaxonomy(p => ({ ...p, [key]: { ...p[key], items: [...(p[key].items || []), tag] } }));
     setFreeTags(p => p.filter(t => t.tag !== tag));
     setImportTag(null);
     showSaved(`"${tag}" 항목이 표준 분류로 편입되었습니다.`);
@@ -280,7 +280,7 @@ export default function AdminTaxonomy() {
 
           {/* 탭 바 */}
           <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-            {PLATFORM_TABS.map(t => (
+            {CATEGORY_TABS.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
                 padding: "8px 16px", borderRadius: 7, border: activeTab === t.id ? "none" : "1px solid #E2E8F0",
                 background: activeTab === t.id ? "#0F172A" : "transparent",
@@ -346,7 +346,7 @@ export default function AdminTaxonomy() {
 
                   {/* 출처 필터 */}
                   <div style={{ display: "flex", gap: 5, marginBottom: 14, flexWrap: "wrap" }}>
-                    {(["전체", ...PLATFORMS.map(p => p.id)] as const).map(key => {
+                    {(["전체", ...CATEGORIES.map(p => p.id)] as const).map(key => {
                       const style = key === "전체" ? null : SOURCE_STYLE[key as SourceKind];
                       const label = key === "전체" ? "전체" : SOURCE_STYLE[key as SourceKind].label;
                       return (
