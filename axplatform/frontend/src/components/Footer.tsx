@@ -7,7 +7,7 @@ export default function Footer() {
     }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 900, color: "#b7b9bd" }}>KOLMAR</span>
-        <span style={{ fontSize: 11, color: "#b7b9bd" }}>Tech Hub</span>
+        <span style={{ fontSize: 11, color: "#b7b9bd" }}>AX Platform</span>
       </div>
       <div style={{ fontSize: 11, color: "#b7b9bd" }}>사내 전용 플랫폼 · 외부 접근 불가</div>
     </footer>
