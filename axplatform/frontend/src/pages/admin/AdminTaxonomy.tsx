@@ -57,33 +57,33 @@ const INITIAL_FREE_TAGS: FreeTag[] = [
   {
     tag: "재고관리", count: 2, proposedBy: "김도윤", dept: "생산본부", sourceKind: "n8n",
     sourceItems: [
-      { id: "N8N-2026-010", kind: "n8n", title: "재고 임계치 도달 시 Teams 알림" },
+      { id: "N8N-2026-033", kind: "n8n", title: "재고 임계치 도달 시 Teams 알림" },
       { id: "N8N-2026-011", kind: "n8n", title: "재고 입출고 자동 집계" },
     ],
   },
   {
     tag: "결재자동화", count: 1, proposedBy: "최유진", dept: "구매팀", sourceKind: "pa",
-    sourceItems: [{ id: "PA-2026-003", kind: "pa", title: "구매 결재 자동 승인 플로우" }],
+    sourceItems: [{ id: "PA-2026-014", kind: "pa", title: "구매 결재 자동 승인 플로우" }],
   },
   {
     tag: "신제품기획", count: 1, proposedBy: "한지민", dept: "마케팅팀", sourceKind: "assistant",
-    sourceItems: [{ id: "AST-2026-007", kind: "assistant", title: "신제품 기획서 초안 작성 도우미" }],
+    sourceItems: [{ id: "AST-2026-020", kind: "assistant", title: "신제품 기획서 초안 작성 도우미" }],
   },
   {
     tag: "온프레미스보안", count: 1, proposedBy: "정태영", dept: "IT개발팀", sourceKind: "ai-orchestration",
-    sourceItems: [{ id: "AIO-2026-005", kind: "ai-orchestration", title: "Llama 3" }],
+    sourceItems: [{ id: "AIO-2026-016", kind: "ai-orchestration", title: "Llama 3" }],
   },
   {
     tag: "이미지분류", count: 1, proposedBy: "오승현", dept: "연구개발본부", sourceKind: "ml",
-    sourceItems: [{ id: "ML-2026-002", kind: "ml", title: "성분 이미지 품질 분류 모델" }],
+    sourceItems: [{ id: "ML-2026-008", kind: "ml", title: "성분 이미지 품질 분류 모델" }],
   },
   {
     tag: "AI페어프로그래밍", count: 1, proposedBy: "이상민", dept: "IT개발팀", sourceKind: "vibe",
-    sourceItems: [{ id: "VIBE-2026-001", kind: "vibe", title: "Cursor 기반 내부 API 자동 생성" }],
+    sourceItems: [{ id: "VIBE-2026-009", kind: "vibe", title: "Cursor 기반 내부 API 자동 생성" }],
   },
   {
     tag: "AI뉴스", count: 1, proposedBy: "한지민", dept: "DX추진팀", sourceKind: "etc",
-    sourceItems: [{ id: "ETC-2026-001", kind: "etc", title: "사내 AI 뉴스 주간 요약 미니 프로젝트" }],
+    sourceItems: [{ id: "ETC-2026-002", kind: "etc", title: "사내 AI 뉴스 주간 요약 미니 프로젝트" }],
   },
 ];
 

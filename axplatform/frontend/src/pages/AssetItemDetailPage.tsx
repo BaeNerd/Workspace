@@ -194,7 +194,7 @@ const MOCK_ITEMS: AssetItem[] = [
   {
     id: "VIBE-2026-001", categoryId: "vibe",
     title: "일일 판매 리포트 자동 생성기",
-    summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약 리포트를 Slack으로 발송",
+    summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송",
     description: "매일 아침 ERP 판매 데이터를 읽어 요약 리포트를 생성하고 영업기획팀 Slack 채널로 자동 발송합니다.", dept: "영업기획팀", owner: "한지민", ownerEmail: "jimin.han@kolmar.co.kr",
     tags: ["ERP", "Slack", "리포트자동화"],
     specificUrl: "", updatedAt: "2025.07.05", likes: 8, views: 262, company: ["KKM"],
@@ -395,7 +395,7 @@ const MOCK_ITEMS: AssetItem[] = [
     id: "PA-2026-003", categoryId: "pa",
     title: "팀 주간 보고서 Teams 자동 게시",
     summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동으로 게시",
-    description: "매주 월요일 SharePoint 문서 라이브러리를 확인하여 최신 주간 보고서를 Teams 채널에 링크와 요약을 포함해 자동으로 게시합니다.", dept: "기획팀", owner: "이지원", ownerEmail: "jiwon.lee@kolmar.co.kr",
+    description: "매주 월요일 SharePoint 문서 라이브러리를 확인하여 최신 주간 보고서를 Teams 채널에 링크와 요약을 포함해 자동으로 게시합니다.", dept: "기획팀", owner: "김재원", ownerEmail: "jaewon.kim@kolmar.co.kr",
     tags: ["Teams", "SharePoint", "주간보고서"],
     specificUrl: "", updatedAt: "2025.07.04", likes: 15, views: 361, company: [],
     triggerAction: "매주 월요일 → SharePoint 최신 보고서 읽기 → Teams 채널 게시",
@@ -631,8 +631,8 @@ const MOCK_REVIEWS_BY_ITEM: Record<string, AssetReview[]> = {
     { id: "r3", itemId: "N8N-2026-001", itemTitle: "신규 입사자 계정 자동 생성", itemKind: "n8n", author: "이준호", dept: "경영지원팀", text: "팀원 모두가 편리하게 사용 중입니다. 초기 세팅만 잘 되면 완전 자동화!", createdAt: "2025.06.22", likes: 3 },
   ],
   "AST-2026-001": [
-    { id: "r4", itemId: "AST-2026-001", itemTitle: "계약서 AI 검토 비서", itemKind: "assistant", author: "강현우", dept: "법무팀", text: "영문 계약서 검토 시간이 반으로 줄었습니다. 주요 조항 누락 여부도 잘 짚어줍니다.", createdAt: "2025.06.12", likes: 11 },
-    { id: "r5", itemId: "AST-2026-001", itemTitle: "계약서 AI 검토 비서", itemKind: "assistant", author: "오세은", dept: "구매팀", text: "계약 조건 비교 시 매우 유용합니다. 다만 법적 판단은 직접 확인이 필요합니다.", createdAt: "2025.06.20", likes: 6 },
+    { id: "r4", itemId: "AST-2026-001", itemTitle: "법무 검토 보조 봇", itemKind: "assistant", author: "강현우", dept: "법무팀", text: "영문 계약서 검토 시간이 반으로 줄었습니다. 주요 조항 누락 여부도 잘 짚어줍니다.", createdAt: "2025.06.12", likes: 11 },
+    { id: "r5", itemId: "AST-2026-001", itemTitle: "법무 검토 보조 봇", itemKind: "assistant", author: "오세은", dept: "구매팀", text: "계약 조건 비교 시 매우 유용합니다. 다만 법적 판단은 직접 확인이 필요합니다.", createdAt: "2025.06.20", likes: 6 },
   ],
 };
 

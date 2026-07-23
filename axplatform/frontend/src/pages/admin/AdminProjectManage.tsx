@@ -198,7 +198,7 @@ const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled
 const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   {
     kind: "n8n",
-    id: "N8N-2026-001", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀",
+    id: "N8N-2026-032", title: "Outlook 긴급 메일 자동 전달", dept: "IT인프라팀",
     summary: "긴급 메일 수신 시 제목 키워드를 확인하여 팀장님께 즉시 자동 전달",
     description: "Outlook에서 메일을 수신하면 제목에 '긴급' 키워드 포함 여부를 자동으로 판별합니다.\n\n긴급 메일로 확인될 경우 팀장님 메일 주소로 즉시 전달하여 빠른 의사결정이 가능하도록 지원합니다.",
     contacts: [{ name: "이서현", dept: "IT인프라팀", role: "주담당자", email: "seohyun.lee@kolmar.co.kr" }],
@@ -219,7 +219,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "pa",
-    id: "PA-2026-001", title: "구매 결재 자동 승인 플로우", dept: "구매팀",
+    id: "PA-2026-013", title: "구매 결재 자동 승인 플로우", dept: "구매팀",
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
@@ -231,7 +231,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "assistant",
-    id: "AST-2026-001", title: "해외법인 계약서 1차 검토 비서", dept: "법무팀",
+    id: "AST-2026-019", title: "해외법인 계약서 1차 검토 비서", dept: "법무팀",
     summary: "해외법인向 영문 계약서의 주요 리스크 조항을 1차 스크리닝",
     description: "미국콜마·북경콜마 등 해외법인에서 체결하는 영문 계약서의 주요 조항을 1차로 스크리닝하여 법무팀 검토 시간을 단축합니다.",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
@@ -244,7 +244,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "ai-orchestration",
-    id: "AIO-2026-002", title: "Claude Opus 4.8", dept: "IT개발팀",
+    id: "AIO-2026-014", title: "Claude Opus 4.8", dept: "IT개발팀",
     summary: "긴 문서 분석과 정밀한 추론에 강한 모델",
     description: "긴 컨텍스트가 필요한 계약서 검토, 보고서 분석, 복잡한 추론 작업에 적합합니다. 제공사는 Anthropic입니다.",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
@@ -258,7 +258,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "ml",
-    id: "ML-2026-001", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀",
+    id: "ML-2026-007", title: "성분 이미지 품질 분류 모델", dept: "IT개발팀",
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
@@ -270,7 +270,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "vibe",
-    id: "VIBE-2026-001", title: "원가 계산 자동화 스크립트", dept: "재무팀",
+    id: "VIBE-2026-008", title: "원가 계산 자동화 스크립트", dept: "재무팀",
     summary: "Cursor로 작성한 원가 자동 계산 내부 도구",
     description: "Cursor AI를 활용해 Python으로 제작한 원가 계산 자동화 스크립트입니다. 기존 Excel 수작업을 대체하여 처리 시간을 줄였습니다.",
     contacts: [{ name: "박소희", dept: "재무팀", role: "주담당자", email: "sohee.park@kolmar.co.kr" }],
@@ -281,7 +281,7 @@ const INITIAL_ASSET_ITEMS: ManagedAssetItem[] = [
   },
   {
     kind: "etc",
-    id: "ETC-2026-001", title: "사내 AI 뉴스 주간 요약 미니 프로젝트", dept: "DX추진팀",
+    id: "ETC-2026-002", title: "사내 AI 뉴스 주간 요약 미니 프로젝트", dept: "DX추진팀",
     summary: "매주 사내에 공유되는 AI 트렌드 뉴스레터를 블로그 형식으로 소개",
     description: "사내 구성원이 AI 동향을 쉽게 접할 수 있도록 매주 주요 뉴스와 활용 사례를 정리해 공유하는 소규모 프로젝트입니다.",
     contacts: [{ name: "한지민", dept: "DX추진팀", role: "주담당자", email: "jimin.han@kolmar.co.kr" }],

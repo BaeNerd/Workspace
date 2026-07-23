@@ -341,7 +341,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
   },
   {
     kind: "pa",
-    id: "PA-2026-003", title: "구매 결재 자동 승인 플로우",
+    id: "PA-2026-014", title: "구매 결재 자동 승인 플로우",
     summary: "SharePoint 양식 기반 구매 결재 자동 처리",
     description: "구매팀이 SharePoint에 제출한 결재 요청을 Power Automate가 ERP 데이터와 대조 후 자동 승인·반려합니다.",
     dept: "구매팀", submittedBy: "최유진", submittedAt: "2026.06.25",
@@ -368,7 +368,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
   },
   {
     kind: "ai-orchestration",
-    id: "AIO-2026-006", title: "GPT-4o",
+    id: "AIO-2026-015", title: "GPT-4o",
     summary: "전사 직원 누구나 사용할 수 있는 범용 업무 보조 모델",
     description: "이메일 작성, 보고서 초안, 데이터 요약 등 범용 업무에 적합합니다. 제공사는 OpenAI입니다.",
     dept: "IT개발팀", submittedBy: "정태영", submittedAt: "2026.06.24",
@@ -383,7 +383,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
   },
   {
     kind: "ml",
-    id: "ML-2026-002", title: "성분 이미지 품질 분류 모델",
+    id: "ML-2026-008", title: "성분 이미지 품질 분류 모델",
     summary: "원료 이미지 기반 품질 합격/불합격 자동 판정",
     description: "YOLOv8 기반 이미지 분류 모델로 생산 라인에서 촬영한 원료 이미지를 실시간 분석합니다.",
     dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2026.06.26",
@@ -395,7 +395,7 @@ const INITIAL_ITEMS: ReviewItem[] = [
   },
   {
     kind: "etc",
-    id: "ETC-2026-001", title: "사내 AI 뉴스 주간 요약 미니 프로젝트",
+    id: "ETC-2026-002", title: "사내 AI 뉴스 주간 요약 미니 프로젝트",
     summary: "매주 사내에 공유되는 AI 트렌드 뉴스레터를 블로그 형식으로 소개",
     description: "사내 구성원이 AI 동향을 쉽게 접할 수 있도록 매주 주요 뉴스와 활용 사례를 정리해 공유하는 소규모 프로젝트입니다.",
     dept: "DX추진팀", submittedBy: "한지민", submittedAt: "2026.06.28",

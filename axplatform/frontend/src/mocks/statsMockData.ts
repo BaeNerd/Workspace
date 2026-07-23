@@ -92,16 +92,17 @@ export const SOURCE_TOTAL_BY_COMPANY: Record<StatCompany, Record<SourceKey, numb
   KBT: { n8n: 1, pa: 0, assistant: 0, "ai-orchestration": 1, ml: 0, vibe: 0, etc: 0 },
 };
 
-// 도메인 라벨(고정 순서) + 관계사별 수치. TODO: 백엔드 연동 시 폐기.
-export const DOMAIN_LABELS = ["제조/생산", "IT 인프라", "재무/회계", "데이터/분석", "HR/인사", "마케팅", "영업/CRM", "기타"];
+// 도메인 라벨(고정 순서) + 관계사별 수치. 정식 BusinessDomain 6종(영업/생산/연구/재무/HR/IT)과 정합.
+// TODO: 백엔드 연동 시 폐기.
+export const DOMAIN_LABELS = ["영업", "생산", "연구", "재무", "HR", "IT"];
 export const DOMAIN_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [12, 11, 9, 8, 6, 5, 5, 4],
-  KBH: [5, 4, 3, 3, 2, 2, 2, 1],
-  HC: [4, 3, 2, 2, 2, 2, 1, 1],
-  KMG: [3, 2, 2, 1, 1, 1, 1, 1],
-  KMW: [3, 1, 1, 1, 1, 0, 1, 0],
-  KUS: [1, 1, 1, 0, 0, 1, 0, 1],
-  KBT: [0, 0, 0, 0, 0, 0, 0, 0],
+  KKM: [10, 12, 12, 9, 6, 11],
+  KBH: [4, 5, 4, 3, 2, 4],
+  HC: [3, 4, 3, 2, 2, 3],
+  KMG: [2, 3, 2, 2, 1, 2],
+  KMW: [1, 3, 1, 1, 1, 1],
+  KUS: [1, 1, 1, 1, 0, 1],
+  KBT: [0, 0, 0, 0, 0, 0],
 };
 
 // ============================================================

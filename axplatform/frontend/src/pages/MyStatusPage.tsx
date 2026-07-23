@@ -48,7 +48,7 @@ const INITIAL_ITEMS: MyItem[] = [
     difficulty: "보통", expectedTimeSaved: "주 2시간",
   },
   {
-    id: "AST-2026-011", kind: "assistant",
+    id: "AST-2026-021", kind: "assistant",
     title: "원료 성분 규제 문의 봇",
     summary: "원료 MSDS·규제 데이터를 자연어로 검색하는 HK GPT 커스텀 봇",
     submittedAt: "2026.05.06", updatedAt: "2026.05.09",
@@ -66,7 +66,7 @@ const INITIAL_ITEMS: MyItem[] = [
     agentAvailability: "사용 가능", costTier: "보통",
   },
   {
-    id: "PA-2026-003", kind: "pa",
+    id: "PA-2026-015", kind: "pa",
     title: "신제품 출시 승인 자동화 플로우",
     summary: "신제품 등록 시 관련 부서 승인을 Power Automate로 자동화",
     submittedAt: "2026.06.01", updatedAt: "2026.06.01",
@@ -83,7 +83,7 @@ const INITIAL_ITEMS: MyItem[] = [
     rejectionReason: null,
   },
   {
-    id: "ML-2026-005", kind: "ml",
+    id: "ML-2026-009", kind: "ml",
     title: "색차 불량 이미지 분류 모델",
     summary: "분광측색계 이미지를 분석해 색차 불량 여부를 자동 판정하는 ML 모델",
     submittedAt: "2026.05.20", updatedAt: "2026.05.22",
@@ -102,7 +102,7 @@ const MOCK_MY_REVIEWS: AssetReview[] = [
     createdAt: "2026.06.10", likes: 8,
   },
   {
-    id: "mr2", itemId: "AST-2026-001", itemTitle: "해외법인 계약서 1차 검토 비서",
+    id: "mr2", itemId: "AST-2026-001", itemTitle: "법무 검토 보조 봇",
     itemKind: "assistant", author: "나", dept: "IT인프라팀",
     text: "영문 계약서 리뷰 시간이 절반으로 줄었어요. 사소한 오류도 잘 잡아줍니다.",
     createdAt: "2026.06.20", likes: 5,

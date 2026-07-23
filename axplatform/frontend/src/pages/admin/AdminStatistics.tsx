@@ -91,10 +91,10 @@ const TIME_SAVED_BY_COMPANY: Record<StatCompany, string[]> = {
 type TopReview = { id: string; title: string; kind: string; reviewCount: number; avgLikes: number; company: StatCompany };
 const TOP5_REVIEWS_ALL: TopReview[] = [
   { id: "N8N-2026-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",              reviewCount: 18, avgLikes: 7.2, company: "KKM" },
-  { id: "AST-2026-001", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
-  { id: "AIO-2026-002", title: "Claude Opus 4.8",              kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
-  { id: "PA-2026-001",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
-  { id: "ML-2026-001",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
+  { id: "AST-2026-019", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
+  { id: "AIO-2026-014", title: "Claude Opus 4.8",              kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
+  { id: "PA-2026-013",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
+  { id: "ML-2026-007",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
 ];
 
 // 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로) — AdminDashboard와 동일 방식
