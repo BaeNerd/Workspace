@@ -97,6 +97,10 @@ export type AssetItem = {
   updatedAt: string;
   likes: number;
 
+  // 조회수 — 상세 진입 집계. TODO: 백엔드 연동 시 서버 집계값으로 교체
+  // (GET /api/v1/platform-items의 viewCount, 조회 시 원자적 증가). 데모에서는 목업 정적값.
+  views?: number;
+
   // 워크플로우/설명 스크린샷 (최대 10장). 데모 단계에서는 data URL로 저장.
   images?: string[];
 

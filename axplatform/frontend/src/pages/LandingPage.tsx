@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
 import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
+import { MOCK_ASSET_ITEMS } from "./ProjectListPage";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import type { NoticeKind } from "../types/noticeTypes";
 import { visibleNoticesByKind } from "../mocks/noticeMockData";
@@ -41,12 +42,12 @@ const headingFont = "var(--font-heading)";
 // 신 CategoryId로 다시 매핑한다. etc(AI 프로젝트)는 전용 에셋이 없어 SVG 아이콘으로 폴백.
 type Scene = "beam" | "orbit" | "list" | "terminal";
 const CAT_MEDIA: Record<CategoryId, { banner?: string; icon?: string; scene: Scene }> = {
-  "n8n":              { banner: "/banner/banner_n8n.png",     icon: "/icons/icon_n8n.png",  scene: "beam" },
-  "pa":               { banner: "/banner/banner_pad.png",     icon: "/icons/icon_pad.png",  scene: "beam" },
-  "assistant":        { banner: "/banner/banner_chatbot.png",                               scene: "list" },
-  "ai-orchestration": { banner: "/banner/banner_hk.png",      icon: "/icons/icon_hk.png",   scene: "orbit" },
-  "ml":               { banner: "/banner/banner_ml.png",      icon: "/icons/icon_ml.png",   scene: "orbit" },
-  "vibe":             { banner: "/banner/banner_vibe.png",    icon: "/icons/icon_vibe.png", scene: "terminal" },
+  "n8n":              { banner: "/banner/banner_n8n.webp",     icon: "/icons/icon_n8n.png",  scene: "beam" },
+  "pa":               { banner: "/banner/banner_pad.webp",     icon: "/icons/icon_pad.png",  scene: "beam" },
+  "assistant":        { banner: "/banner/banner_chatbot.webp",                               scene: "list" },
+  "ai-orchestration": { banner: "/banner/banner_hk.webp",      icon: "/icons/icon_hk.png",   scene: "orbit" },
+  "ml":               { banner: "/banner/banner_ml.webp",      icon: "/icons/icon_ml.png",   scene: "orbit" },
+  "vibe":             { banner: "/banner/banner_vibe.webp",    icon: "/icons/icon_vibe.png", scene: "terminal" },
   "etc":              {                                                                     scene: "list" },
 };
 
@@ -60,13 +61,15 @@ const PROMO_COPY: Partial<Record<CategoryId, { title: string; desc: string; cta:
   "vibe":             { title: "대화하듯 코드를 짜다", desc: "AI와 대화하며 완성하는 바이브 코딩 노하우를 확인하세요", cta: "Vibe Coding 보기" },
 };
 
-// 카테고리별 등록 수 (통계/막대그래프/타일용)
-// TODO: 실제 연동 시 GET /api/v1/stats/by-category 응답으로 교체
-const CATEGORY_COUNTS: Record<CategoryId, number> = {
-  "n8n": 62, "pa": 31, "assistant": 48, "ai-orchestration": 12, "ml": 23, "vibe": 32, "etc": 9,
-};
-const TOTAL_COUNT = Object.values(CATEGORY_COUNTS).reduce((a, b) => a + b, 0);
-const MONTHLY_NEW = 18; // TODO: 실제 연동 시 통계 API 값으로 교체
+// 카테고리별 등록 수 (통계/막대그래프/타일용) — 목업 SSOT(ProjectListPage MOCK_ASSET_ITEMS) 실계수로 산출.
+// 하드코딩 수치를 배열 실측값으로 대체해 화면 간 건수 정합을 보장한다.
+// TODO: 실제 연동 시 GET /api/v1/stats/by-category 응답으로 교체(백엔드 집계).
+const CATEGORY_COUNTS: Record<CategoryId, number> = CATEGORIES.reduce((acc, c) => {
+  acc[c.id] = MOCK_ASSET_ITEMS.filter(i => i.categoryId === c.id).length;
+  return acc;
+}, {} as Record<CategoryId, number>);
+const TOTAL_COUNT = MOCK_ASSET_ITEMS.length;
+const MONTHLY_NEW = 18; // TODO: 실제 연동 시 통계 API 값으로 교체(현재는 데모 정적값)
 
 // 카테고리 스타일 인덱스
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Category["icon"] }> =
@@ -76,32 +79,32 @@ const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; i
 // TODO: 실제 연동 시 GET /api/v1/platform-items 응답으로 교체
 type LItem = {
   id: string; categoryId: CategoryId; title: string; summary: string;
-  dept: string; likes: number; updated: string; domain?: BusinessDomain;
+  dept: string; likes: number; views: number; updated: string; domain?: BusinessDomain;
 };
 const LANDING_ITEMS: LItem[] = [
-  { id: "N8N-2026-001", categoryId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", dept: "IT인프라팀", likes: 19, updated: "2025.06.05", domain: "IT" },
-  { id: "N8N-2026-005", categoryId: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 키워드 메일 수신 시 팀장에게 즉시 자동 전달", dept: "IT인프라팀", likes: 22, updated: "2025.07.03", domain: "IT" },
-  { id: "N8N-2026-003", categoryId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", dept: "재무팀", likes: 12, updated: "2025.06.12", domain: "재무" },
-  { id: "N8N-2026-006", categoryId: "n8n", title: "주간 재고 현황 자동 취합", summary: "매주 월요일 각 창고의 재고 데이터를 취합해 경영진에게 요약 메일 발송", dept: "구매팀", likes: 8, updated: "2025.07.02", domain: "생산" },
-  { id: "N8N-2026-008", categoryId: "n8n", title: "생산 실적 KPI 일일 집계", summary: "생산 시스템에서 라인별 실적을 자동 집계해 품질·생산팀에 공유", dept: "품질관리팀", likes: 10, updated: "2025.07.05", domain: "생산" },
-  { id: "PA-2026-001", categoryId: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관", dept: "경영지원팀", likes: 12, updated: "2025.07.01", domain: "재무" },
-  { id: "PA-2026-003", categoryId: "pa", title: "팀 주간 보고서 Teams 자동 게시", summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동 게시", dept: "기획팀", likes: 14, updated: "2025.07.04", domain: "HR" },
-  { id: "PA-2026-005", categoryId: "pa", title: "계약 만료 사전 알림 플로우", summary: "계약 만료 30일·7일 전 계약 담당자에게 자동으로 갱신 알림 이메일 발송", dept: "법무팀", likes: 11, updated: "2025.07.06", domain: "재무" },
-  { id: "AST-2026-001", categoryId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", likes: 25, updated: "2025.06.10", domain: "재무" },
-  { id: "AST-2026-002", categoryId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", dept: "IT개발팀", likes: 18, updated: "2025.06.14", domain: "IT" },
-  { id: "AST-2026-005", categoryId: "assistant", title: "영업 제안서 초안 봇", summary: "고객사 정보와 요구사항을 입력하면 맞춤형 제안서 초안을 자동 생성", dept: "영업기획팀", likes: 15, updated: "2025.07.02", domain: "영업" },
-  { id: "AST-2026-006", categoryId: "assistant", title: "HR 정책 문답 봇", summary: "복리후생·휴가·규정 등 HR 정책 질문에 즉시 답변하는 직원용 Q&A 봇", dept: "인사팀", likes: 20, updated: "2025.07.01", domain: "HR" },
-  { id: "AIO-2026-003", categoryId: "ai-orchestration", title: "Claude Opus 4.8", summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.", dept: "DX전략팀", likes: 29, updated: "2026.07.01" },
-  { id: "AIO-2026-004", categoryId: "ai-orchestration", title: "Claude Sonnet 4.6", summary: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다.", dept: "DX전략팀", likes: 35, updated: "2026.07.01" },
-  { id: "AIO-2026-010", categoryId: "ai-orchestration", title: "웍스 대표 모델", summary: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다.", dept: "DX전략팀", likes: 44, updated: "2026.07.01" },
-  { id: "ML-2026-001", categoryId: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", likes: 21, updated: "2025.06.01", domain: "연구" },
-  { id: "ML-2026-004", categoryId: "ml", title: "처방 성분 상호작용 예측 모델", summary: "의약품 성분 조합의 부작용 가능성을 예측하는 분류 모델", dept: "건강기능식품연구소", likes: 12, updated: "2025.06.15", domain: "연구" },
-  { id: "ML-2026-003", categoryId: "ml", title: "불량품 이미지 분류 모델", summary: "생산 라인 카메라 이미지로 불량품을 실시간 자동 판별하는 CNN 모델", dept: "품질관리팀", likes: 16, updated: "2025.07.06", domain: "생산" },
-  { id: "ML-2026-005", categoryId: "ml", title: "판매 채널별 수요 예측 모델", summary: "온라인·오프라인·홈쇼핑 채널별 제품 수요를 동시에 예측하는 다변량 시계열 모델", dept: "영업기획팀", likes: 9, updated: "2025.07.07", domain: "영업" },
-  { id: "VIBE-2026-001", categoryId: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", dept: "영업기획팀", likes: 8, updated: "2025.07.05", domain: "영업" },
-  { id: "VIBE-2026-003", categoryId: "vibe", title: "부서별 KPI 현황판 자동화", summary: "Excel KPI 데이터를 읽어 자동으로 부서별 성과 대시보드를 그려주는 Python 앱", dept: "경영기획팀", likes: 13, updated: "2025.07.06", domain: "HR" },
-  { id: "VIBE-2026-004", categoryId: "vibe", title: "커피 룰렛 웹앱", summary: "팀원 명단을 업로드하면 커피 당번을 무작위 선정하는 인트라넷 미니앱", dept: "마케팅팀", likes: 31, updated: "2025.06.20", domain: "영업" },
-  { id: "VIBE-2026-005", categoryId: "vibe", title: "ECM 멀티 파일 다운로더", summary: "ECM에서 여러 파일을 한 번에 선택하고 다운로드하는 유틸리티 프로그램", dept: "IT인프라팀", likes: 24, updated: "2025.07.04", domain: "IT" },
+  { id: "N8N-2026-001", categoryId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", dept: "IT인프라팀", likes: 19, views: 540, updated: "2025.06.05", domain: "IT" },
+  { id: "N8N-2026-005", categoryId: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 키워드 메일 수신 시 팀장에게 즉시 자동 전달", dept: "IT인프라팀", likes: 22, views: 666, updated: "2025.07.03", domain: "IT" },
+  { id: "N8N-2026-003", categoryId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", dept: "재무팀", likes: 12, views: 387, updated: "2025.06.12", domain: "재무" },
+  { id: "N8N-2026-006", categoryId: "n8n", title: "주간 재고 현황 자동 취합", summary: "매주 월요일 각 창고의 재고 데이터를 취합해 경영진에게 요약 메일 발송", dept: "구매팀", likes: 8, views: 288, updated: "2025.07.02", domain: "생산" },
+  { id: "N8N-2026-008", categoryId: "n8n", title: "생산 실적 KPI 일일 집계", summary: "생산 시스템에서 라인별 실적을 자동 집계해 품질·생산팀에 공유", dept: "품질관리팀", likes: 10, views: 367, updated: "2025.07.05", domain: "생산" },
+  { id: "PA-2026-001", categoryId: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관", dept: "경영지원팀", likes: 12, views: 380, updated: "2025.07.01", domain: "재무" },
+  { id: "PA-2026-003", categoryId: "pa", title: "팀 주간 보고서 Teams 자동 게시", summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동 게시", dept: "기획팀", likes: 14, views: 467, updated: "2025.07.04", domain: "HR" },
+  { id: "PA-2026-005", categoryId: "pa", title: "계약 만료 사전 알림 플로우", summary: "계약 만료 30일·7일 전 계약 담당자에게 자동으로 갱신 알림 이메일 발송", dept: "법무팀", likes: 11, views: 389, updated: "2025.07.06", domain: "재무" },
+  { id: "AST-2026-001", categoryId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", likes: 25, views: 384, updated: "2025.06.10", domain: "재무" },
+  { id: "AST-2026-002", categoryId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", dept: "IT개발팀", likes: 18, views: 261, updated: "2025.06.14", domain: "IT" },
+  { id: "AST-2026-005", categoryId: "assistant", title: "영업 제안서 초안 봇", summary: "고객사 정보와 요구사항을 입력하면 맞춤형 제안서 초안을 자동 생성", dept: "영업기획팀", likes: 15, views: 240, updated: "2025.07.02", domain: "영업" },
+  { id: "AST-2026-006", categoryId: "assistant", title: "HR 정책 문답 봇", summary: "복리후생·휴가·규정 등 HR 정책 질문에 즉시 답변하는 직원용 Q&A 봇", dept: "인사팀", likes: 20, views: 324, updated: "2025.07.01", domain: "HR" },
+  { id: "AIO-2026-003", categoryId: "ai-orchestration", title: "Claude Opus 4.8", summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.", dept: "DX전략팀", likes: 29, views: 516, updated: "2026.07.01" },
+  { id: "AIO-2026-004", categoryId: "ai-orchestration", title: "Claude Sonnet 4.6", summary: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다.", dept: "DX전략팀", likes: 35, views: 674, updated: "2026.07.01" },
+  { id: "AIO-2026-010", categoryId: "ai-orchestration", title: "웍스 대표 모델", summary: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다.", dept: "DX전략팀", likes: 44, views: 882, updated: "2026.07.01" },
+  { id: "ML-2026-001", categoryId: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", likes: 21, views: 428, updated: "2025.06.01", domain: "연구" },
+  { id: "ML-2026-004", categoryId: "ml", title: "처방 성분 상호작용 예측 모델", summary: "의약품 성분 조합의 부작용 가능성을 예측하는 분류 모델", dept: "건강기능식품연구소", likes: 12, views: 279, updated: "2025.06.15", domain: "연구" },
+  { id: "ML-2026-003", categoryId: "ml", title: "불량품 이미지 분류 모델", summary: "생산 라인 카메라 이미지로 불량품을 실시간 자동 판별하는 CNN 모델", dept: "품질관리팀", likes: 16, views: 333, updated: "2025.07.06", domain: "생산" },
+  { id: "ML-2026-005", categoryId: "ml", title: "판매 채널별 수요 예측 모델", summary: "온라인·오프라인·홈쇼핑 채널별 제품 수요를 동시에 예측하는 다변량 시계열 모델", dept: "영업기획팀", likes: 9, views: 238, updated: "2025.07.07", domain: "영업" },
+  { id: "VIBE-2026-001", categoryId: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", dept: "영업기획팀", likes: 8, views: 200, updated: "2025.07.05", domain: "영업" },
+  { id: "VIBE-2026-003", categoryId: "vibe", title: "부서별 KPI 현황판 자동화", summary: "Excel KPI 데이터를 읽어 자동으로 부서별 성과 대시보드를 그려주는 Python 앱", dept: "경영기획팀", likes: 13, views: 292, updated: "2025.07.06", domain: "HR" },
+  { id: "VIBE-2026-004", categoryId: "vibe", title: "커피 룰렛 웹앱", summary: "팀원 명단을 업로드하면 커피 당번을 무작위 선정하는 인트라넷 미니앱", dept: "마케팅팀", likes: 31, views: 764, updated: "2025.06.20", domain: "영업" },
+  { id: "VIBE-2026-005", categoryId: "vibe", title: "ECM 멀티 파일 다운로더", summary: "ECM에서 여러 파일을 한 번에 선택하고 다운로드하는 유틸리티 프로그램", dept: "IT인프라팀", likes: 24, views: 635, updated: "2025.07.04", domain: "IT" },
 ];
 
 // 최신소식 — 공지/업데이트 소식은 mocks/noticeMockData(단일 소스)를 참조.
@@ -145,6 +148,13 @@ const HeartIco = ({ size = 12, color = "#94A3B8", fill = "none" }: IconProps) =>
   </svg>
 );
 const UserIco = (p: IconProps) => <Ico {...p} d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />;
+const EyeIco = ({ size = 12, color = "#94A3B8" }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+// 조회수 포맷 — 1,000단위 콤마
+const fmtViews = (n: number) => n.toLocaleString();
 const SparklesIco = (p: IconProps) => <Ico {...p} d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />;
 const DocIco = (p: IconProps) => <Ico {...p} d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h6" />;
 const PlusSquareIco = (p: IconProps) => <Ico {...p} d="M4 4h16v16H4zM12 8v8M8 12h8" />;
@@ -485,12 +495,16 @@ function IconHero({ onNavigate }: { onNavigate: (p: string) => void }) {
     onNavigate(`/projects${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`);
   };
   return (
-    // 원본 .section2 배경 이미지(bg_sec2.png)는 에셋 미포함 → 은은한 그라디언트로 대체
-    // [확인 필요] 히어로 배경 이미지(bg_sec2.png) 원본 에셋 제공 여부
+    // 원본 .section2 배경 이미지(bg_sec2.png) 배선 — 그라디언트는 폴백/오버레이로 유지.
+    // bg_sec2.png는 9KB 경량 타일이라 그대로 사용(webp 변환 대상 아님).
     <section style={{ position: "relative", paddingTop: 24 }}>
       <div style={{
         position: "absolute", left: 0, right: 0, top: 0, height: 290, zIndex: 0, pointerEvents: "none",
-        background: "radial-gradient(1200px 300px at 50% -40%, #E7F0FF 0%, rgba(231,240,255,0) 70%)",
+        backgroundImage:
+          "radial-gradient(1200px 300px at 50% -40%, #E7F0FF 0%, rgba(231,240,255,0) 70%), url('/section/bg_sec2.png')",
+        backgroundRepeat: "no-repeat, repeat",
+        backgroundPosition: "center top, center top",
+        backgroundSize: "auto, auto",
       }} />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, paddingBottom: 40 }}>
         <RotatingHeadline />
@@ -649,11 +663,12 @@ function ItemCard({ item, onNavigate }: { item: LItem; onNavigate: (p: string) =
         {item.summary}
       </p>
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.text3 }}>
-          <UserIco size={12} color={C.text3} /> {item.dept}
+        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.text3, minWidth: 0, overflow: "hidden" }}>
+          <UserIco size={12} color={C.text3} /> <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.dept}</span>
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.text3 }}>
-          <HeartIco size={12} /> {item.likes}
+        <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, fontSize: 12, color: C.text3 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><EyeIco size={12} /> {fmtViews(item.views)}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><HeartIco size={12} /> {item.likes}</span>
         </span>
       </div>
     </div>
@@ -754,7 +769,8 @@ function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void
   const [tab, setTab] = useState<NoticeKind>("공지사항");
   // 표시 규칙: visible=true만, pinned 우선 + 최신순, 탭별 최대 5건 (mocks/noticeMockData 헬퍼).
   const news = visibleNoticesByKind(tab).slice(0, 5);
-  const trending = [...LANDING_ITEMS].sort((a, b) => b.likes - a.likes).slice(0, 5);
+  // 실시간 인기 — 조회수(views) 기준 정렬. TODO: 백엔드 연동 시 기간 가중 트렌딩 스코어로 교체
+  const trending = [...LANDING_ITEMS].sort((a, b) => b.views - a.views).slice(0, 5);
   return (
     <div className="ax-news-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* 최신소식 */}
@@ -817,8 +833,9 @@ function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void
                 <span style={{ width: 16, flexShrink: 0, fontWeight: 700, color: C.text3 }}>{i + 1}</span>
                 <span style={{ flexShrink: 0, borderRadius: 9999, padding: "2px 8px", fontSize: 12, fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>
                 <span style={{ flex: 1, minWidth: 0, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</span>
-                <span style={{ display: "flex", flexShrink: 0, alignItems: "center", gap: 4, fontSize: 12, color: C.text3 }}>
-                  <HeartIco size={13} /> {item.likes}
+                <span style={{ display: "flex", flexShrink: 0, alignItems: "center", gap: 10, fontSize: 12, color: C.text3 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><EyeIco size={13} /> {fmtViews(item.views)}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><HeartIco size={13} /> {item.likes}</span>
                 </span>
               </div>
             );
@@ -838,10 +855,9 @@ function CtaBoxes({ onNavigate }: { onNavigate: (p: string) => void }) {
     image?: string; icon?: React.ReactNode; label: string; desc: string;
     bg: string; onClick: () => void;
   }[] = [
-    { image: "/cta/cta_kolling.png", label: "AX 플랫폼 둘러보기", desc: "카테고리별 자동화·AI 자산을 한눈에", bg: "#DBEAFE", onClick: () => onNavigate("/projects") },
+    { image: "/cta/cta_kolling.webp", label: "AX 플랫폼 둘러보기", desc: "카테고리별 자동화·AI 자산을 한눈에", bg: "#DBEAFE", onClick: () => onNavigate("/projects") },
     { icon: <SparklesIco size={24} color="#0EA5E9" />, label: "AI Model 카탈로그", desc: "업무에 맞는 AI 모델을 골라 바로 사용", bg: "#E0F2FE", onClick: () => onNavigate("/projects?platform=ai-orchestration") },
-    // [후속: 관리자 기능 필요] 이용 가이드 콘텐츠/화면 없음 — 링크 비활성
-    { icon: <BookIco size={24} color="#F43F5E" />, label: "이용 가이드", desc: "AX 플랫폼 활용법 살펴보기", bg: "#FEE2E2", onClick: () => {} },
+    { icon: <BookIco size={24} color="#F43F5E" />, label: "이용 가이드", desc: "AX 플랫폼 활용법 살펴보기", bg: "#FEE2E2", onClick: () => onNavigate("/guide") },
     {
       icon: <ChatIco size={24} color="#10B981" />, label: "문의 채널", desc: "궁금한 점은 Teams 채널에서 문의하세요", bg: "#DCFCE7",
       onClick: () => { if (IS_SHARE_MODE) showNotice(); else window.open(TEAMS_CHANNEL_URL, "_blank", "noopener,noreferrer"); },
@@ -890,8 +906,21 @@ export default function LandingPage() {
         <PromoAndPanel onNavigate={go} />
         <IconHero onNavigate={go} />
         <PlatformStatus onNavigate={go} />
-        {/* 원본 섹션4 배경 이미지(bg_sec4.png)는 에셋 미포함 → 생략. [확인 필요] 원본 에셋 제공 여부 */}
-        <PopularItems onNavigate={go} />
+        {/* 섹션4 배경 이미지(bg_sec4.webp, 591KB PNG→webp q80 102KB) 배선.
+            가독성을 위해 상하 페이드 마스크 + 낮은 불투명도로 카드 뒤에 은은하게 깔림. */}
+        <section style={{ position: "relative" }}>
+          <div aria-hidden style={{
+            position: "absolute", inset: "-32px -40px", zIndex: 0, pointerEvents: "none",
+            backgroundImage: "url('/section/bg_sec4.webp')",
+            backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "cover",
+            opacity: 0.14,
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%)",
+            maskImage: "linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%)",
+          }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <PopularItems onNavigate={go} />
+          </div>
+        </section>
         <LatestNewsAndTrending onNavigate={go} />
         <ItemsByDomain onNavigate={go} />
         <CtaBoxes onNavigate={go} />

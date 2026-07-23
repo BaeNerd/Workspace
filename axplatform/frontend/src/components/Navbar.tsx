@@ -6,7 +6,7 @@ import { IS_SHARE_MODE } from "../config/shareMode";
 import { SHARE_BANNER_HEIGHT } from "./SharePreviewBanner";
 
 const NAV_LINKS = [
-  { label: "소개", path: "/about" },
+  { label: "이용 가이드", path: "/guide" },
   { label: "AX 플랫폼", path: "/projects" },
   { label: "AX 항목 등록", path: "/projects/new" },
 ];

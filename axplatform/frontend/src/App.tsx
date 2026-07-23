@@ -10,6 +10,7 @@ import SharePreviewBanner from "./components/SharePreviewBanner";
 // 공개 페이지
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
+import GuidePage from "./pages/GuidePage";
 import LoginPage from "./pages/LoginPage";
 import NoticesPage from "./pages/NoticesPage";
 
@@ -61,6 +62,7 @@ export default function App() {
           {/* ===== 공개 (비로그인 접근 가능) ===== */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/guide" element={<GuidePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/notices" element={<NoticesPage />} />
 
