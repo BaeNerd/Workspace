@@ -11,7 +11,7 @@ import { useAuth } from "../../context/useAuth";
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
-// AI Agent 이용 가능 상태 — 운영 상태(폐기)와 별개 축
+// AI Model 이용 가능 상태 — 운영 상태(폐기)와 별개 축
 const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"];
 const ASSISTANT_MODEL_HINTS = [
   "웍스 대표 모델", "GPT-5.4", "GPT-5.4 Mini", "Claude Opus 4.8", "Claude Sonnet 5",
@@ -543,7 +543,7 @@ export default function AdminReview() {
   const stageStyle = stage ? APPROVAL_STAGE_STYLE[stage] : null;
   const mergedImages = merged ? ((edit as any).images ?? (merged as ReviewAssetItem).images ?? []) as string[] : [];
   const isModelKind = merged?.kind === "ai-orchestration";
-  const kindLabel = merged ? (isModelKind ? "AI Agent" : SOURCE_STYLE[merged.kind].label) : "";
+  const kindLabel = merged ? (isModelKind ? "AI Model" : SOURCE_STYLE[merged.kind].label) : "";
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -729,7 +729,7 @@ export default function AdminReview() {
                   </SectionBlock>
                 )}
 
-                {/* ===== 분기: AI Agent — 모델 사양 ===== */}
+                {/* ===== 분기: AI Model — 모델 사양 ===== */}
                 {merged.kind === "ai-orchestration" && (
                   <SectionBlock title="모델 정보">
                     <FieldRow label="이용 가능 여부">

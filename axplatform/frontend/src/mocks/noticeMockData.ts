@@ -37,8 +37,8 @@ export const NOTICE_MOCK_DATA: Notice[] = [
   {
     id: "NOTICE-2026-003",
     kind: "공지사항",
-    title: "AI Agent 카탈로그 모델 업데이트 안내",
-    body: "AI Agent 카탈로그에 최신 모델이 추가되고 일부 모델의 설명·강점 정보가 갱신되었습니다. 카탈로그에서 업무에 맞는 모델을 확인해 보세요.",
+    title: "AI Model 카탈로그 모델 업데이트 안내",
+    body: "AI Model 카탈로그에 최신 모델이 추가되고 일부 모델의 설명·강점 정보가 갱신되었습니다. 카탈로그에서 업무에 맞는 모델을 확인해 보세요.",
     date: "2026.06.25",
     pinned: false,
     visible: true,

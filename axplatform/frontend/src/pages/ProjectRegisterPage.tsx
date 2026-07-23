@@ -12,7 +12,7 @@ import { FORM_MAX_WIDTH } from "../styles/layout";
 
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
-// AI Agent 이용 가능 상태 (기존 4종 상태 체계와 별개 축)
+// AI Model 이용 가능 상태 (기존 4종 상태 체계와 별개 축)
 const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"] as const;
 
 const MAX_IMAGES = 10;
@@ -47,7 +47,7 @@ type Contact = { name: string; dept: string; role: string; email: string };
 // Step 0 유형 카드 — CATEGORIES 기반 + 일부 유형은 설명 문구를 등록 맥락에 맞게 보정
 const KIND_OPTIONS: { key: CategoryId; label: string; desc: string; color: string; bg: string }[] = CATEGORIES.map(p => {
   if (p.id === "assistant") return { key: p.id, label: p.name, desc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", color: p.color, bg: p.bg };
-  if (p.id === "ai-orchestration") return { key: p.id, label: "AI Agent", desc: p.shortDesc, color: p.color, bg: p.bg };
+  if (p.id === "ai-orchestration") return { key: p.id, label: "AI Model", desc: p.shortDesc, color: p.color, bg: p.bg };
   if (p.id === "etc") return { key: p.id, label: p.name, desc: "팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개합니다. (일반 IT 시스템 구축 과제는 제외)", color: p.color, bg: p.bg };
   return { key: p.id, label: p.name, desc: p.shortDesc, color: p.color, bg: p.bg };
 });
@@ -456,7 +456,7 @@ export default function ProjectRegisterPage() {
     }, 1400);
   };
 
-  // 비관리자에게는 ai-orchestration(AI Agent) 유형 미노출
+  // 비관리자에게는 ai-orchestration(AI Model) 유형 미노출
   const visibleKindOptions = isAdmin ? KIND_OPTIONS : KIND_OPTIONS.filter(o => o.key !== "ai-orchestration");
   // 방어 로직: 비관리자가 어떤 경로로든 ai-orchestration을 선택한 경우 리셋
   if (!isAdmin && kind === "ai-orchestration") setKind(visibleKindOptions[0]?.key ?? null);
@@ -561,7 +561,7 @@ export default function ProjectRegisterPage() {
             </div>
             {isAdmin && (
               <div style={{ marginTop: 12, padding: "10px 14px", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 8, fontSize: 11, color: "#6D28D9" }}>
-                AI Agent 유형은 관리자 전용 등록입니다. 카탈로그 표준(모델명 + 이용 가능 여부 표기)에 맞춰 등록해 주세요.
+                AI Model 유형은 관리자 전용 등록입니다. 카탈로그 표준(모델명 + 이용 가능 여부 표기)에 맞춰 등록해 주세요.
               </div>
             )}
             <div style={{ marginTop: 10, padding: "10px 14px", background: "#F4F6F9", border: "1px solid #EBEEF3", borderRadius: 8, fontSize: 11, color: "#697386" }}>

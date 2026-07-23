@@ -34,13 +34,13 @@ const INITIAL_CATEGORY_TAXONOMY: Record<string, Category> = {
   },
   difficulty: {
     label: "구성 난이도",
-    desc: "n8n 등록 시 선택하는 난이도 등급. 단일 선택. n8n 전용. (PA·나만의 비서·AI Agent·ML·Vibe·AI 프로젝트 에는 적용되지 않는다)",
+    desc: "n8n 등록 시 선택하는 난이도 등급. 단일 선택. n8n 전용. (PA·나만의 비서·AI Model·ML·Vibe·AI 프로젝트 에는 적용되지 않는다)",
     type: "single",
     items: ["쉬움", "보통", "어려움"],
   },
   costTier: {
     label: "비용 등급",
-    desc: "AI Agent 등록 시 선택하는 비용 등급. 단일 선택. AI Agent 전용.",
+    desc: "AI Model 등록 시 선택하는 비용 등급. 단일 선택. AI Model 전용.",
     type: "single",
     items: ["낮음", "보통", "높음"],
   },
@@ -269,7 +269,7 @@ export default function AdminTaxonomy() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>분류체계 관리</h1>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
+              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
             </div>
             {savedMsg && (
               <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#065F46" }}>
@@ -337,7 +337,7 @@ export default function AdminTaxonomy() {
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>자유 태그 누적 목록</div>
-                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
+                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
                     </div>
                     {selectedFreeTags.length > 0 && (
                       <button onClick={() => handleFreeTagDelete(selectedFreeTags)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>선택 삭제 ({selectedFreeTags.length})</button>

@@ -403,7 +403,7 @@ axplatform/
 | **[4] 인기 항목** | 카테고리 필터 + 항목 카드 6종 | `PopularItems`, `ItemCard` |
 | **[5] 최신소식 + 실시간 인기** | 공지/업데이트 탭(`noticeMockData` 참조) + 인기 항목 랭킹 | `LatestNewsAndTrending` |
 | **[6] 업무별 항목** | 도메인(`BUSINESS_DOMAINS`) 필터 + 항목 카드 | `ItemsByDomain` |
-| **[7] 시작 도우미 CTA** | 4-박스 진입(둘러보기·AI Agent·가이드·문의) | `CtaBoxes` |
+| **[7] 시작 도우미 CTA** | 4-박스 진입(둘러보기·AI Model·가이드·문의) | `CtaBoxes` |
 
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
@@ -529,7 +529,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 통계 대시보드. 조회 범위 선택기 노출(pendingCount 없음).
 
 - 상단 카드 4개(전체 등록물/이번 달 신규/**참여 부서**/참여 관계사), 기간 프리셋 + 월 지정. (운영 상태 폐기로 `활성 항목` 카드 및 `항목 상태 4그룹` 차트 제거.)
-- 등록 추이(7유형 스택) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Agent]/ML 유형) · **후기 많은 항목 TOP 5** · 탐색 키워드 빈도. 출처 색상은 `CATEGORIES`에서 파생.
+- 등록 추이(7유형 스택) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Model]/ML 유형) · **후기 많은 항목 TOP 5** · 탐색 키워드 빈도. 출처 색상은 `CATEGORIES`에서 파생.
 
 #### `AdminCategories.tsx` — `/admin/platforms` (admin)
 
@@ -617,7 +617,7 @@ AuthProvider
 | `Category` | 카테고리 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
 | `CATEGORIES` | **7개** 플랫폼 메타 배열. 출처 색상·경로 SSOT (변경 금지) |
 | ~~`PlatformItemStatus` / `STATUS_ORDER` / `STATUS_COLOR` / `STATUS_QUERY_KEY` / `LEGACY_STATUS_MAP` / `normalizeStatus` / `countAvailable`~~ | **삭제 완료.** 운영 상태 폐기의 잔존 참조(LandingPage)를 끊은 뒤 타입·상수·헬퍼를 일괄 제거. `AssetItem.status` 필드도 삭제(전 목업에서 제거). |
-| `agentAvailability` (AssetItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Agent(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 상태 폐기와 별개 축. |
+| `agentAvailability` (AssetItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Model(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 상태 폐기와 별개 축. |
 | `BUSINESS_DOMAINS` / `BusinessDomain` | 업무 도메인 축 `["영업","생산","연구","재무","HR","IT"]` |
 | `ApprovalSlotKey` / `ApprovalSlot` / `ApprovalSlots` | 병렬 2슬롯 승인 (`company` / `global`) |
 | `APPROVAL_SLOT_LABEL` | 슬롯 라벨 (관계사 관리자 승인 / 전사 관리자 승인) |
@@ -646,13 +646,13 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 ### 운영 상태(PlatformItemStatus) 폐기
 
 - **운영 상태 4종(`사용 가능`/`준비 중`/`일부 제한`/`사용 중지`)은 제품에서 전면 폐기.** 등록·검토·관리·상세·통계 어디에도 상태 표시·편집·필터·집계 UI를 두지 않는다.
-- **유일한 예외**: AI Agent(ai-orchestration)의 `agentAvailability`(`사용 가능`/`사용 불가`) — 운영 상태와 별개 축.
+- **유일한 예외**: AI Model(ai-orchestration)의 `agentAvailability`(`사용 가능`/`사용 불가`) — 운영 상태와 별개 축.
 - **승인 수명주기는 유지** — `승인 대기`/`부분 승인`/`게시됨`/`반려`/`중지`는 상태와 별개 개념으로 존치(위 [승인 흐름] 참조).
 - **삭제 완료**: 잔존 참조였던 `LandingPage.tsx`가 신 랜딩으로 교체되며 상태 참조가 사라져, `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR`·`STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`·`countAvailable` 및 `AssetItem.status` 필드를 **일괄 삭제**함(전 목업의 `status` 필드 제거 포함). 전수 grep 결과 코드 참조 0. `agentAvailability`(별개 축)·`workflowDef.status`(`Stable`/`Active`/`Error`, 워크플로우 시각화용)는 상태 폐기와 무관하므로 유지.
 
 ### 항목 URL·관계사 표시 정책
 
-- **항목 실행/접속 URL 폐기** — 유일한 예외는 AI Agent의 **모델 접속 URL**(`specificUrl`). 그 외 유형의 실행 URL·소스 저장소 입력은 제거됨.
+- **항목 실행/접속 URL 폐기** — 유일한 예외는 AI Model의 **모델 접속 URL**(`specificUrl`). 그 외 유형의 실행 URL·소스 저장소 입력은 제거됨.
 - **회사/관계사 표시 폐기** — 항목의 사용 주체는 **담당자 소속 부서(dept) + 업무 도메인(domain)**으로 표현. `company`/`companyScope`는 승인 권한 가드(관계사 슬롯)·companyAdmin 조회 범위 판정용 **데이터로만 존치**(편집 UI 없음, 신규 항목은 전사 공용).
 
 ### 예상 절감 시간 모델 (`expectedTimeSaved`)
@@ -746,7 +746,7 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 > **개편 반영 사항**
 > - **`PATCH /platform-items/:id/status` 삭제** — 운영 상태 폐기로 상태 변경 엔드포인트 없음.
 > - **승인(`approve-slot`)·수정 요청(`edit-requests`) body에서 `company`·`companyScope` 제거** — 전 항목 전사 공용, 관계사 지정 흐름 폐기. 두 필드는 승인 권한 가드 데이터로만 잔존.
-> - **등록·수정 body에 `images: string[]`(최대 10장, 데모는 data URL) 추가.** AI Agent만 `agentAvailability`·모델 접속 `specificUrl` 유지.
+> - **등록·수정 body에 `images: string[]`(최대 10장, 데모는 data URL) 추가.** AI Model만 `agentAvailability`·모델 접속 `specificUrl` 유지.
 
 ---
 
@@ -754,9 +754,10 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 
 Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 모으는 저장소입니다.
 
-- **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
+- **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Model(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
 - **`etc` 표시 라벨 = "AI 프로젝트"**: 내부 식별자(`CategoryId` 값 `"etc"`, ID 접두어 `ETC`, 라우트 `/etc`)는 **불변**. 사용자 노출 라벨만 "기타" → "AI 프로젝트"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영).
+- **`ai-orchestration` 표시 라벨 = "AI Model"**: 내부 식별자(`CategoryId` 값 `"ai-orchestration"`, ID 접두어 `AIO`, 라우트 `/ai-orchestration`, `agentAvailability` 필드명)는 **불변**. 사용자 노출 라벨만 "AI Agent" → "AI Model"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영). 외부 실행 환경 실명 "HK GPT"는 유지.
 - **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭. (`PlatformItemStatus` 계열은 rename이 아니라 **삭제 완료** — 위 [운영 상태 폐기] 참조.) 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
-- **AI Agent 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
+- **AI Model 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
 - **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
 - **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.

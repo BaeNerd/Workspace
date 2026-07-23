@@ -38,7 +38,7 @@ const PENDING_ALL: PendingItem[] = [
   { id: "N8N-2026-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2026.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM", approvalSlots: slots(false, false) },
   { id: "AST-2026-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2026.06.03", type: "나만의 비서", source: "assistant", company: "KBH", approvalSlots: slots(true, false) },
   { id: "PA-2026-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2026.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG", approvalSlots: slots(false, false) },
-  { id: "AIO-2026-007", title: "GPT-5.4 Mini", dept: "IT개발팀", submittedAt: "2026.06.05", type: "AI Agent", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
+  { id: "AIO-2026-007", title: "GPT-5.4 Mini", dept: "IT개발팀", submittedAt: "2026.06.05", type: "AI Model", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
   { id: "ML-2026-003", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2026.06.06", type: "ML 모델", source: "ml", company: "KKM", approvalSlots: slots(false, false) },
 ];
 
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
                 </span>
               ) : null}
             </div>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 통합 현황</p>
+            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 통합 현황</p>
           </div>
 
           {noScope && (

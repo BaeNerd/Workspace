@@ -528,7 +528,7 @@ export default function AdminOrg() {
             <div style={{ marginLeft: 28, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#1E40AF", lineHeight: 1.6 }}>
               비노출 처리된 관계사는 해당 관계사 소속이 아닌 일반 사용자에게 AX Platform 목록·필터·통계에서 보이지 않습니다.
               단, <strong>"그룹 전체보기" 권한</strong>을 가진 사용자(AD-06에서 부여)는 비노출 관계사도 모두 조회·필터링할 수 있습니다.
-              목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Agent 항목 수입니다(전사 공용 항목 포함).
+              목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Model 항목 수입니다(전사 공용 항목 포함).
             </div>
 
             <div style={{ maxWidth: 420, marginLeft: 28 }}>

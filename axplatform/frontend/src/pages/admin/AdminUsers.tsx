@@ -7,7 +7,7 @@ import type { CompanyAdminUser } from "../../mocks/companyAdminMockData";
 type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
 type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
 type SsoUser = { name: string; email: string; dept: string; title: string };
-type LogSource = "n8n" | "PA" | "나만의비서" | "AI Agent" | "ML" | "Vibe";
+type LogSource = "n8n" | "PA" | "나만의비서" | "AI Model" | "ML" | "Vibe";
 type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "등록물" | "권한" | "분류체계" | "조직"; source?: LogSource };
 type Registrant = { name: string; email: string; dept: string; title: string; count: number; lastSubmit: string; approved: number; pending: number; rejected: number };
 
@@ -33,7 +33,7 @@ const REGISTRANTS: Registrant[] = [
 
 // TODO: 실제 연동 시 GET /api/v1/admin/logs 응답으로 교체
 const LOGS: LogEntry[] = [
-  { id: 8, datetime: "2025.06.06 09:05", actor: "김관리", action: "승인", target: "원료 추천 에이전트 (AGENT-2025-007)", category: "등록물", source: "AI Agent" },
+  { id: 8, datetime: "2025.06.06 09:05", actor: "김관리", action: "승인", target: "원료 추천 에이전트 (AGENT-2025-007)", category: "등록물", source: "AI Model" },
   { id: 7, datetime: "2025.06.05 14:20", actor: "이서현", action: "반려", target: "계약서 요약 비서 (HKGPT-2025-018)", category: "등록물", source: "나만의비서" },
   { id: 6, datetime: "2025.06.05 10:12", actor: "김관리", action: "승인", target: "재고 알림 자동화 워크플로우 (N8N-2025-031)", category: "등록물", source: "n8n" },
   { id: 2, datetime: "2025.06.03 16:44", actor: "김관리", action: "권한 부여", target: "박준서 → 관리자", category: "권한" },
@@ -54,7 +54,7 @@ const LOG_SOURCE_STYLE: Record<LogSource, { bg: string; color: string }> = {
   "n8n": { bg: "#FCE7F3", color: "#9D174D" },
   "PA": { bg: "#DBEAFE", color: "#1D4ED8" },
   "나만의비서": { bg: "#DCFCE7", color: "#166534" },
-  "AI Agent": { bg: "#EDE9FE", color: "#5B21B6" },
+  "AI Model": { bg: "#EDE9FE", color: "#5B21B6" },
   "ML": { bg: "#ECFEFF", color: "#155E75" },
   "Vibe": { bg: "#FAF5FF", color: "#7E22CE" },
 };
@@ -621,7 +621,7 @@ export default function AdminUsers() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{REGISTRANTS.length}명</span></div>
-                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>AX 플랫폼 항목(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>AX 플랫폼 항목(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
                 </div>
                 <input value={regSearch} onChange={e => setRegSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />
               </div>

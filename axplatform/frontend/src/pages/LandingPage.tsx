@@ -53,7 +53,7 @@ const CAT_MEDIA: Record<CategoryId, { banner?: string; icon?: string; scene: Sce
 // 배너 홍보 카피 — 카테고리별 소개 문구(신 체계 용어로 정합화, 브랜드/관계사 지칭 배제)
 const PROMO_COPY: Partial<Record<CategoryId, { title: string; desc: string; cta: string }>> = {
   "n8n":              { title: "반복 업무, 워크플로우 하나로 끝", desc: "클릭 몇 번으로 이어지는 n8n 자동화 워크플로우를 둘러보세요", cta: "n8n 살펴보기" },
-  "ai-orchestration": { title: "업무에 맞는 AI 모델, 한눈에", desc: "AI Agent 카탈로그에서 필요한 모델을 골라 바로 활용하세요", cta: "AI Agent 보기" },
+  "ai-orchestration": { title: "업무에 맞는 AI 모델, 한눈에", desc: "AI Model 카탈로그에서 필요한 모델을 골라 바로 활용하세요", cta: "AI Model 보기" },
   "pa":               { title: "MS 365와 찰떡, Power Automate", desc: "Outlook·Excel·Teams를 잇는 자동화 흐름을 바로 시작하세요", cta: "Power Automate 보기" },
   "assistant":        { title: "내 업무만 알아서 돕는 나만의 비서", desc: "프롬프트로 다듬은 나만의 AI 비서로 회의록 요약부터 보고서 초안까지", cta: "나만의 비서 만들기" },
   "ml":               { title: "데이터가 답을 알려드립니다", desc: "머신러닝으로 실무 문제를 예측하고 자동화한 사례를 만나보세요", cta: "ML 모델 보기" },
@@ -188,7 +188,7 @@ function NumberTicker({ value }: { value: number }) {
 }
 
 /** 회전 헤드라인 — 세로 롤 + 폭 전환 (원본 RotatingHeadline 로직 그대로, next/image 제거) */
-const ROTATING = ["자동화 워크플로우", "AI Agent 활용법", "업무 자동화 아이디어", "머신러닝 예측 모델", "바이브 코딩 예제", "나만의 AI 비서"];
+const ROTATING = ["자동화 워크플로우", "AI Model 활용법", "업무 자동화 아이디어", "머신러닝 예측 모델", "바이브 코딩 예제", "나만의 AI 비서"];
 const RN = ROTATING.length;
 const ROTATING_LOOP = [...ROTATING, ROTATING[0]];
 function RotatingHeadline() {
@@ -504,7 +504,7 @@ function IconHero({ onNavigate }: { onNavigate: (p: string) => void }) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="AI Agent, 업무 자동화, n8n..."
+            placeholder="AI Model, 업무 자동화, n8n..."
             style={{
               flex: 1, height: 54, background: "transparent", fontSize: 18, color: C.text,
               border: "none", outline: "none", padding: "0 8px", minWidth: 0,
@@ -839,7 +839,7 @@ function CtaBoxes({ onNavigate }: { onNavigate: (p: string) => void }) {
     bg: string; onClick: () => void;
   }[] = [
     { image: "/cta/cta_kolling.png", label: "AX 플랫폼 둘러보기", desc: "카테고리별 자동화·AI 자산을 한눈에", bg: "#DBEAFE", onClick: () => onNavigate("/projects") },
-    { icon: <SparklesIco size={24} color="#0EA5E9" />, label: "AI Agent 카탈로그", desc: "업무에 맞는 AI 모델을 골라 바로 사용", bg: "#E0F2FE", onClick: () => onNavigate("/projects?platform=ai-orchestration") },
+    { icon: <SparklesIco size={24} color="#0EA5E9" />, label: "AI Model 카탈로그", desc: "업무에 맞는 AI 모델을 골라 바로 사용", bg: "#E0F2FE", onClick: () => onNavigate("/projects?platform=ai-orchestration") },
     // [후속: 관리자 기능 필요] 이용 가이드 콘텐츠/화면 없음 — 링크 비활성
     { icon: <BookIco size={24} color="#F43F5E" />, label: "이용 가이드", desc: "AX 플랫폼 활용법 살펴보기", bg: "#FEE2E2", onClick: () => {} },
     {

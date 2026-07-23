@@ -14,7 +14,7 @@ import { FORM_MAX_WIDTH } from "../styles/layout";
 
 const COST_TIERS = ["낮음", "보통", "높음"] as const;
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
-// AI Agent 이용 가능 상태 (운영 상태 체계와 별개 축)
+// AI Model 이용 가능 상태 (운영 상태 체계와 별개 축)
 const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"] as const;
 
 const MAX_IMAGES = 10;
@@ -349,7 +349,7 @@ export default function EditRequestPage() {
   void id;
 
   const kindMeta = CATEGORIES.find(p => p.id === current.kind);
-  const kindLabel = current.kind === "ai-orchestration" ? "AI Agent" : (kindMeta?.name ?? current.kind);
+  const kindLabel = current.kind === "ai-orchestration" ? "AI Model" : (kindMeta?.name ?? current.kind);
 
   const [form, setForm] = useState<FormState>({
     images: current.images,

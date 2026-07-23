@@ -47,7 +47,7 @@ const DIFFICULTY_BY_COMPANY: Record<StatCompany, number[]> = {
   KKM: [15, 18, 7], KBH: [6, 7, 2], HC: [4, 5, 1], KMG: [3, 4, 2], KMW: [1, 2, 1], KUS: [1, 1, 1], KBT: [1, 1, 1],
 };
 
-// AI Agent 모델 기준 (3단계)
+// AI Model 모델 기준 (3단계)
 const COST_META = [
   { label: "낮음", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "높음", color: "#EF4444" },
 ];
@@ -259,7 +259,7 @@ export default function AdminStatistics() {
                   </span>
                 ) : null}
               </div>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Agent · ML · Vibe · AI 프로젝트) 등록 현황을 통합 분석합니다.</p>
+              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록 현황을 통합 분석합니다.</p>
             </div>
 
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -489,7 +489,7 @@ export default function AdminStatistics() {
 
             <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>비용 구간 분포</div>
-              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>AI Agent 모델 기준</div>
+              <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 14 }}>AI Model 모델 기준</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {agg.cost.map((c, i) => {
                   const pct = Math.round(c.count / totalCost * 100);

@@ -56,7 +56,7 @@ export const CATEGORIES: Category[] = [
   { id: "n8n", name: "n8n", shortDesc: "업무 자동화 워크플로우 플랫폼", path: "/n8n", accessUrl: "https://n8n.kolmar.co.kr", color: "#EA580C", bg: "#FFF7ED", icon: "automation" },
   { id: "pa", name: "Power Automate", shortDesc: "클라우드 플로우와 데스크톱 자동화(RPA)를 아우르는 Microsoft 자동화 도구", path: "/pa", accessUrl: null, color: "#0078D4", bg: "#EFF6FF", icon: "pa" },
   { id: "assistant", name: "나만의 비서", shortDesc: "HK GPT를 프롬프트·역할로 커스터마이징해 동료와 공유하는 개인/팀 에이전트", path: "/assistant", accessUrl: "https://assistant.kolmar.co.kr", color: "#2563EB", bg: "#DBEAFE", icon: "assistant" },
-  { id: "ai-orchestration", name: "AI Agent", shortDesc: "업무 니즈에 맞는 AI 모델을 선택해 사용하는 사내 AI 게이트웨이(HK GPT)", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
+  { id: "ai-orchestration", name: "AI Model", shortDesc: "업무 니즈에 맞는 AI 모델을 골라 쓰는 사내 모델 카탈로그(HK GPT)", path: "/ai-orchestration", accessUrl: "https://ai-gateway.kolmar.co.kr", color: "#7C3AED", bg: "#F5F3FF", icon: "orchestration" },
   { id: "ml", name: "ML 모델", shortDesc: "특정 플랫폼에 속하지 않는 독립 머신러닝 모델", path: "/ml", accessUrl: null, color: "#0891B2", bg: "#ECFEFF", icon: "ml" },
   { id: "vibe", name: "Vibe Coding", shortDesc: "AI 코딩 도구로 직접 개발된 독립 소프트웨어·자동화 스크립트", path: "/vibe", accessUrl: null, color: "#DB2777", bg: "#FDF2F8", icon: "vibe" },
   { id: "etc", name: "AI 프로젝트", shortDesc: "팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개", path: "/etc", accessUrl: null, color: "#475569", bg: "#F1F5F9", icon: "etc" },
@@ -76,7 +76,7 @@ export const makeItemId = (categoryId: CategoryId, seq: number, year = new Date(
 
 // 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기됨.
 // 등록·검토·관리·상세·통계·랜딩 어디에도 상태 표시/편집/필터/집계 축을 두지 않는다.
-// AI Agent 전용 `agentAvailability`("사용 가능"/"사용 불가")만 별개 축으로 유지.
+// AI Model 전용 `agentAvailability`("사용 가능"/"사용 불가")만 별개 축으로 유지.
 // 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)는 상태와 무관하게 유지된다.
 
 export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
@@ -100,7 +100,7 @@ export type AssetItem = {
   // 워크플로우/설명 스크린샷 (최대 10장). 데모 단계에서는 data URL로 저장.
   images?: string[];
 
-  // AI Agent(ai-orchestration) 전용 이용 가능 상태(운영 상태 폐기와 무관한 별개 축).
+  // AI Model(ai-orchestration) 전용 이용 가능 상태(운영 상태 폐기와 무관한 별개 축).
   agentAvailability?: "사용 가능" | "사용 불가";
 
   // 소속/대상 관계사 (복수 선택, 관계사 코드 배열). 비워두거나 생략하면 전사 공용.
@@ -134,7 +134,7 @@ export type AssetItem = {
   connectedData?: string;     // @deprecated 등록 폼 제거 — 호환 위해 유지
   sampleQuestions?: string[]; // @deprecated 등록 폼 제거 — 호환 위해 유지
 
-  // AI Agent(ai-orchestration) 전용
+  // AI Model(ai-orchestration) 전용
   modelMeta?: {
     provider: string;
     modelName?: string;

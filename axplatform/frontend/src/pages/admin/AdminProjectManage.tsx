@@ -11,7 +11,7 @@ import { useAuth } from "../../context/useAuth";
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
 const COST_TIERS = ["낮음", "보통", "높음"];
-// AI Agent 이용 가능 상태 — 운영 상태(폐기)와 별개 축
+// AI Model 이용 가능 상태 — 운영 상태(폐기)와 별개 축
 const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"];
 
 // 나만의 비서 — 기반 모델 힌트
@@ -20,7 +20,7 @@ const ASSISTANT_MODEL_HINTS = [
   "Gemini", "xAI", "LG AI", "Upstage", "Perplexity",
 ];
 
-// AI Agent(HK GPT 게이트웨이) — 처리 가능한 글 분량(쉬운 표현)
+// AI Model(HK GPT 게이트웨이) — 처리 가능한 글 분량(쉬운 표현)
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
 
 const ML_TYPES = [
@@ -660,7 +660,7 @@ export default function AdminProjectManage() {
                   </SectionBlock>
                 )}
 
-                {/* ===== 분기: AI Agent — 모델 정보 ===== */}
+                {/* ===== 분기: AI Model — 모델 정보 ===== */}
                 {displayData.kind === "ai-orchestration" && (
                   <SectionBlock title="모델 정보">
                     <FieldRow label="이용 가능 여부">

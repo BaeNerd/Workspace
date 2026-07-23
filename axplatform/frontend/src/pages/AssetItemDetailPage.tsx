@@ -233,7 +233,7 @@ const MOCK_ITEMS: AssetItem[] = [
     basedModel: "GPT-5.4",
     sharedPrompt: "당신은 원료 안전성 전문가입니다. 입력된 원료명에 대한 MSDS 정보와 국가별 규제를 요약해 주세요.",
   },
-  // AI Agent 카탈로그 (11건)
+  // AI Model 카탈로그 (11건)
   {
     id: "AIO-2026-001", categoryId: "ai-orchestration", agentAvailability: "사용 가능", title: "GPT-5.4",
     summary: "범용 업무 전반에 무난한 기본 선택지입니다.",
@@ -551,7 +551,7 @@ const MOCK_ITEMS: AssetItem[] = [
     devTool: "Python, Prophet, LightGBM", outputType: "채널별 월별 수요 예측값 (Excel + 대시보드)",
     sourceRepo: "gitlab.kolmar.co.kr/ml/demand-channel",
   },
-  // ── AI Agent 추가 ──────────────────────────────────────────────────────────
+  // ── AI Model 추가 ──────────────────────────────────────────────────────────
   { id: "AIO-2026-011", categoryId: "ai-orchestration", agentAvailability: "사용 불가", title: "DeepSeek R2",
     summary: "중국어 문서 번역·분석에 최적화된 고성능 오픈소스 모델입니다.",
     description: "중국어 문서 번역 및 분석에 최적화된 고성능 오픈소스 모델입니다. 중국 현지 법인 업무 대응 및 중국어 계약서·보고서 처리에 활용합니다. 단, 보안 정책에 따라 비공개 데이터 입력은 금지됩니다.", dept: "DX전략팀", owner: "DX전략팀", ownerEmail: "dx@kolmar.co.kr",
@@ -934,7 +934,7 @@ export default function AssetItemDetailPage() {
         {activeTab === "detail" && hasDetailTab && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-            {/* ===== AI Agent — 모델 사양 (블로그형: 강점 서술 우선) ===== */}
+            {/* ===== AI Model — 모델 사양 (블로그형: 강점 서술 우선) ===== */}
             {item.categoryId === "ai-orchestration" && item.modelMeta && (
               <div style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "24px 26px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27", marginBottom: 14 }}>강점 및 활용 방법</div>

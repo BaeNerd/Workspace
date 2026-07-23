@@ -70,7 +70,7 @@ const PROBLEM_SOLUTION = [
     problem: "무엇을 써야 할지 모름",
     problemDesc: "AI 모델과 도구가 많아질수록 선택은 더 어려워집니다.",
     solution: "질문에 답하는 콘텐츠",
-    solutionDesc: "\u201C나는 어떤 Agent를 써야 할까\u201D에 카탈로그가 직접 답합니다.",
+    solutionDesc: "\u201C나는 어떤 AI Model을 써야 할까\u201D에 카탈로그가 직접 답합니다.",
   },
   {
     no: "04",
@@ -85,8 +85,8 @@ const PROBLEM_SOLUTION = [
 const GROUP_LABEL: Record<CategoryId, string> = {
   n8n: "자동화도구",
   pa: "자동화도구",
-  assistant: "AI Agent (LLM)",
-  "ai-orchestration": "AI Agent (LLM)",
+  assistant: "AI Model (LLM)",
+  "ai-orchestration": "AI Model (LLM)",
   ml: "ML",
   vibe: "VIBE",
   etc: "AI 프로젝트",
@@ -104,8 +104,8 @@ const TYPE_ONELINE: Record<CategoryId, string> = {
 
 const CONCEPT_CARDS = [
   {
-    q: "나는 어떤 Agent를\n써야 할까?",
-    type: "AI Agent",
+    q: "나는 어떤 AI Model을\n써야 할까?",
+    type: "AI Model",
     desc: "모델별로 무엇을 잘하는지, 한 번 쓰면 얼마나 드는지 — 처리 가능한 글 분량, 1회 사용량, 비용 등급으로 비교해 답합니다.",
   },
   {
@@ -142,7 +142,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "문의는 어디로 하나요?",
-    a: "각 자산 상세 페이지의 담당자 연락처 또는 게시글(Q&A)을 이용해 주세요. AI Agent 카탈로그 관련 문의는 관리자에게 전달됩니다.",
+    a: "각 자산 상세 페이지의 담당자 연락처 또는 게시글(Q&A)을 이용해 주세요. AI Model 카탈로그 관련 문의는 관리자에게 전달됩니다.",
   },
 ];
 
@@ -734,7 +734,7 @@ export default function AboutPage() {
             ))}
           </div>
           <div style={{ textAlign: "center", fontSize: 12, color: T.slate400 }}>
-            AI Agent 유형은 관리자가 카탈로그로 직접 관리합니다.
+            AI Model 유형은 관리자가 카탈로그로 직접 관리합니다.
           </div>
         </div>
 
