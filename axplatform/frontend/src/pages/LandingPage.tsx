@@ -6,6 +6,8 @@ import { useAuth } from "../context/useAuth";
 import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import type { NoticeKind } from "../types/noticeTypes";
+import { visibleNoticesByKind } from "../mocks/noticeMockData";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { useShareNotice } from "../context/ShareNoticeContext";
@@ -102,16 +104,8 @@ const LANDING_ITEMS: LItem[] = [
   { id: "VIBE-2026-005", categoryId: "vibe", title: "ECM 멀티 파일 다운로더", summary: "ECM에서 여러 파일을 한 번에 선택하고 다운로드하는 유틸리티 프로그램", dept: "IT인프라팀", likes: 24, updated: "2025.07.04", domain: "IT" },
 ];
 
-// 최신소식 — 정적 목업. 공지/업데이트 관리 화면이 없어 표시만 구현.
-// [후속: 관리자 기능 필요] 공지사항·업데이트 소식 등록/관리 기능 (L2에서 처리 예정)
-const LATEST_NEWS = [
-  { tag: "공지사항", title: "[공지] AX 플랫폼 정기 점검 안내", date: "2026.07.10" },
-  { tag: "공지사항", title: "[공지] 항목 등록 가이드라인 개정 안내", date: "2026.07.03" },
-  { tag: "공지사항", title: "[공지] AI Agent 카탈로그 모델 업데이트 안내", date: "2026.06.25" },
-  { tag: "업데이트", title: "[업데이트] n8n 자동화 워크플로우 30종 추가", date: "2026.06.18" },
-  { tag: "업데이트", title: "[업데이트] 모바일 화면 UI 개선 안내", date: "2026.06.05" },
-] as const;
-type NewsTag = (typeof LATEST_NEWS)[number]["tag"];
+// 최신소식 — 공지/업데이트 소식은 mocks/noticeMockData(단일 소스)를 참조.
+// 관리자 화면(/admin/notices)이 작성·관리, 여기선 visible=true를 pinned·최신순으로 표시.
 
 // 업무 도메인 칩 색상
 const DOMAIN_CHIP: Record<BusinessDomain, { bg: string; fg: string }> = {
@@ -754,11 +748,12 @@ function ItemsByDomain({ onNavigate }: { onNavigate: (p: string) => void }) {
 }
 
 // ===========================================================================
-// [섹션 6] 최신소식(정적) + 실시간 인기 항목
+// [섹션 6] 최신소식(공지·업데이트) + 실시간 인기 항목
 // ===========================================================================
 function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [tab, setTab] = useState<NewsTag>("공지사항");
-  const news = LATEST_NEWS.filter(n => n.tag === tab);
+  const [tab, setTab] = useState<NoticeKind>("공지사항");
+  // 표시 규칙: visible=true만, pinned 우선 + 최신순, 탭별 최대 5건 (mocks/noticeMockData 헬퍼).
+  const news = visibleNoticesByKind(tab).slice(0, 5);
   const trending = [...LANDING_ITEMS].sort((a, b) => b.likes - a.likes).slice(0, 5);
   return (
     <div className="ax-news-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -766,13 +761,12 @@ function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void
       <div style={{ ...card, padding: 30 }}>
         <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <SectionTitle emphasis="최신" rest="소식" />
-          {/* [후속: 관리자 기능 필요] 공지/업데이트 관리 화면 없음 — 링크 비활성 */}
-          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14, color: C.text3 }}>
+          <button onClick={() => onNavigate(`/notices?kind=${encodeURIComponent(tab)}`)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.text3 }}>
             더보기
             <span style={{ display: "flex", width: 20, height: 20, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: `1px solid ${C.text3}` }}>
               <PlusIco size={12} color={C.text3} />
             </span>
-          </span>
+          </button>
         </div>
         <div style={{ display: "flex", gap: 24 }}>
           <div style={{ display: "flex", width: 112, flexShrink: 0, flexDirection: "column", gap: 8 }}>
@@ -784,9 +778,11 @@ function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void
             ))}
           </div>
           <div style={{ display: "flex", flex: 1, flexDirection: "column" }}>
-            {news.map((n, i) => (
-              <div key={n.title} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "12px 0",
+            {news.length === 0 ? (
+              <div style={{ padding: "12px 0", fontSize: 14, color: C.text3 }}>등록된 소식이 없어요</div>
+            ) : news.map((n, i) => (
+              <div key={n.id} onClick={() => onNavigate(`/notices?kind=${encodeURIComponent(n.kind)}`)} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "12px 0", cursor: "pointer",
                 borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
               }}>
                 <span style={{ fontSize: 14, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{n.title}</span>

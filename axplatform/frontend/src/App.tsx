@@ -11,6 +11,7 @@ import SharePreviewBanner from "./components/SharePreviewBanner";
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
+import NoticesPage from "./pages/NoticesPage";
 
 // 로그인 필요 페이지
 import ProjectListPage from "./pages/ProjectListPage";
@@ -28,6 +29,7 @@ import AdminOrg from "./pages/admin/AdminOrg";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminStatistics from "./pages/admin/AdminStatistics";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminNotices from "./pages/admin/AdminNotices";
 
 export default function App() {
   // ===== 공유 모드: 랜딩(/)만 마운트, 그 외 이동은 ShareRedirect가 가로채 안내 후 랜딩 유지 =====
@@ -60,6 +62,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/notices" element={<NoticesPage />} />
 
           {/* ===== 로그인 필요 ===== */}
           <Route path="/projects" element={<ProtectedRoute><ProjectListPage /></ProtectedRoute>} />
@@ -85,6 +88,8 @@ export default function App() {
           <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
           <Route path="/admin/statistics" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminStatistics /></ProtectedRoute>} />
           <Route path="/admin/platforms" element={<ProtectedRoute requireAdmin><AdminCategories /></ProtectedRoute>} />
+          {/* 공지·업데이트 관리: admin 전용. companyAdmin은 화면 내 안내를 위해 라우트 통과만 허용. */}
+          <Route path="/admin/notices" element={<ProtectedRoute requireAdmin allowCompanyAdmin><AdminNotices /></ProtectedRoute>} />
 
         </Routes>
       </BrowserRouter>

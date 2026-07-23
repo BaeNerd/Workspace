@@ -83,12 +83,14 @@ export type CurrentUser = {
 | `/admin/org` | ✓ | — |
 | `/admin/users` | ✓ | — |
 | `/admin/platforms` | ✓ | — |
+| `/admin/notices` | ✓ | ✓* |
 
 → companyAdmin이 접근 가능한 4종은 **대시보드·검토·프로젝트 관리·통계**. `taxonomy·org·users·platforms`는 **admin 단독**.
+→ **`*` `/admin/notices`는 실질 admin 전용.** 라우트는 `allowCompanyAdmin`으로 통과만 허용하되, 화면 내부에서 `isCompanyAdmin`이면 관리 UI 대신 "전사 관리자 전용" 안내를 렌더한다(사이드바 메뉴는 companyAdmin에게 비노출).
 
 ### 역할별 UI 노출
 
-- **AdminSidebar** (`src/components/AdminSidebar.tsx`): `ADMIN_NAV` 각 항목에 `companyAdmin: boolean` 플래그. `isCompanyAdmin`이면 `companyAdmin: true`인 4개(대시보드·등록 신청 검토·프로젝트 관리·통계)만 노출하고, 사이드바 라벨을 **"관계사 관리자 메뉴"**로(그 외 "관리자 메뉴") 표시. `/admin/review` 항목엔 `pendingCount` 뱃지.
+- **AdminSidebar** (`src/components/AdminSidebar.tsx`): `ADMIN_NAV` 각 항목에 `companyAdmin: boolean` 플래그. `isCompanyAdmin`이면 `companyAdmin: true`인 4개(대시보드·등록 신청 검토·프로젝트 관리·통계)만 노출하고, 사이드바 라벨을 **"관계사 관리자 메뉴"**로(그 외 "관리자 메뉴") 표시. `/admin/review` 항목엔 `pendingCount` 뱃지. **admin 단독 메뉴**: 분류체계·부서/조직·사용자·자동화·AI 도구·**공지·업데이트 관리**(`/admin/notices`, `companyAdmin: false`).
 - **Navbar** (`src/components/Navbar.tsx`): 관리자 진입(별 아이콘 "관리자" 링크·드롭다운 "관리자 페이지")은 `isAdmin || isCompanyAdmin` 조건. 역할 배지 2종 — admin은 `관리자`(앰버 `#FEF3C7`/`#92400E`), companyAdmin은 `관계사 관리자`(파스텔 오렌지 `#FBEEE4`/`#B4602E`). 아바타 배경색도 역할별로 분기.
 
 ---
@@ -342,10 +344,12 @@ axplatform/
         ├── styles/
         │   └── layout.ts     # CONTENT_MAX_WIDTH=1400 / FORM_MAX_WIDTH=760
         ├── types/
-        │   └── categoryTypes.ts        # 타입·CATEGORIES·ICON_PRESETS·승인 슬롯
+        │   ├── categoryTypes.ts        # 타입·CATEGORIES·ICON_PRESETS·승인 슬롯
+        │   └── noticeTypes.ts          # Notice(공지·업데이트) 타입
         ├── mocks/
         │   ├── statsMockData.ts        # 통계 공용 더미
-        │   └── companyAdminMockData.ts # 관계사 관리자 지정 공용 목업
+        │   ├── companyAdminMockData.ts # 관계사 관리자 지정 공용 목업
+        │   └── noticeMockData.ts       # 공지·업데이트 소식 단일 소스(SSOT)
         ├── components/
         │   ├── Navbar.tsx
         │   ├── AdminNavbar.tsx
@@ -362,6 +366,8 @@ axplatform/
             ├── LandingPage.tsx
             ├── LoginPage.tsx
             ├── AboutPage.tsx
+            ├── NoticesPage.tsx
+            │   # /notices 공지·업데이트 목록
             ├── ProjectListPage.tsx
             ├── AssetItemDetailPage.tsx
             ├── ProjectRegisterPage.tsx
@@ -375,7 +381,8 @@ axplatform/
                 ├── AdminOrg.tsx
                 ├── AdminUsers.tsx
                 ├── AdminStatistics.tsx
-                └── AdminCategories.tsx
+                ├── AdminCategories.tsx
+                └── AdminNotices.tsx      # /admin/notices 공지·업데이트 관리 (admin 전용)
 ```
 
 ---
@@ -394,14 +401,14 @@ axplatform/
 | **[2] 아이콘 히어로** | 회전 헤드라인 + 검색 폼 + 카테고리 7타일 | `IconHero`, `RotatingHeadline` |
 | **[3] 플랫폼 현황** | 총 항목 카운터 + 카테고리별 막대그래프 | `PlatformStatus`, `NumberTicker` |
 | **[4] 인기 항목** | 카테고리 필터 + 항목 카드 6종 | `PopularItems`, `ItemCard` |
-| **[5] 최신소식 + 실시간 인기** | 공지/업데이트 탭(정적) + 인기 항목 랭킹 | `LatestNewsAndTrending` |
+| **[5] 최신소식 + 실시간 인기** | 공지/업데이트 탭(`noticeMockData` 참조) + 인기 항목 랭킹 | `LatestNewsAndTrending` |
 | **[6] 업무별 항목** | 도메인(`BUSINESS_DOMAINS`) 필터 + 항목 카드 | `ItemsByDomain` |
 | **[7] 시작 도우미 CTA** | 4-박스 진입(둘러보기·AI Agent·가이드·문의) | `CtaBoxes` |
 
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
 - **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
-- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / 최신소식·개인화 지표는 정적 목업(후속 관리자·개인화 기능 필요).
+- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결), 개인화 지표는 정적 목업(후속 개인화 기능 필요).
 - **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
 - **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
 - **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
@@ -420,6 +427,14 @@ axplatform/
 #### `AboutPage.tsx` — `/about`
 
 정적 소개 페이지. 섹션 구성: **01 왜 AX Platform인가**(문제→해법) → **02 무엇을 다루나**(카테고리 카드) → **03 질문에서 출발**(콘텐츠 콘셉트) → **04 어떻게 이용하나**(4-step 흐름) → **05 FAQ** → **CTA 배너**. (로드맵 성격 문구는 CTA 배너에 포함.)
+
+#### `NoticesPage.tsx` — `/notices`
+
+공지사항·업데이트 소식 목록(공개 페이지, 인증 불필요). 랜딩 최신소식 **"더보기"의 연결 대상**.
+
+- **종류 탭 2종**(`NOTICE_KINDS`: 공지사항/업데이트) + 항목 클릭 시 **본문 펼침**(`expanded` 단일 아코디언).
+- **표시 규칙**: `visibleNoticesByKind(kind)` — `visible=true`만, **pinned 우선 + 게시일 최신순**. (랜딩과 동일 헬퍼·동일 규칙, 랜딩은 추가로 `slice(0, 5)`.)
+- **URL 파라미터** `?kind=`: 진입 탭 결정(공지사항이 기본, 탭 전환 시 `setParams(replace)`로 동기화). `Navbar` + `Footer` 셸.
 
 #### `ProjectListPage.tsx` — `/projects`
 
@@ -519,6 +534,15 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 #### `AdminCategories.tsx` — `/admin/platforms` (admin)
 
 7개 카테고리 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `CategoryIcon`. (표시 문자열은 "카테고리", 파일·코드 심볼은 category 계열로 rename(`AdminCategories`·`CategoryIcon`), 라우트 `/admin/platforms`는 현행 유지. 위 [아이콘 체계] 참조.)
+
+#### `AdminNotices.tsx` — `/admin/notices` (admin 전용)
+
+공지사항·업데이트 소식 관리. 좌측 목록(**종류 필터** `전체/공지사항/업데이트` 세그먼트) + 우측 상세/편집 패널. **DEMO 전용** — `NOTICE_MOCK_DATA`를 로컬 state로 로드해 작성/수정/삭제·**고정(pinned)·노출(visible) 토글** 재현(AdminCategories와 동일 패턴).
+
+- **접근 제어**: 라우트는 `requireAdmin allowCompanyAdmin`이나 화면 상단에서 `isCompanyAdmin`이면 **"전사 관리자 전용" 안내**만 렌더(관리 UI 비노출). 사이드바 메뉴는 `companyAdmin: false`로 companyAdmin에게 숨김.
+- **편집 필드**: 종류(세그먼트) · 제목 · 본문(textarea) · 게시일(`YYYY.MM.DD` 검증) · 고정 · 노출. 신규 ID는 `NOTICE-{YYYY}-{NNN}`(현재 연도 최대 순번 +1, TODO 서버 발급).
+- **세그먼트 선택**(`Segmented`) — 2~3개 값은 닫힌 드롭다운 대신 세그먼트 버튼(종류·필터·고정/노출 편집 공용). 비편집 상태의 고정/노출은 `ToggleRow`로 즉시 반영.
+- **내부 컴포넌트**(모듈 레벨): `FieldRow`, `SectionBlock`, `KindBadge`, `Segmented`, `ToggleRow`.
 
 ---
 
@@ -670,6 +694,19 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `INITIAL_COMPANY_ADMINS` | 초기 관계사 관리자 목록 (최관리 KKM / 정담당 KBH·HC) |
 | `managedCompaniesOf(email)` | 이메일 → 담당 관계사 코드 목록 (auth/me managedCompanies 모사) |
 
+### `mocks/noticeMockData.ts`
+
+> 공지사항·업데이트 소식 **단일 소스(SSOT)**. **DEMO 전용.** LandingPage 최신소식 · NoticesPage(`/notices`) · AdminNotices(`/admin/notices`) 3곳이 참조. (옛 LandingPage 정적 `LATEST_NEWS` 대체 — 중복 정의 금지.)
+
+| 항목 | 설명 |
+|---|---|
+| `Notice` / `NoticeKind` / `NOTICE_KINDS` | `types/noticeTypes.ts`. `Notice = { id, kind, title, body, date, pinned, visible }` |
+| `NOTICE_MOCK_DATA` | 초기 소식 배열. AdminNotices가 로컬 state 초기값으로 로드 |
+| `sortNotices(list)` | **pinned 우선 + 게시일(`YYYY.MM.DD`) 최신순** 정렬 |
+| `visibleNoticesByKind(kind)` | `visible=true` + 해당 종류만 정렬 반환 (랜딩·NoticesPage 공용) |
+
+타입 import 주의: `Notice`, `NoticeKind`는 `import type` 분리 필수.
+
 ---
 
 ## API 연동 준비 (`lib/api.ts`)
@@ -700,6 +737,8 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 | `GET` | `/api/v1/admin/users` | AdminUsers |
 | `GET` | `/api/v1/admin/stats/*` | AdminStatistics, AdminDashboard |
 | `GET` / `POST` / `PUT` | `/api/v1/admin/platforms(/:id)` | AdminCategories |
+| `GET` | `/api/v1/notices` | LandingPage(최신소식), NoticesPage (공개, visible만) |
+| `GET` / `POST` / `PUT` / `DELETE` | `/api/v1/admin/notices(/:id)` | AdminNotices (관리, 비노출 포함) |
 | `GET` | `/api/v1/admin/settings` | AdminOrg (문의 채널 등) |
 | `GET` | `/api/v1/auth/me` | AuthContext (role·managedCompanies) |
 | `POST` | `/api/v1/auth/logout` | AuthContext |

@@ -11,6 +11,7 @@ const ADMIN_NAV = [
   { label: "사용자 관리", path: "/admin/users", companyAdmin: false },
   { label: "통계", path: "/admin/statistics", companyAdmin: true },
   { label: "자동화·AI 도구 관리", path: "/admin/platforms", companyAdmin: false },
+  { label: "공지·업데이트 관리", path: "/admin/notices", companyAdmin: false },
 ];
 
 type Props = { pendingCount?: number };
