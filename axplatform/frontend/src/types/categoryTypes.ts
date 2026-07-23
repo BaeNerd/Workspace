@@ -74,43 +74,10 @@ export const ID_PREFIX: Record<CategoryId, string> = {
 export const makeItemId = (categoryId: CategoryId, seq: number, year = new Date().getFullYear()): string =>
   `${ID_PREFIX[categoryId]}-${year}-${String(seq).padStart(3, "0")}`;
 
-/**
- * @deprecated 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기되었습니다.
- * 등록·검토·관리·상세·통계 어디에도 상태 표시/편집/필터/집계 UI를 두지 않습니다.
- * 유일한 예외는 AI Agent 전용 `agentAvailability`("사용 가능"/"사용 불가")로 별개 축입니다.
- * 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)는 상태와 무관하게 유지됩니다.
- * 현재 잔존 참조는 LandingPage.tsx(타인 교체 예정)뿐이며, 정리 완료 시 아래 정의를 삭제합니다.
- * 신규 참조 금지: STATUS_ORDER · STATUS_COLOR · STATUS_QUERY_KEY · LEGACY_STATUS_MAP · normalizeStatus · countAvailable.
- */
-export type PlatformItemStatus = "사용 가능" | "준비 중" | "일부 제한" | "사용 중지";
-
-/** @deprecated 운영 상태 폐기 — {@link PlatformItemStatus} 참조. */
-export const STATUS_ORDER: PlatformItemStatus[] = ["사용 가능", "준비 중", "일부 제한", "사용 중지"];
-
-/** @deprecated 운영 상태 폐기 — {@link PlatformItemStatus} 참조. */
-export const STATUS_COLOR: Record<PlatformItemStatus, { fg: string; bg: string }> = {
-  "사용 가능": { bg: "#D1FAE5", fg: "#065F46" },
-  "준비 중":   { bg: "#DBEAFE", fg: "#1E40AF" },
-  "일부 제한": { bg: "#FEF3C7", fg: "#92400E" },
-  "사용 중지": { bg: "#FEE2E2", fg: "#991B1B" },
-};
-
-export const LEGACY_STATUS_MAP: Record<string, PlatformItemStatus> = {
-  "운영 중": "사용 가능", "사용 중": "사용 가능",
-  "테스트 중": "준비 중", "실험 중": "준비 중", "프로토타입": "준비 중",
-  "일시 중지": "일부 제한",
-  "운영 중지": "사용 중지", "지원 종료 예정": "사용 중지",
-  "사용 가능": "사용 가능", "준비 중": "준비 중",
-  "일부 제한": "일부 제한", "사용 중지": "사용 중지",
-};
-
-export const normalizeStatus = (s: string): PlatformItemStatus =>
-  LEGACY_STATUS_MAP[s] ?? "준비 중";
-
-export const STATUS_QUERY_KEY: Record<PlatformItemStatus, string> = {
-  "사용 가능": "available", "준비 중": "preparing",
-  "일부 제한": "restricted", "사용 중지": "stopped",
-};
+// 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기됨.
+// 등록·검토·관리·상세·통계·랜딩 어디에도 상태 표시/편집/필터/집계 축을 두지 않는다.
+// AI Agent 전용 `agentAvailability`("사용 가능"/"사용 불가")만 별개 축으로 유지.
+// 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)는 상태와 무관하게 유지된다.
 
 export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
 export type BusinessDomain = typeof BUSINESS_DOMAINS[number];
@@ -121,7 +88,6 @@ export type AssetItem = {
   title: string;
   summary: string;
   description: string;
-  status: PlatformItemStatus;
   dept: string;
   owner: string;
   ownerEmail: string;
@@ -134,7 +100,7 @@ export type AssetItem = {
   // 워크플로우/설명 스크린샷 (최대 10장). 데모 단계에서는 data URL로 저장.
   images?: string[];
 
-  // AI Agent(ai-orchestration) 전용 이용 가능 상태. 기존 PlatformItemStatus 4종과 별개 축.
+  // AI Agent(ai-orchestration) 전용 이용 가능 상태(운영 상태 폐기와 무관한 별개 축).
   agentAvailability?: "사용 가능" | "사용 불가";
 
   // 소속/대상 관계사 (복수 선택, 관계사 코드 배열). 비워두거나 생략하면 전사 공용.
@@ -199,9 +165,6 @@ export type AssetItem = {
   // 업무 도메인 — 정식 분류 축 (AdminTaxonomy에서 관리)
   domain?: BusinessDomain;
 };
-
-export const countAvailable = (items: AssetItem[]): number =>
-  items.filter(item => item.status === "사용 가능").length;
 
 // ===== 활용 후기 =====
 export type AssetReview = {
