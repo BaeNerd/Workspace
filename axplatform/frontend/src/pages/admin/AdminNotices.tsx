@@ -7,7 +7,7 @@ import type { Notice, NoticeKind } from "../../types/noticeTypes";
 import { NOTICE_MOCK_DATA, sortNotices } from "../../mocks/noticeMockData";
 
 // ============================================================
-// AD-10 공지사항·업데이트 소식 관리 화면 (/admin/notices)
+// ADM-09 공지사항·업데이트 소식 관리 화면 (/admin/notices)
 // 전사 관리자(admin) 전용 — companyAdmin 접근 시 안내만 표시.
 // DEMO 전용 — 로컬 상태로 작성/수정/삭제·고정·노출 토글 흐름만 재현.
 // TODO: 실제 연동 시
