@@ -735,7 +735,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 ---
 
-## 개인화 — 스크랩·관심사·알림 (F2r)
+## 개인화 — 스크랩·관심사·알림
 
 개인 상태(스크랩·관심사·알림 읽음)는 **localStorage 3종**을 단일 소스로 두고, 공용 훅이 `useSyncExternalStore`로
 같은 탭 내 모든 소비자(상세 헤더·목록/랜딩 카드·개인화 패널·벨)를 즉시 동기화한다. 목업 데이터(알림)와
@@ -748,7 +748,7 @@ localStorage 상태를 병합해 파생값을 만든다. **DEMO 전용** — 백
 | `ax_scraps` | `string[]` (itemId) | `hooks/useScraps` | 스크랩(북마크) 항목 목록 |
 | `ax_user_interests` | `{ categories: CategoryId[]; domains: BusinessDomain[] }` | `hooks/useInterests` | 관심 카테고리·업무 도메인 |
 | `ax_notifications_read` | `string[]` (알림 id) | `hooks/useNotifications` | 읽음 처리한 알림 id 집합 |
-| `ax_recent_viewed` | `string[]` (itemId, 최대 10) | (AssetItemDetailPage) | 최근 조회 — 기존(F1r 이전) |
+| `ax_recent_viewed` | `string[]` (itemId, 최대 10) | (AssetItemDetailPage) | 최근 조회 |
 
 ### 공용 훅 (`hooks/`)
 

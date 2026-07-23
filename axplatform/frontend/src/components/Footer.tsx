@@ -14,7 +14,7 @@ export default function Footer() {
         <span style={{ fontSize: 11, color: "#b7b9bd" }}>AX Platform</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* 네비바에서 '소개'를 '이용 가이드'로 교체하며, '서비스 소개'(/about)는 푸터 링크로 존치. */}
+        {/* '서비스 소개'(/about)는 푸터 링크로 제공. */}
         {!IS_SHARE_MODE && (
           <span
             onClick={() => navigate("/about")}

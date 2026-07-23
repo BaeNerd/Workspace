@@ -30,7 +30,7 @@ import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 //  - 목업 항목 ID·제목은 ProjectListPage의 MOCK_ASSET_ITEMS와 일치
 // ============================================================================
 
-// ── 디자인 토큰(원본 globals.css의 CSS 변수를 리터럴로 옮김) ──
+// ── 디자인 토큰(globals.css의 CSS 변수를 리터럴로 정의) ──
 const C = {
   primary: "#2D73F4", primaryHover: "#1E5FD8", primaryWeak: "#E7F0FF",
   text: "#1F2937", text2: "#4B5563", text3: "#9CA3AF",

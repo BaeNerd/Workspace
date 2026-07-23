@@ -10,7 +10,7 @@
 
 ## v3 변경 요약
 
-v3은 랜딩 교체(L1)·공지 기능(L2)·전역 검수 수정(F1r)·목업 정합 마감(G2)·개인화 실연동(F2r) 이후의 상태를 문서에 흡수한다. 핵심 변경은 다음과 같다.
+v3은 랜딩 교체·공지 기능·전역 검수 수정·목업 정합 마감·개인화 실연동 이후의 상태를 문서에 반영한다. 핵심 내용은 다음과 같다.
 
 - **랜딩 편입(USR-00 신설)**: 외부 제작 Next.js 랜딩을 Vite SPA로 포팅해 전면 교체하고 신 체계로 정합화했다. "LandingPage 교체 예정 / 문서 제외"라는 v2 전제를 걷어내고, 랜딩을 발견·개인화 허브로 정식 문서화한다. 교체와 함께 운영 상태 잔존 타입(`PlatformItemStatus` 계열)과 목업 `status` 필드가 **일괄 삭제**되었다(0.4 갱신).
 - **신규 화면 4종**: USR-09 이용 가이드(`/guide`), USR-10 공지사항·업데이트 소식(`/notices`), USR-11 설정(`/settings`), ADM-09 공지 관리(`/admin/notices`).
@@ -939,7 +939,7 @@ Footer: 서비스 표기 · 서비스 소개(/about) · 사내 전용 고지 · 
 - 이미지 실물 업로드 스토리지 설계(현 data URL 목업).
 - `audiences`(사용 대상) 실제 접근 제어 — 이연, 문서 기록만.
 - 좋아요/게시판 백엔드 구현(0.9의 스키마안 기준).
-- **개인화 API 3종(F2r에서 프론트 실연동, 백엔드 후보 편입)**: 스크랩 `PUT/DELETE /api/v1/scraps/:itemId`(멱등) · 관심사 `PUT /api/v1/me/interests`(+ 추천 `GET /api/v1/me/recommendations`) · 알림 `GET/PATCH /api/v1/notifications`. 현재는 localStorage(`ax_scraps`·`ax_user_interests`·`ax_notifications_read`) + 목업 병합으로 동작하며, 연동 시 각 훅의 TODO 지점에서 교체(0.10).
+- **개인화 API 3종(프론트 실연동, 백엔드 연동 후보)**: 스크랩 `PUT/DELETE /api/v1/scraps/:itemId`(멱등) · 관심사 `PUT /api/v1/me/interests`(+ 추천 `GET /api/v1/me/recommendations`) · 알림 `GET/PATCH /api/v1/notifications`. 현재는 localStorage(`ax_scraps`·`ax_user_interests`·`ax_notifications_read`) + 목업 병합으로 동작하며, 연동 시 각 훅의 TODO 지점에서 교체(0.10).
 - 조회수(views) 서버 집계 전환(현 목업 상수, 0.9) — 상세 조회 이벤트 카운트·중복 방지·트렌딩 스코어는 백엔드 책임.
 - 향후 선택 필드 후보(vibe·AI 프로젝트): "핵심 기능"(불릿 렌더링), "제작 후기" — 기능상 불필요 판정, 디자인 단계 재검토용 백로그.
 - 설정(USR-11) 확장 항목: 프로필·알림 수신 설정·표시 환경 — 화면 확장 지점 TODO만, 이번 범위 밖.
