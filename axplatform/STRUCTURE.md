@@ -416,7 +416,7 @@ axplatform/
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
 - **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
-- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
+- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**항목 단위 관계사(그룹사) 표시 없음**(company 표시 제거) / **참여 관계사 로고 마퀴(`PartnerMarquee`)는 그룹 브랜딩 요소로 관계사 표시 폐기(0.5)의 대상이 아니며, 복원 예정**(원본 소스 `_incoming-landing`이 저장소에 부재하여 원본 컴포넌트·로고 에셋 확보 후 이식 — 임의 창작 금지) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
 - **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
 - **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
 - **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
@@ -666,7 +666,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 ### 항목 URL·관계사 표시 정책
 
 - **항목 실행/접속 URL 폐기** — 유일한 예외는 AI Model의 **모델 접속 URL**(`specificUrl`). 그 외 유형의 실행 URL·소스 저장소 입력은 제거됨.
-- **회사/관계사 표시 폐기** — 항목의 사용 주체는 **담당자 소속 부서(dept) + 업무 도메인(domain)**으로 표현. `company`/`companyScope`는 승인 권한 가드(관계사 슬롯)·companyAdmin 조회 범위 판정용 **데이터로만 존치**(편집 UI 없음, 신규 항목은 전사 공용).
+- **회사/관계사 표시 폐기** — 항목의 사용 주체는 **담당자 소속 부서(dept) + 업무 도메인(domain)**으로 표현. `company`/`companyScope`는 승인 권한 가드(관계사 슬롯)·companyAdmin 조회 범위 판정용 **데이터로만 존치**(편집 UI 없음, 신규 항목은 전사 공용). 단, 이 폐기는 **항목(자산) 단위** 관계사 귀속 표시에 한정하며, 그룹 브랜딩 요소(랜딩 참여 관계사 로고 마퀴 등)는 적용 대상이 아니다(기획설명서 0.5).
 
 ### 예상 절감 시간 모델 (`expectedTimeSaved`)
 

@@ -5,7 +5,7 @@ import { CATEGORIES, ICON_PRESETS } from "../../types/categoryTypes";
 import type { Category, CategoryId, IconKey } from "../../types/categoryTypes";
 
 // ============================================================
-// AD-09 자동화·AI 도구(플랫폼) 관리 화면
+// ADM-06 자동화·AI 도구(플랫폼) 관리 화면
 // DEMO 전용 — 로컬 상태로 편집 흐름만 재현.
 // TODO: 실제 연동 시 GET/POST/PUT/PATCH /api/v1/admin/platforms 로 교체.
 // ============================================================
