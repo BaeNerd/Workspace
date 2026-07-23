@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import NotificationBell from "./NotificationBell";
 
 export default function AdminNavbar() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function AdminNavbar() {
         <span style={{ fontWeight: 500, fontSize: 12, color: "#94A3B8" }}>AX Platform</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {user && <NotificationBell />}
         <span style={{ fontSize: 11, fontWeight: 700, background: "#FEF3C7", color: "#92400E", padding: "3px 10px", borderRadius: 20 }}>관리자</span>
         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{initial}</div>
         <button

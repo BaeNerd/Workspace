@@ -14,6 +14,7 @@ import { CATEGORIES } from "../types/categoryTypes";
 import type { AssetItem, CategoryId, AssetReview } from "../types/categoryTypes";
 import N8nFlowPreview from "../components/N8nFlowPreview";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { useScraps } from "../hooks/useScraps";
 
 
 const COST_TIER_COLOR: Record<string, { bg: string; color: string }> = {
@@ -661,6 +662,9 @@ export default function AssetItemDetailPage() {
   const item = MOCK_ITEMS.find(i => i.id === itemId);
   const category = item ? CATEGORIES.find(p => p.id === item.categoryId)! : null;
 
+  const { isScrapped, toggle: toggleScrap } = useScraps();
+  const scrapped = item ? isScrapped(item.id) : false;
+
   const [activeTab, setActiveTab] = useState<"overview" | "detail" | "contact" | "posts">("overview");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(item?.likes ?? 0);
@@ -803,6 +807,23 @@ export default function AssetItemDetailPage() {
                   <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
                 {likeCount}
+              </button>
+              {/* 스크랩(북마크) 토글 — localStorage "ax_scraps"(useScraps). 개인화 패널 카운트와 실시간 동기화 */}
+              <button
+                onClick={() => toggleScrap(item.id)}
+                aria-pressed={scrapped}
+                title={scrapped ? "스크랩 해제" : "스크랩"}
+                style={{
+                  background: scrapped ? "#EFF6FF" : "#fff",
+                  border: `1.5px solid ${scrapped ? "#93C5FD" : "#EBEEF3"}`,
+                  borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600,
+                  color: scrapped ? "#1D4ED8" : "#475569", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+                }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={scrapped ? "#1D4ED8" : "none"} stroke={scrapped ? "#1D4ED8" : "#697386"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                </svg>
+                {scrapped ? "스크랩됨" : "스크랩"}
               </button>
               <button onClick={() => setActiveTab("contact")} style={{
                 background: "#fff", color: "#475569",

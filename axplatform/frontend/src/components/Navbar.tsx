@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { SHARE_BANNER_HEIGHT } from "./SharePreviewBanner";
+import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
   { label: "이용 가이드", path: "/guide" },
@@ -63,6 +64,8 @@ export default function Navbar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* 알림 벨 — 로그인 사용자, 비공유 모드에서만 노출(벨과 동일 소스는 개인화 패널 "알림 현황") */}
+        {user && !IS_SHARE_MODE && <NotificationBell />}
         {user ? (
           <div style={{ position: "relative" }}>
             <div onClick={() => setMenuOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -94,6 +97,9 @@ export default function Navbar() {
                 </div>
                 <div onClick={() => { setMenuOpen(false); navigate("/my-status"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#475569", cursor: "pointer", borderRadius: 6 }}>
                   내 등록 현황
+                </div>
+                <div onClick={() => { setMenuOpen(false); navigate("/settings"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#475569", cursor: "pointer", borderRadius: 6 }}>
+                  설정
                 </div>
                 {(isAdmin || isCompanyAdmin) && (
                   <div onClick={() => { setMenuOpen(false); navigate("/admin"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#D97706", fontWeight: 600, cursor: "pointer", borderRadius: 6 }}>

@@ -473,6 +473,7 @@ export default function EditRequestPage() {
       reason,
     };
     void _payload;
+    // TODO: 백엔드 연동 시 알림 발송(kind: "수정요청처리") — 관리자 검토 후 수정 요청이 반영/보류되면 신청자에게 통지.
     await new Promise(r => setTimeout(r, 600));
     setSubmitting(false);
     setSubmitted(true);

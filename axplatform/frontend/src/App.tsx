@@ -20,6 +20,7 @@ import ProjectRegisterPage from "./pages/ProjectRegisterPage";
 import MyStatusPage from "./pages/MyStatusPage";
 import EditRequestPage from "./pages/EditRequestPage";
 import AssetItemDetailPage from "./pages/AssetItemDetailPage";
+import SettingsPage from "./pages/SettingsPage";
 
 // 관리자 전용 페이지
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="/projects" element={<ProtectedRoute><ProjectListPage /></ProtectedRoute>} />
           <Route path="/projects/new" element={<ProtectedRoute><ProjectRegisterPage /></ProtectedRoute>} />
           <Route path="/my-status" element={<ProtectedRoute><MyStatusPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/edit-request/:id" element={<ProtectedRoute><EditRequestPage /></ProtectedRoute>} />
 
           {/* AX 플랫폼 항목 상세 — 7개 카테고리별 경로 */}

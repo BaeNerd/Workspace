@@ -6,6 +6,7 @@ import { useAuth } from "../context/useAuth";
 import { CATEGORIES, BUSINESS_DOMAINS } from "../types/categoryTypes";
 import type { AssetItem, CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { useScraps } from "../hooks/useScraps";
 
 
 const COMPANIES = [
@@ -180,6 +181,12 @@ const EyeIcon = ({ color = "#94A3B8" }: { color?: string }) => (
   </svg>
 );
 
+const BookmarkIcon = ({ active }: { active: boolean }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={active ? "#1D4ED8" : "none"} stroke={active ? "#1D4ED8" : "#94A3B8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+  </svg>
+);
+
 export default function ProjectListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -198,6 +205,10 @@ export default function ProjectListPage() {
   });
   const [visibleCount, setVisibleCount] = useState(24);
   const [hovered, setHovered] = useState<number | null>(null);
+  // 스크랩 필터 — 개인화 패널 "내가 스크랩한 항목"에서 ?scrap=1로 진입(단순한 쪽 선택: 전용 목록 대신 목록 재사용).
+  // 아래 search useEffect가 URL 파라미터를 정리하므로 초기값만 URL에서 읽고 이후 로컬 상태로 유지한다.
+  const { scraps, isScrapped, toggle: toggleScrap } = useScraps();
+  const [scrapOnly, setScrapOnly] = useState(searchParams.get("scrap") === "1");
 
   const location = useLocation();
   const resetAtRef = useRef<number | null>(null);
@@ -220,14 +231,15 @@ export default function ProjectListPage() {
 
   useEffect(() => {
     setVisibleCount(24);
-  }, [search, source, domainFilter, sort]);
+  }, [search, source, domainFilter, sort, scrapOnly]);
 
   const resetFilters = () => {
-    setSource("전체"); setDomainFilter("전체");
+    setSource("전체"); setDomainFilter("전체"); setScrapOnly(false);
   };
 
   const filtered = useMemo(() => {
     const items = MOCK_ASSET_ITEMS.filter(item => {
+      if (scrapOnly && !isScrapped(item.id)) return false;
       if (source !== "전체" && item.categoryId !== source) return false;
 
       // 비노출 관계사에만 속한 항목은 그룹 전체보기 권한자가 아니면 접근 불가 (표시 축 아닌 접근 규칙)
@@ -251,7 +263,7 @@ export default function ProjectListPage() {
       if (sort === "이름순") return a.title.localeCompare(b.title, "ko");
       return 0;
     });
-  }, [search, sort, source, domainFilter, isGroupViewer]);
+  }, [search, sort, source, domainFilter, isGroupViewer, scrapOnly, scraps]);
 
   const detailPathOf = (item: AssetItem) => {
     const category = CATEGORIES.find(p => p.id === item.categoryId)!;
@@ -382,6 +394,22 @@ export default function ProjectListPage() {
                 ))}
               </div>
             )}
+            {/* 스크랩만 보기 토글 (개인화 패널 "내가 스크랩한 항목" 진입점과 동일 필터) */}
+            <button
+              onClick={() => setScrapOnly(v => !v)}
+              aria-pressed={scrapOnly}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+                padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                borderWidth: 1, borderStyle: "solid",
+                borderColor: scrapOnly ? "#1D4ED8" : "#EBEEF3",
+                background: scrapOnly ? "#EFF6FF" : "#F4F6F9",
+                color: scrapOnly ? "#1D4ED8" : "#697386",
+              }}
+            >
+              <BookmarkIcon active={scrapOnly} />
+              스크랩 {scraps.length}
+            </button>
             <button onClick={resetFilters} style={{ fontSize: 11, color: "#94A3B8", cursor: "pointer", background: "none", border: "none", fontWeight: 500, padding: "4px 6px" }}>
               초기화
             </button>
@@ -413,7 +441,9 @@ export default function ProjectListPage() {
 
         {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8", fontSize: 14 }}>
-            검색 결과가 없습니다.
+            {scrapOnly && scraps.length === 0
+              ? "아직 스크랩한 항목이 없습니다. 카드나 상세에서 북마크를 눌러 스크랩해 보세요."
+              : "검색 결과가 없습니다."}
           </div>
         ) : (
           <>
@@ -472,6 +502,16 @@ export default function ProjectListPage() {
                         <HeartIcon />
                         <span style={{ fontSize: 11, fontWeight: 600 }}>{item.likes}</span>
                       </span>
+                      {/* 스크랩 토글 — 카드 클릭(상세 이동)과 분리하기 위해 stopPropagation */}
+                      <button
+                        type="button"
+                        aria-pressed={isScrapped(item.id)}
+                        title={isScrapped(item.id) ? "스크랩 해제" : "스크랩"}
+                        onClick={e => { e.stopPropagation(); toggleScrap(item.id); }}
+                        style={{ display: "flex", alignItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}
+                      >
+                        <BookmarkIcon active={isScrapped(item.id)} />
+                      </button>
                     </div>
                   </div>
 

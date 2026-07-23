@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS } from "../types/categoryTypes";
+import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS, detailPathForItemId } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
 import { MOCK_ASSET_ITEMS } from "./ProjectListPage";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
@@ -12,6 +12,10 @@ import { visibleNoticesByKind } from "../mocks/noticeMockData";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { useShareNotice } from "../context/ShareNoticeContext";
+import { useScraps } from "../hooks/useScraps";
+import { useInterests } from "../hooks/useInterests";
+import { useNotifications } from "../hooks/useNotifications";
+import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 
 // ============================================================================
 // LandingPage — Next.js 원본(_incoming-landing/app/page.tsx) 포팅 + 신 체계 정합화
@@ -162,6 +166,13 @@ const LogoutIco = (p: IconProps) => <Ico {...p} d="M9 21H5a2 2 0 01-2-2V5a2 2 0 
 const PlusIco = (p: IconProps) => <Ico {...p} d="M12 5v14M5 12h14" />;
 const ChatIco = (p: IconProps) => <Ico {...p} d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z" />;
 const BookIco = (p: IconProps) => <Ico {...p} d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5z" />;
+const BookmarkIco = ({ size = 14, color = "#94A3B8", fill = "none" }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+  </svg>
+);
+const BellIco = (p: IconProps) => <Ico {...p} d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />;
+const SettingsIco = (p: IconProps) => <Ico {...p} d="M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />;
 
 // ===========================================================================
 // 애니메이션 유틸 컴포넌트
@@ -355,8 +366,24 @@ const PROMO_SLIDES = PROMO_ORDER.map(id => {
   return { id, color: cat.color, bg: cat.bg, banner: CAT_MEDIA[id].banner!, scene: CAT_MEDIA[id].scene, ...PROMO_COPY[id]! };
 });
 
+// 관심사 매칭 추천 — 관심 카테고리 또는 관심 도메인과 일치하는 항목을 views→likes 순으로 상위 N개.
+// TODO: 실제 연동 시 추천 API(GET /api/v1/me/recommendations)로 교체. 현재는 목업(LANDING_ITEMS) 기반.
+const RECOMMEND_N = 12;
+function recommendItems(cats: CategoryId[], doms: BusinessDomain[]): LItem[] {
+  if (cats.length === 0 && doms.length === 0) return [];
+  return LANDING_ITEMS
+    .filter(i => cats.includes(i.categoryId) || (i.domain != null && doms.includes(i.domain)))
+    .sort((a, b) => (b.views - a.views) || (b.likes - a.likes))
+    .slice(0, RECOMMEND_N);
+}
+
 function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { user, logout } = useAuth();
+  const { count: scrapCount } = useScraps();
+  const { interests, hasInterests } = useInterests();
+  const { notifications, unreadCount } = useNotifications();
+  const recommended = recommendItems(interests.categories, interests.domains);
+  const recentNotis = notifications.slice(0, 3);
   const [slide, setSlide] = useState(0);
   const N = PROMO_SLIDES.length;
   useEffect(() => {
@@ -420,7 +447,7 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
       {/* 개인화 패널 (관계사 표시 없음) */}
       <div className="ax-promo-panel" style={{
         display: "flex", flexDirection: "column", width: 364, flexShrink: 0, height: 460,
-        borderRadius: 22, background: "#E2ECFE", padding: "35px 30px", boxSizing: "border-box",
+        borderRadius: 22, background: "#E2ECFE", padding: "26px 28px", boxSizing: "border-box", overflow: "hidden",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -434,28 +461,93 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        {/* 개인화 지표 — TODO: [후속] 개인화 API 연동(관심/추천). 현재는 정적 표시 */}
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column" }}>
-          <div onClick={() => onNavigate("/projects")} style={panelRow}>
+        {/* 개인화 지표 — 스크랩·추천 실연동(localStorage/관심사). */}
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column" }}>
+          {/* 스크랩 — 클릭 시 /projects 스크랩 필터로 이동(단순한 쪽 선택: 전용 목록 대신 목록 재사용, 주석 명시) */}
+          <div onClick={() => onNavigate("/projects?scrap=1")} style={panelRow}>
             <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
-              <HeartIco size={16} color={C.text3} /> 관심 있는 항목
+              <BookmarkIco size={16} color={C.text3} /> 내가 스크랩한 항목
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.text }}>
-              3개 <ArrowRight size={14} color={C.text3} />
+              {scrapCount}개 <ArrowRight size={14} color={C.text3} />
             </span>
           </div>
-          <div onClick={() => onNavigate("/projects")} style={panelRow}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
-              <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 항목
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.primary }}>
-              12개 <ArrowRight size={14} color={C.text3} />
-            </span>
-          </div>
+          {/* 추천 — 관심사 매칭. 미설정 시 /settings 유도 */}
+          {hasInterests ? (
+            <div onClick={() => onNavigate("/projects")} style={panelRow}>
+              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
+                <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 항목
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.primary }}>
+                {recommended.length}개 <ArrowRight size={14} color={C.text3} />
+              </span>
+            </div>
+          ) : (
+            <div onClick={() => onNavigate("/settings")} style={{ ...panelRow, alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 8 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
+                  <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 항목
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.primary }}>
+                  설정 <ArrowRight size={14} color={C.primary} />
+                </span>
+              </span>
+              <span style={{ fontSize: 12, color: C.text3, paddingLeft: 24, lineHeight: 1.4 }}>
+                관심사를 설정하면 맞춤 추천을 받아요
+              </span>
+            </div>
+          )}
         </div>
 
-        <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, borderTop: "1px solid #CDD1D5", paddingTop: 16 }}>
+        {/* 알림 현황 — 최근 3건, 미읽음 강조. 벨(NotificationBell)과 동일 소스(useNotifications) */}
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <BellIco size={15} color={C.text2} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>알림 현황</span>
+            {unreadCount > 0 && (
+              <span style={{ fontSize: 10, fontWeight: 700, background: "#EF4444", color: "#fff", borderRadius: 9999, padding: "1px 7px" }}>
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          {recentNotis.length === 0 ? (
+            <span style={{ fontSize: 12, color: C.text3 }}>새 알림이 없습니다.</span>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {recentNotis.map(n => {
+                const ks = NOTIFICATION_KIND_STYLE[n.kind];
+                const path = n.itemId ? detailPathForItemId(n.itemId) : null;
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => { if (path) onNavigate(path); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 7,
+                      background: n.read ? "rgba(255,255,255,0.5)" : "#fff",
+                      border: `1px solid ${n.read ? "transparent" : "#C7DBFF"}`,
+                      borderRadius: 9, padding: "7px 10px", cursor: path ? "pointer" : "default",
+                    }}
+                  >
+                    {!n.read && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444", flexShrink: 0 }} />}
+                    <span style={{ fontSize: 9, fontWeight: 700, background: ks.bg, color: ks.fg, padding: "1px 6px", borderRadius: 20, flexShrink: 0 }}>
+                      {ks.label}
+                    </span>
+                    <span style={{
+                      fontSize: 11.5, fontWeight: n.read ? 500 : 700, color: C.text, minWidth: 0,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>
+                      {n.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, borderTop: "1px solid #CDD1D5", paddingTop: 14 }}>
           <QuickAction icon={<DocIco size={16} />} label="내 등록 현황" onClick={() => onNavigate("/my-status")} />
+          <QuickAction icon={<SettingsIco size={16} />} label="설정" onClick={() => onNavigate("/settings")} />
           <QuickAction icon={<PlusSquareIco size={16} />} label="항목 등록" onClick={() => onNavigate("/projects/new")} />
           <QuickAction icon={<LogoutIco size={16} />} label="로그아웃" onClick={() => { logout(); onNavigate("/"); }} />
         </div>
@@ -469,7 +561,7 @@ const sliderBtn: React.CSSProperties = {
 };
 const panelRow: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "space-between",
-  borderBottom: "1px solid #CDD1D5", padding: "20px 0", fontSize: 15, cursor: "pointer",
+  borderBottom: "1px solid #CDD1D5", padding: "12px 0", fontSize: 14.5, cursor: "pointer",
 };
 function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
@@ -646,6 +738,8 @@ function PlatformStatus({ onNavigate }: { onNavigate: (p: string) => void }) {
 // ===========================================================================
 function ItemCard({ item, onNavigate }: { item: LItem; onNavigate: (p: string) => void }) {
   const s = SOURCE_STYLE[item.categoryId];
+  const { isScrapped, toggle: toggleScrap } = useScraps();
+  const scrapped = isScrapped(item.id);
   return (
     <div
       onClick={() => onNavigate(detailPath(item))}
@@ -653,9 +747,21 @@ function ItemCard({ item, onNavigate }: { item: LItem; onNavigate: (p: string) =
       onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
       onMouseLeave={e => (e.currentTarget.style.transform = "none")}
     >
-      <span style={{ marginBottom: 8, width: "fit-content", display: "inline-flex", alignItems: "center", borderRadius: 9999, padding: "2px 10px", fontSize: 12, fontWeight: 600, background: s.bg, color: s.color }}>
-        {s.label}
-      </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
+        <span style={{ width: "fit-content", display: "inline-flex", alignItems: "center", borderRadius: 9999, padding: "2px 10px", fontSize: 12, fontWeight: 600, background: s.bg, color: s.color }}>
+          {s.label}
+        </span>
+        {/* 스크랩 토글 — 카드 클릭(상세 이동)과 분리하기 위해 stopPropagation */}
+        <button
+          type="button"
+          aria-pressed={scrapped}
+          title={scrapped ? "스크랩 해제" : "스크랩"}
+          onClick={e => { e.stopPropagation(); toggleScrap(item.id); }}
+          style={{ display: "flex", alignItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}
+        >
+          <BookmarkIco size={15} color={scrapped ? C.primary : C.text3} fill={scrapped ? C.primary : "none"} />
+        </button>
+      </div>
       <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.text, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
         {item.title}
       </h3>

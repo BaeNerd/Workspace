@@ -74,6 +74,23 @@ export const ID_PREFIX: Record<CategoryId, string> = {
 export const makeItemId = (categoryId: CategoryId, seq: number, year = new Date().getFullYear()): string =>
   `${ID_PREFIX[categoryId]}-${year}-${String(seq).padStart(3, "0")}`;
 
+// 항목 ID 접두어(PREFIX) → CategoryId 역인덱스. 알림·스크랩이 목업 배열 import 없이
+// itemId만으로 상세 경로를 파생할 수 있게 한다.
+export const PREFIX_TO_CATEGORY: Record<string, CategoryId> = Object.fromEntries(
+  (Object.entries(ID_PREFIX) as [CategoryId, string][]).map(([cid, prefix]) => [prefix, cid])
+);
+export function categoryIdFromItemId(itemId: string): CategoryId | null {
+  const prefix = itemId.split("-")[0];
+  return PREFIX_TO_CATEGORY[prefix] ?? null;
+}
+// itemId → 상세 경로("{category.path}/{itemId}"). 알 수 없는 접두어면 null.
+export function detailPathForItemId(itemId: string): string | null {
+  const cid = categoryIdFromItemId(itemId);
+  if (!cid) return null;
+  const cat = CATEGORIES.find(c => c.id === cid);
+  return cat ? `${cat.path}/${itemId}` : null;
+}
+
 // 운영 상태(PlatformItemStatus) 체계는 제품에서 전면 폐기됨.
 // 등록·검토·관리·상세·통계·랜딩 어디에도 상태 표시/편집/필터/집계 축을 두지 않는다.
 // AI Model 전용 `agentAvailability`("사용 가능"/"사용 불가")만 별개 축으로 유지.

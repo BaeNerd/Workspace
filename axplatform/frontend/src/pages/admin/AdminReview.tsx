@@ -465,6 +465,8 @@ export default function AdminReview() {
     const by = user?.name ?? "관리자";
     const willComplete = merged.approvalSlots[slotKey === "company" ? "global" : "company"].approved;
 
+    // TODO: 백엔드 연동 시 알림 발송(kind: slotKey === "company" ? "관계사승인" : "전사승인").
+    //       두 슬롯이 모두 승인되어 게시되는 경우(willComplete) 전사승인 2/2(게시) 문구로 발송.
     setItems(p => p.map(i => {
       if (i.id !== selected) return i;
       const { timeSavedValue, timeSavedPeriod, ...cleanEdit } = edit as any;
@@ -483,6 +485,7 @@ export default function AdminReview() {
   const handleReject = () => {
     if (!activeItem) return;
     if (!rejectReason.trim()) return;
+    // TODO: 백엔드 연동 시 알림 발송(kind: "반려", 사유 rejectReason 포함).
     const record: ApprovalRecord = {
       action: "반려",
       at: "2026.07.10",

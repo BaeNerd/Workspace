@@ -344,15 +344,22 @@ axplatform/
         ├── styles/
         │   └── layout.ts     # CONTENT_MAX_WIDTH=1400 / FORM_MAX_WIDTH=760
         ├── types/
-        │   ├── categoryTypes.ts        # 타입·CATEGORIES·ICON_PRESETS·승인 슬롯
-        │   └── noticeTypes.ts          # Notice(공지·업데이트) 타입
+        │   ├── categoryTypes.ts        # 타입·CATEGORIES·ICON_PRESETS·승인 슬롯·detailPathForItemId
+        │   ├── noticeTypes.ts          # Notice(공지·업데이트) 타입
+        │   └── notificationTypes.ts    # AxNotification·NotificationKind(7종)·배지 스타일
+        ├── hooks/                       # 개인화 공용 훅 (useSyncExternalStore + localStorage)
+        │   ├── useScraps.ts            # ax_scraps
+        │   ├── useInterests.ts         # ax_user_interests
+        │   └── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
         ├── mocks/
         │   ├── statsMockData.ts        # 통계 공용 더미
         │   ├── companyAdminMockData.ts # 관계사 관리자 지정 공용 목업
-        │   └── noticeMockData.ts       # 공지·업데이트 소식 단일 소스(SSOT)
+        │   ├── noticeMockData.ts       # 공지·업데이트 소식 단일 소스(SSOT)
+        │   └── notificationMockData.ts # 알림 단일 소스(SSOT)
         ├── components/
         │   ├── Navbar.tsx
         │   ├── AdminNavbar.tsx
+        │   ├── NotificationBell.tsx     # 공용 알림 벨 (Navbar·AdminNavbar 공유)
         │   ├── AdminSidebar.tsx
         │   ├── AdminScopeSelect.tsx     # 조회 범위 선택기
         │   ├── ShareRedirect.tsx        # 공유 모드 경로 가로채기
@@ -372,6 +379,7 @@ axplatform/
             ├── AssetItemDetailPage.tsx
             ├── ProjectRegisterPage.tsx
             ├── MyStatusPage.tsx
+            ├── SettingsPage.tsx         # /settings 관심사(카테고리·도메인) 설정
             ├── EditRequestPage.tsx
             └── admin/
                 ├── AdminDashboard.tsx
@@ -408,7 +416,7 @@ axplatform/
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
 - **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
-- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결), 개인화 지표는 정적 목업(후속 개인화 기능 필요).
+- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
 - **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
 - **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
 - **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
@@ -471,6 +479,10 @@ AX 항목 상세(총 7경로, `/etc/:itemId` 포함). 플랫폼 종류별 섹션
 #### `MyStatusPage.tsx` — `/my-status`
 
 내가 등록한 AX 항목 상태 조회. 병렬 2슬롯 승인 기준 **5탭**(전체/승인 대기/부분 승인/게시됨/반려) + `ParallelApprovalIndicator` + "내가 남긴 후기" 섹션. (상세는 위 [승인 흐름] 참조.)
+
+#### `SettingsPage.tsx` — `/settings`
+
+관심사 설정 화면. 관심 카테고리(7종 칩)·관심 업무 도메인(6종 칩) 다중 선택 → `useInterests().save`로 `ax_user_interests` 저장 + 저장 완료 인라인 피드백. "추후 개인 정보 항목 추가" 안내 + 확장 지점 TODO. 진입: 개인화 패널 퀵메뉴 "설정" + Navbar 아바타 드롭다운 "설정". (위 [개인화 — 스크랩·관심사·알림 → PART B] 참조.)
 
 #### `EditRequestPage.tsx` — `/edit-request/:id`
 
@@ -550,8 +562,9 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 
 | 파일 | 역할 |
 |------|------|
-| `Navbar.tsx` | 일반 사용자용 상단 고정 네비게이션. 관리자 진입은 `isAdmin \|\| isCompanyAdmin`. 역할 배지 2종. 공유 모드에선 SSO 버튼 숨김 + 배너 높이 오프셋. |
-| `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. |
+| `Navbar.tsx` | 일반 사용자용 상단 고정 네비게이션. 관리자 진입은 `isAdmin \|\| isCompanyAdmin`. 역할 배지 2종. 아바타 드롭다운에 "설정"(`/settings`) 항목. `NotificationBell`(로그인·비공유 모드). 공유 모드에선 SSO 버튼 숨김 + 배너 높이 오프셋. |
+| `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. `NotificationBell` 포함. |
+| `NotificationBell.tsx` | 공용 알림 벨. 미읽음 뱃지 + 드롭다운(최근 5건·전체 읽음·항목 이동). `useNotifications` 소스. Navbar·AdminNavbar 공유. |
 | `AdminSidebar.tsx` | 관리자 좌측 사이드바. 역할별 메뉴 노출(companyAdmin 4개, 라벨 "관계사 관리자 메뉴"). `pendingCount` 뱃지. |
 | `AdminScopeSelect.tsx` | 조회 범위 선택 드롭다운. `ScopeSelection` / `restrictTo`. |
 | `ShareRedirect.tsx` | 공유 모드에서 랜딩 외 경로 가로채 안내 + 랜딩 복귀. |
@@ -707,6 +720,68 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 타입 import 주의: `Notice`, `NoticeKind`는 `import type` 분리 필수.
 
+### `mocks/notificationMockData.ts`
+
+> 알림 **단일 소스(SSOT)**. **DEMO 전용.** NotificationBell(벨) · LandingPage 개인화 패널 "알림 현황" 2곳이 참조. (아래 [개인화 — 스크랩·관심사·알림] 참조.)
+
+| 항목 | 설명 |
+|---|---|
+| `AxNotification` / `NotificationKind` | `types/notificationTypes.ts`. `AxNotification = { id, kind, title, body?, date, read, itemId? }` |
+| `NOTIFICATION_KIND_STYLE` | kind → `{ label, bg, fg }` 배지 스타일 (벨·패널 공용) |
+| `NOTIFICATION_MOCK_DATA` | 초기 알림 배열. 병렬 슬롯 예시 포함("한국콜마 관리자 승인 완료 — 전사 승인 대기 중") |
+| `notificationsByDate()` | 게시일 최신순 정렬 반환 |
+
+타입 import 주의: `AxNotification`, `NotificationKind`는 `import type` 분리 필수.
+
+---
+
+## 개인화 — 스크랩·관심사·알림 (F2r)
+
+개인 상태(스크랩·관심사·알림 읽음)는 **localStorage 3종**을 단일 소스로 두고, 공용 훅이 `useSyncExternalStore`로
+같은 탭 내 모든 소비자(상세 헤더·목록/랜딩 카드·개인화 패널·벨)를 즉시 동기화한다. 목업 데이터(알림)와
+localStorage 상태를 병합해 파생값을 만든다. **DEMO 전용** — 백엔드 연동 지점은 각 훅·발송부 TODO 주석에 명시.
+
+### localStorage 키 (개인화 3종 + 기존 1종)
+
+| 키 | 형태 | 소유 훅 | 용도 |
+|----|------|---------|------|
+| `ax_scraps` | `string[]` (itemId) | `hooks/useScraps` | 스크랩(북마크) 항목 목록 |
+| `ax_user_interests` | `{ categories: CategoryId[]; domains: BusinessDomain[] }` | `hooks/useInterests` | 관심 카테고리·업무 도메인 |
+| `ax_notifications_read` | `string[]` (알림 id) | `hooks/useNotifications` | 읽음 처리한 알림 id 집합 |
+| `ax_recent_viewed` | `string[]` (itemId, 최대 10) | (AssetItemDetailPage) | 최근 조회 — 기존(F1r 이전) |
+
+### 공용 훅 (`hooks/`)
+
+- **`useScraps()`** → `{ scraps, count, isScrapped(id), toggle(id) }`. 모듈 레벨 `toggleScrap`·`isScrapped`도 export(컴포넌트 밖 호출용). `window "storage"` 이벤트로 타 탭 반영.
+- **`useInterests()`** → `{ interests, hasInterests, save(next) }`. `save`는 localStorage 기록 + 구독자 통지 → 패널 추천 즉시 갱신.
+- **`useNotifications()`** → `{ notifications, unreadCount, markRead(id), markAllRead() }`. 알림 = 목업(`notificationsByDate`) + `read`(목업 시드 `||` 읽음 집합) 병합 파생.
+
+### 항목 경로 파생 (`types/categoryTypes.ts`)
+
+- **`PREFIX_TO_CATEGORY`** / **`categoryIdFromItemId(itemId)`** / **`detailPathForItemId(itemId)`** — itemId 접두어만으로 상세 경로(`{category.path}/{itemId}`)를 파생. 알림·벨이 목업 배열 import 없이 항목 이동 가능.
+
+### PART A — 스크랩(북마크)
+
+- **토글 지점 3곳**: 상세 헤더(`AssetItemDetailPage`, 좋아요 옆 "스크랩" 버튼) · 목록 카드(`ProjectListPage`, 조회수·좋아요 옆 북마크 아이콘, 카드 클릭과 분리 위해 `stopPropagation`) · 랜딩 카드(`LandingPage` `ItemCard` 우상단 북마크).
+- **개인화 패널 실연동**: "내가 스크랩한 항목 N개" 행이 `useScraps().count`를 표시, 클릭 시 **`/projects?scrap=1`**(전용 목록 대신 목록 재사용 — 단순한 쪽 선택, 코드 주석 명시). ProjectListPage는 `scrapOnly` 상태(초기값만 URL `?scrap=1`에서 읽음, 이후 로컬 유지)로 필터하고 2행 필터바에 "스크랩 N" 토글 칩 + 스크랩 0건 빈 상태 안내를 둔다.
+- **TODO(백엔드)**: `scraps` 테이블(`user_id`·`item_id`), 멱등 **PUT/DELETE `/api/v1/scraps/:itemId`**.
+
+### PART B — 설정(관심사) `SettingsPage.tsx` (`/settings`, ProtectedRoute)
+
+- **① 관심 카테고리**(`CATEGORIES` 7종 칩 다중 선택) + **② 관심 업무 도메인**(`BUSINESS_DOMAINS` 6종 칩 다중 선택). 폼 로컬 상태 → **저장 버튼**으로 `useInterests().save` 호출 → **저장 완료 인라인 피드백**.
+- **안내 문구**: "추후 개인 정보 항목이 추가될 수 있습니다. (프로필·알림 수신 설정 등)" + 파일 상단 **확장 지점 TODO**(프로필·알림 수신 설정·표시 환경).
+- **진입 경로**: 개인화 패널 퀵메뉴 "설정"(부활) + **Navbar 아바타 드롭다운 "설정"** 항목.
+- **추천 실연동**(패널): "나에게 추천하는 항목"을 **관심사 매칭**(관심 카테고리 **또는** 도메인 일치 항목을 `views`→`likes` 순 상위 `RECOMMEND_N=12`, `LandingPage.recommendItems`)으로 전환. **관심사 미설정 시** 기존 placeholder 대신 "관심사를 설정하면 맞춤 추천을 받아요" 문구 + `/settings` 유도.
+- **TODO(백엔드)**: **PUT `/api/v1/me/interests`** 저장 + 추천 API(`GET /api/v1/me/recommendations`).
+
+### PART C — 알림
+
+- **kind 7종**(`NotificationKind`): `신청접수` / `관계사승인`(관계사 슬롯 1/2) / `전사승인`(전사 슬롯 1/2 또는 두 슬롯 완료 2/2 게시 — title/body 문구로 구분) / `반려`(사유 `body` 포함) / `후기등록` / `게시판글` / `수정요청처리`. **공지 알림 없음(확정)** — 알림은 "내 활동" 개인 통지만.
+- **`NotificationBell`**(공용): 미읽음 뱃지 + 드롭다운(최근 5건 · 전체 읽음 · 항목 이동). **`Navbar` + `AdminNavbar` 양쪽** 배치(Navbar는 로그인·비공유 모드에서만). 읽음 상태 `ax_notifications_read`.
+- **개인화 패널 "알림 현황" 블록**: 스크랩·추천 아래, 최근 3건·미읽음 강조, **벨과 동일 소스**(`useNotifications`).
+- **발송 지점 TODO 주석만**(로직 변경 없음): `AdminReview.approveSlot`(kind `관계사승인`/`전사승인`, 게시 시 2/2 문구) · `AdminReview.handleReject`(kind `반려`) · `EditRequestPage.handleSubmit`(kind `수정요청처리`).
+- **TODO(백엔드)**: **GET/PATCH `/api/v1/notifications`**(목록·읽음 처리).
+
 ---
 
 ## API 연동 준비 (`lib/api.ts`)
@@ -740,6 +815,10 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 | `GET` | `/api/v1/notices` | LandingPage(최신소식), NoticesPage (공개, visible만) |
 | `GET` / `POST` / `PUT` / `DELETE` | `/api/v1/admin/notices(/:id)` | AdminNotices (관리, 비노출 포함) |
 | `GET` | `/api/v1/admin/settings` | AdminOrg (문의 채널 등) |
+| `PUT` / `DELETE` | `/api/v1/scraps/:itemId` | 스크랩 토글 (멱등) — 상세 헤더·목록/랜딩 카드·패널 |
+| `PUT` | `/api/v1/me/interests` | SettingsPage (관심 카테고리·도메인 저장) |
+| `GET` | `/api/v1/me/recommendations` | 개인화 패널 추천 (관심사 매칭) |
+| `GET` / `PATCH` | `/api/v1/notifications` | NotificationBell·패널 알림 현황 (목록·읽음 처리) |
 | `GET` | `/api/v1/auth/me` | AuthContext (role·managedCompanies) |
 | `POST` | `/api/v1/auth/logout` | AuthContext |
 
