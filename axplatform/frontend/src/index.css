@@ -5,9 +5,45 @@
      --font-mono: 코드·ID 표기용 모노스페이스
    ============================================================ */
 
+/* 랜딩 전용 서체 — 로컬 파일(@font-face)로 자기완결. 공유 단일 HTML 빌드에서도 외부 CDN 의존 없음.
+   SB Aggro = 카드 헤더(디스플레이), SCoreDream = 랜딩 본문. 랜딩 페이지에서만 인라인 스타일로 지정해 적용 범위를 한정한다. */
+@font-face {
+  font-family: 'SB Aggro';
+  src: url('/fonts/SBAggro/SBAggroL.ttf') format('truetype');
+  font-weight: 300; font-display: swap;
+}
+@font-face {
+  font-family: 'SB Aggro';
+  src: url('/fonts/SBAggro/SBAggroM.ttf') format('truetype');
+  font-weight: 500; font-display: swap;
+}
+@font-face {
+  font-family: 'SB Aggro';
+  src: url('/fonts/SBAggro/SBAggroB.ttf') format('truetype');
+  font-weight: 700; font-display: swap;
+}
+@font-face {
+  font-family: 'SCoreDream';
+  src: url('/fonts/SCoreDream/SCDreamRegular.woff2') format('woff2');
+  font-weight: 400; font-display: swap;
+}
+@font-face {
+  font-family: 'SCoreDream';
+  src: url('/fonts/SCoreDream/SCDreamMedium.woff2') format('woff2');
+  font-weight: 500; font-display: swap;
+}
+@font-face {
+  font-family: 'SCoreDream';
+  src: url('/fonts/SCoreDream/SCDreamBold.woff2') format('woff2');
+  font-weight: 700; font-display: swap;
+}
+
 :root {
   --font-ui:   'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  /* 랜딩 본문/헤더 서체 (랜딩에서만 참조) */
+  --font-landing: 'SCoreDream', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'SB Aggro', 'SCoreDream', ui-sans-serif, system-ui, sans-serif;
 }
 
 *,
