@@ -17,7 +17,7 @@
 | 인라인 오류 UI | 오류·확인 UI는 인라인으로 처리. 팝업·모달 신설 금지. |
 | `import type` | 타입 전용 import는 `import type` 분리 (`verbatimModuleSyntax`). |
 | **타입 검증 명령** | **`npx tsc -b`** 사용. 루트 `tsc --noEmit`은 루트 tsconfig가 `files: []` + `references` 구조라 항상 통과하므로 **무효**. 빌드 스크립트도 `tsc -b && vite build`. |
-| 호버 확장 패널 | 트리거와 패널 사이 틈을 **브리지**(래퍼 내부 `paddingTop`으로 간격을 호버 영역화)로 이어 붙이고, `onMouseLeave`에 **200ms 닫힘 유예**(`setTimeout`)를 둔다. (예: LandingPage `TopViewedBar`) |
+| 호버 확장 패널 | 트리거와 패널 사이 틈을 **브리지**(래퍼 내부 `paddingTop`으로 간격을 호버 영역화)로 이어 붙이고, `onMouseLeave`에 **200ms 닫힘 유예**(`setTimeout`)를 둔다. |
 | 아이콘 path 조회 | 아이콘 키 → SVG path는 `ICON_PRESETS` 레지스트리를 통해 조회하고, 미등록 키는 **폴백**(`iconPreset()` → `automation`)으로 방어한다. |
 
 ---
@@ -269,8 +269,8 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 - **`context/ShareNoticeContext.tsx`** — `showNotice()` 호출 시 배너 문구를 잠깐 전환하고 **약 3초 후 자동 해제**. Provider 바깥 호출도 안전한 no-op 기본값.
 - **`components/ShareRedirect.tsx`** — 랜딩 외 모든 경로를 가로채 마운트 시 `showNotice()` + `<Navigate to="/" replace />` → "안내 표시 + 랜딩 유지"로 수렴.
 - **`components/SharePreviewBanner.tsx`** — 최상단 sticky 안내 바. `SHARE_BANNER_HEIGHT = 32`(Navbar sticky top 오프셋과 동일). 기본(파랑) / 안내 활성(앰버) 톤. `Navbar`는 `IS_SHARE_MODE`일 때 `top: SHARE_BANNER_HEIGHT`로 밀리고 **SSO 로그인 버튼 숨김**.
-- **Teams 버튼 비활성** — LandingPage `AskChannelCard`가 공유 모드에서 실제 Teams `<a>` 대신 회색 `<button>`(클릭 시 `showNotice()`)을 렌더(라벨 "채널 열기" 동일).
-- **산출물**: `ax-landing-preview.html` — **현재 삭제됨.** 랜딩(`/`)이 외부 제작 콘텐츠로 교체 완료된 후 `npm run build:share`로 재생성 예정. 공유 빌드 체계(`VITE_SHARE_MODE`·`vite-plugin-singlefile`·`ShareRedirect`·`SharePreviewBanner`)는 그대로 유지한다.
+- **Teams 버튼 비활성** — LandingPage `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 실제 Teams 열기 대신 `showNotice()`를 호출(비공유 모드에서는 `window.open(TEAMS_CHANNEL_URL)`).
+- **산출물**: `ax-landing-preview.html` — **현재 삭제됨.** 랜딩(`/`)이 외부 제작 콘텐츠로 **교체 완료**(Next.js 원본 포팅). 이제 `npm run build:share`로 재생성 가능. 새 랜딩은 로컬 에셋·로컬 폰트·CSS 애니메이션만 사용해 자기완결(외부 CDN 이미지/라이브러리 의존 없음 — 단 앱 전역 `index.html`의 Google Fonts CDN은 기존 유지). 공유 빌드 체계(`VITE_SHARE_MODE`·`vite-plugin-singlefile`·`ShareRedirect`·`SharePreviewBanner`)는 그대로 유지한다.
 
 ---
 
@@ -386,21 +386,25 @@ axplatform/
 
 #### `LandingPage.tsx` — `/`
 
-flex column 루트의 다단 구성(빈 상태 안내 내장):
+외부 제작 Next.js 랜딩(`_incoming-landing/`)을 Vite SPA로 **포팅 + 신 체계 정합화**해 전면 교체한 버전. flex column 루트의 세로 섹션 구성:
 
-| 단 | 설명 | 주요 요소 |
-|----|------|----------|
-| **[1단] 헤더** | 인사말 + 검색 폼 + 실시간 인기 바 | `TopViewedBar` |
-| **[2단] 지표 4카드** | 그라디언트 KPI | `STAT_CARDS` |
-| **[3단] 통합 패널** | 유형별 둘러보기(플랫폼 타입) + 업무별 추천(도메인 스포트라이트) | `CATEGORIES.map`, `DOMAINS` |
-| **[존 A] 개인화 스트립** | 이어서 살펴보기 · 우리 회사 신규 | `PersonalStrip` |
-| **[존 B/C] 하단 그리드** | 최신 등록 피드 / 금주의 발견·활용 후기·문의 채널 | `LatestFeed`, `EditorsPickCard`, `ReviewRotator`, `AskChannelCard` |
+| 섹션 | 설명 | 주요 요소 |
+|------|------|----------|
+| **[1] 프로모션 + 개인화** | 카테고리 배너 슬라이더(5s 자동전환) + 개인화 패널(인사·지표·퀵액션) | `PromoAndPanel`, `BannerScene` |
+| **[2] 아이콘 히어로** | 회전 헤드라인 + 검색 폼 + 카테고리 7타일 | `IconHero`, `RotatingHeadline` |
+| **[3] 플랫폼 현황** | 총 항목 카운터 + 카테고리별 막대그래프 | `PlatformStatus`, `NumberTicker` |
+| **[4] 인기 항목** | 카테고리 필터 + 항목 카드 6종 | `PopularItems`, `ItemCard` |
+| **[5] 최신소식 + 실시간 인기** | 공지/업데이트 탭(정적) + 인기 항목 랭킹 | `LatestNewsAndTrending` |
+| **[6] 업무별 항목** | 도메인(`BUSINESS_DOMAINS`) 필터 + 항목 카드 | `ItemsByDomain` |
+| **[7] 시작 도우미 CTA** | 4-박스 진입(둘러보기·AI Agent·가이드·문의) | `CtaBoxes` |
 
-- **`TopViewedBar`**: 조회수 TOP5 실시간 인기 바. 접힘(2.5s 회전 티커) → 호버 시 확장 패널(TOP5 목록). **호버 브리지 + 200ms 닫힘 유예** 패턴.
-- **빈 상태**: 각 섹션에 `EmptyHint`로 안내 문구(예: "아직 등록된 항목이 없습니다. 첫 등록의 주인공이 되어보세요.").
-- **공유 모드**: `AskChannelCard`가 Teams 링크를 회색 버튼(안내)으로 대체.
-- **주요 state**: `search`, `rankIdx`, `domainIdx`, `reviewIdx`, `recentViewed`(hover는 카드별 로컬).
-- **내부 컴포넌트**(모듈 레벨): `EyeIcon`, `SectionLabel`, `EmptyHint`, `TopViewedBar`, `PersonalStrip`, `TypeMedallion`, `LatestFeed`, `EditorsPickCard`, `ReviewQuote`, `ReviewRotator`, `AskChannelCard`.
+- **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
+- **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
+- **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
+- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**관계사(그룹사) 표시 없음**(원본 `PartnerMarquee`·company 표시 제거) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / 최신소식·개인화 지표는 정적 목업(후속 관리자·개인화 기능 필요).
+- **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
+- **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
+- **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
 
 #### `LoginPage.tsx` — `/login`
 
@@ -588,10 +592,8 @@ AuthProvider
 | `IconKey` | `keyof typeof ICON_PRESETS` (사실상 string — CATEGORY_ICON_PATH 호환) |
 | `Category` | 카테고리 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
 | `CATEGORIES` | **7개** 플랫폼 메타 배열. 출처 색상·경로 SSOT (변경 금지) |
-| ~~`PlatformItemStatus`~~ | **@deprecated 운영 상태 폐기.** `"사용 가능" \| "준비 중" \| "일부 제한" \| "사용 중지"`. 제품 UI에서 전면 제거됨 — LandingPage 잔존 참조 정리 시 타입 삭제 예정. |
-| ~~`STATUS_ORDER` / `STATUS_COLOR`~~ | **자체 `@deprecated` 태그 보유.** 운영 상태 4종 배열·색상. 신규 참조 금지. |
-| ~~`STATUS_QUERY_KEY` / `LEGACY_STATUS_MAP` / `normalizeStatus` / `countAvailable`~~ | **자체 태그 없음** — `PlatformItemStatus` JSDoc의 "신규 참조 금지" prose로만 언급(deprecated 취급). URL 키·레거시 정규화·`사용 가능` 항목 카운트. LandingPage 정리 시 일괄 삭제. |
-| `agentAvailability` (AssetItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Agent(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 기존 4종 상태 체계와 별개 축. |
+| ~~`PlatformItemStatus` / `STATUS_ORDER` / `STATUS_COLOR` / `STATUS_QUERY_KEY` / `LEGACY_STATUS_MAP` / `normalizeStatus` / `countAvailable`~~ | **삭제 완료.** 운영 상태 폐기의 잔존 참조(LandingPage)를 끊은 뒤 타입·상수·헬퍼를 일괄 제거. `AssetItem.status` 필드도 삭제(전 목업에서 제거). |
+| `agentAvailability` (AssetItem 필드) | **운영 상태 폐기의 유일한 예외** — AI Agent(ai-orchestration) 전용 이용 가능 여부 `"사용 가능" \| "사용 불가"`. 상태 폐기와 별개 축. |
 | `BUSINESS_DOMAINS` / `BusinessDomain` | 업무 도메인 축 `["영업","생산","연구","재무","HR","IT"]` |
 | `ApprovalSlotKey` / `ApprovalSlot` / `ApprovalSlots` | 병렬 2슬롯 승인 (`company` / `global`) |
 | `APPROVAL_SLOT_LABEL` | 슬롯 라벨 (관계사 관리자 승인 / 전사 관리자 승인) |
@@ -622,7 +624,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 - **운영 상태 4종(`사용 가능`/`준비 중`/`일부 제한`/`사용 중지`)은 제품에서 전면 폐기.** 등록·검토·관리·상세·통계 어디에도 상태 표시·편집·필터·집계 UI를 두지 않는다.
 - **유일한 예외**: AI Agent(ai-orchestration)의 `agentAvailability`(`사용 가능`/`사용 불가`) — 운영 상태와 별개 축.
 - **승인 수명주기는 유지** — `승인 대기`/`부분 승인`/`게시됨`/`반려`/`중지`는 상태와 별개 개념으로 존치(위 [승인 흐름] 참조).
-- **deprecated 인벤토리**: 자체 `@deprecated` JSDoc 태그는 `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR` 3종에만 있고, `STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`·`countAvailable`은 별도 태그 없이 `PlatformItemStatus` JSDoc prose로만 표기(모두 deprecated 취급). `countAvailable`은 여전히 `item.status === "사용 가능"`을 참조하므로 LandingPage 정리 시 일괄 삭제 대상. 현재 잔존 참조는 `LandingPage.tsx`뿐이며, 정리 완료 시 타입 정의 자체를 삭제한다.
+- **삭제 완료**: 잔존 참조였던 `LandingPage.tsx`가 신 랜딩으로 교체되며 상태 참조가 사라져, `PlatformItemStatus`·`STATUS_ORDER`·`STATUS_COLOR`·`STATUS_QUERY_KEY`·`LEGACY_STATUS_MAP`·`normalizeStatus`·`countAvailable` 및 `AssetItem.status` 필드를 **일괄 삭제**함(전 목업의 `status` 필드 제거 포함). 전수 grep 결과 코드 참조 0. `agentAvailability`(별개 축)·`workflowDef.status`(`Stable`/`Active`/`Error`, 워크플로우 시각화용)는 상태 폐기와 무관하므로 유지.
 
 ### 항목 URL·관계사 표시 정책
 
@@ -715,7 +717,7 @@ Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 
 
 - **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Agent(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
 - **`etc` 표시 라벨 = "AI 프로젝트"**: 내부 식별자(`CategoryId` 값 `"etc"`, ID 접두어 `ETC`, 라우트 `/etc`)는 **불변**. 사용자 노출 라벨만 "기타" → "AI 프로젝트"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영).
-- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭, `PlatformItemStatus` 계열(@deprecated). 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
+- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭. (`PlatformItemStatus` 계열은 rename이 아니라 **삭제 완료** — 위 [운영 상태 폐기] 참조.) 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
 - **AI Agent 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
 - **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
 - **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.
