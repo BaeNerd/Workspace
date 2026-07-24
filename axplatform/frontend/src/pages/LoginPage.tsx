@@ -2,7 +2,7 @@ import { useAuth } from "../context/useAuth";
 import type { CurrentUser } from "../context/AuthContext";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { managedCompaniesOf } from "../mocks/companyAdminMockData";
+import { getManagedCompanies } from "../lib/dataSource";
 
 // ============================================================
 // 데모 전용 계정 프리셋 (DEMO 전용)
@@ -55,7 +55,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     user: {
       name: "최관리", email: "cadmin.choi@kolmar.co.kr", dept: "IT인프라팀", title: "과장",
       role: "companyAdmin", company: "KKM", isGroupViewer: false, department: "IT",
-      managedCompanies: managedCompaniesOf("cadmin.choi@kolmar.co.kr"),
+      managedCompanies: getManagedCompanies("cadmin.choi@kolmar.co.kr"),
     },
   },
   {
@@ -65,7 +65,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     user: {
       name: "정담당", email: "cadmin.jung@kolmar.co.kr", dept: "경영지원팀", title: "차장",
       role: "companyAdmin", company: "KBH", isGroupViewer: false, department: "재무",
-      managedCompanies: managedCompaniesOf("cadmin.jung@kolmar.co.kr"),
+      managedCompanies: getManagedCompanies("cadmin.jung@kolmar.co.kr"),
     },
   },
 ];

@@ -1,46 +1,18 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { INITIAL_COMPANY_ADMINS } from "../../mocks/companyAdminMockData";
-import type { CompanyAdminUser } from "../../mocks/companyAdminMockData";
+import {
+  getAdmins, getGroupViewers, getRegistrants, getAuditLogs, getSsoUsers,
+  getSelectableCompanies, getCompanyAdmins,
+} from "../../lib/dataSource";
+import type { CompanyAdminUser } from "../../lib/dataSource";
 
-type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
-type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
-type SsoUser = { name: string; email: string; dept: string; title: string };
+export type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
+export type GroupViewer = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string; reason: string };
+export type SsoUser = { name: string; email: string; dept: string; title: string };
 type LogSource = "n8n" | "PA" | "나만의비서" | "AI Model" | "ML" | "Vibe";
-type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "등록물" | "권한" | "분류체계" | "조직"; source?: LogSource };
-type Registrant = { name: string; email: string; dept: string; title: string; count: number; lastSubmit: string; approved: number; pending: number; rejected: number };
-
-// TODO: 실제 연동 시 GET /api/v1/admin/users?role=admin 응답으로 교체
-const INITIAL_ADMINS: Admin[] = [
-  { id: 1, name: "김관리", email: "admin.kim@kolmar.co.kr", dept: "IT개발팀", title: "팀장", grantedAt: "2025.01.10", grantedBy: "시스템 초기화" },
-  { id: 2, name: "이서현", email: "seohyun.lee@kolmar.co.kr", dept: "IT인프라팀", title: "선임", grantedAt: "2025.03.05", grantedBy: "김관리" },
-];
-
-// TODO: 실제 연동 시 GET /api/v1/admin/users?permission=group_viewer 응답으로 교체
-const INITIAL_GROUP_VIEWERS: GroupViewer[] = [
-  { id: 1, name: "최지훈", email: "jihoon.choi@kolmar.co.kr", dept: "그룹IT전략팀", title: "팀장", grantedAt: "2025.02.14", grantedBy: "김관리", reason: "그룹 IT 거버넌스 총괄" },
-  { id: 2, name: "한서윤", email: "seoyoon.han@kolmar.co.kr", dept: "콜마홀딩스 경영기획팀", title: "차장", grantedAt: "2025.04.02", grantedBy: "김관리", reason: "지주사 관계사 현황 보고용" },
-];
-
-// TODO: 실제 연동 시 GET /api/v1/admin/registrants 응답으로 교체
-const REGISTRANTS: Registrant[] = [
-  { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원", count: 3, lastSubmit: "2025.06.01", approved: 2, pending: 1, rejected: 0 },
-  { name: "정태영", email: "taeyoung.jung@kolmar.co.kr", dept: "IT개발팀", title: "선임", count: 3, lastSubmit: "2025.06.10", approved: 2, pending: 1, rejected: 0 },
-  { name: "박성훈", email: "sunghoon.park@kolmar.co.kr", dept: "구매팀", title: "대리", count: 1, lastSubmit: "2025.06.02", approved: 1, pending: 0, rejected: 0 },
-  { name: "이민호", email: "minho.lee@kolmar.co.kr", dept: "품질관리팀", title: "선임", count: 1, lastSubmit: "2025.05.09", approved: 0, pending: 0, rejected: 1 },
-];
-
-// TODO: 실제 연동 시 GET /api/v1/admin/logs 응답으로 교체
-const LOGS: LogEntry[] = [
-  { id: 8, datetime: "2025.06.06 09:05", actor: "김관리", action: "승인", target: "원료 추천 에이전트 (AGENT-2025-007)", category: "등록물", source: "AI Model" },
-  { id: 7, datetime: "2025.06.05 14:20", actor: "이서현", action: "반려", target: "계약서 요약 비서 (HKGPT-2025-018)", category: "등록물", source: "나만의비서" },
-  { id: 6, datetime: "2025.06.05 10:12", actor: "김관리", action: "승인", target: "재고 알림 자동화 워크플로우 (N8N-2025-031)", category: "등록물", source: "n8n" },
-  { id: 2, datetime: "2025.06.03 16:44", actor: "김관리", action: "권한 부여", target: "박준서 → 관리자", category: "권한" },
-  { id: 3, datetime: "2025.05.28 13:45", actor: "김관리", action: "분류 수정", target: "n8n 노드 힌트 — Schedule Trigger 추가", category: "분류체계" },
-  { id: 4, datetime: "2025.05.20 09:30", actor: "김관리", action: "부서 추가", target: "데이터분석팀 (IT본부)", category: "조직" },
-  { id: 5, datetime: "2025.04.02 11:15", actor: "김관리", action: "그룹 전체보기 부여", target: "한서윤 → 그룹 전체보기", category: "권한" },
-];
+export type LogEntry = { id: number; datetime: string; actor: string; action: string; target: string; category: "등록물" | "권한" | "분류체계" | "조직"; source?: LogSource };
+export type Registrant = { name: string; email: string; dept: string; title: string; count: number; lastSubmit: string; approved: number; pending: number; rejected: number };
 
 const LOG_CATEGORY_STYLE: Record<string, { bg: string; color: string }> = {
   "등록물": { bg: "#DBEAFE", color: "#1E40AF" },
@@ -67,14 +39,7 @@ const inputStyle: React.CSSProperties = {
   background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 7, outline: "none", fontFamily: "inherit",
 };
 
-// 담당 관계사 선택 대상 (노출 관계사). TODO: 실제 연동 시 GET /api/v1/admin/companies?visible=true 로 교체
-const SELECTABLE_COMPANIES: { code: string; name: string }[] = [
-  { code: "KMH", name: "콜마홀딩스" }, { code: "KKM", name: "한국콜마" }, { code: "KBH", name: "콜마비앤에이치" },
-  { code: "HKN", name: "에이치케이이노엔" }, { code: "YWK", name: "연우" }, { code: "HC", name: "콜마생활건강" },
-  { code: "KMG", name: "콜마글로벌" }, { code: "KMSK", name: "콜마스크" }, { code: "KMW", name: "무석콜마" },
-  { code: "KMB", name: "북경콜마" }, { code: "KUS", name: "미국콜마" }, { code: "KBT", name: "콜마바이오텍" },
-];
-const companyName = (code: string) => SELECTABLE_COMPANIES.find(c => c.code === code)?.name ?? code;
+const companyName = (code: string) => getSelectableCompanies().find(c => c.code === code)?.name ?? code;
 
 const Chevron = ({ open }: { open: boolean }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0, marginLeft: 8 }}>
@@ -86,7 +51,7 @@ const Chevron = ({ open }: { open: boolean }) => (
 function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChange: (codes: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const filtered = SELECTABLE_COMPANIES.filter(c => q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase()));
+  const filtered = getSelectableCompanies().filter(c => q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase()));
   const toggle = (code: string) => onChange(selected.includes(code) ? selected.filter(x => x !== code) : [...selected, code]);
   const label = selected.length === 0 ? "담당 관계사 선택"
     : selected.length <= 2 ? selected.map(companyName).join(", ")
@@ -121,7 +86,7 @@ function CompanyMultiSelect({ selected, onChange }: { selected: string[]; onChan
 function AddCompanyMenu({ assigned, onAdd }: { assigned: string[]; onAdd: (code: string) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const options = SELECTABLE_COMPANIES.filter(c => !assigned.includes(c.code) && (q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase())));
+  const options = getSelectableCompanies().filter(c => !assigned.includes(c.code) && (q === "" || c.name.includes(q) || c.code.includes(q.toUpperCase())));
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
       <button type="button" onClick={() => setOpen(v => !v)} style={{ ...inputStyle, width: "auto", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontWeight: 600, color: "#475569", display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -147,14 +112,14 @@ function AddCompanyMenu({ assigned, onAdd }: { assigned: string[]; onAdd: (code:
 
 export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("관리자 권한");
-  const [admins, setAdmins] = useState<Admin[]>(INITIAL_ADMINS);
-  const [groupViewers, setGroupViewers] = useState<GroupViewer[]>(INITIAL_GROUP_VIEWERS);
+  const [admins, setAdmins] = useState<Admin[]>(getAdmins());
+  const [groupViewers, setGroupViewers] = useState<GroupViewer[]>(getGroupViewers());
   const [savedMsg, setSavedMsg] = useState("");
   const [revokeConfirm, setRevokeConfirm] = useState<number | null>(null);
   // 관계사 관리자 — 공유 목업을 초기값으로 하는 로컬 state
   // TODO(demo): 화면 내 편집(부여·회수·담당 변경)은 로컬 상태에만 반영됨.
   //             실제 연동 시 PUT /api/v1/admin/company-admins 및 GET /api/v1/auth/me 반영으로 교체.
-  const [companyAdmins, setCompanyAdmins] = useState<CompanyAdminUser[]>(INITIAL_COMPANY_ADMINS);
+  const [companyAdmins, setCompanyAdmins] = useState<CompanyAdminUser[]>(getCompanyAdmins());
   const [caRevokeConfirm, setCaRevokeConfirm] = useState<string | null>(null);
   const [grantRole, setGrantRole] = useState<"admin" | "company">("admin");
   const [grantCompanies, setGrantCompanies] = useState<string[]>([]);
@@ -181,20 +146,13 @@ export default function AdminUsers() {
   const companyAdminEmails = companyAdmins.map(a => a.email);
   const groupViewerEmails = groupViewers.map(g => g.email);
 
-  const MOCK_SSO_USERS: SsoUser[] = [
-    { name: "이수연", email: "suyeon.lee@kolmar.co.kr", dept: "메이크업연구소", title: "책임연구원" },
-    { name: "정태영", email: "taeyoung.jung@kolmar.co.kr", dept: "IT개발팀", title: "선임" },
-    { name: "오세훈", email: "sehoon.oh@kolmar.co.kr", dept: "마케팅팀", title: "사원" },
-    { name: "장미경", email: "mikyung.jang@kolmar.co.kr", dept: "콜마글로벌 경영지원팀", title: "부장" },
-  ];
-
   const handleSsoSearch = () => {
     if (!ssoSearch.trim()) return;
     setSearching(true);
     // TODO: 실제 연동 시 GET /api/v1/admin/sso-search?q=:ssoSearch
     setTimeout(() => {
       const q = ssoSearch.toLowerCase();
-      const found = MOCK_SSO_USERS.find(u => u.name.includes(ssoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(ssoSearch));
+      const found = getSsoUsers().find(u => u.name.includes(ssoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(ssoSearch));
       setSsoResult(found || "notfound");
       setSearching(false);
     }, 800);
@@ -205,7 +163,7 @@ export default function AdminUsers() {
     setGroupSearching(true);
     setTimeout(() => {
       const q = groupSsoSearch.toLowerCase();
-      const found = MOCK_SSO_USERS.find(u => u.name.includes(groupSsoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(groupSsoSearch));
+      const found = getSsoUsers().find(u => u.name.includes(groupSsoSearch) || u.email.toLowerCase().includes(q) || u.dept.includes(groupSsoSearch));
       setGroupSsoResult(found || "notfound");
       setGroupSearching(false);
     }, 800);
@@ -283,8 +241,8 @@ export default function AdminUsers() {
   const filteredAdmins = admins.filter(a => adminSearch === "" || a.name.includes(adminSearch) || a.dept.includes(adminSearch));
   const filteredCompanyAdmins = companyAdmins.filter(a => adminSearch === "" || a.name.includes(adminSearch) || (a.dept ?? "").includes(adminSearch) || a.email.includes(adminSearch));
   const filteredGroupViewers = groupViewers.filter(g => groupSearch === "" || g.name.includes(groupSearch) || g.dept.includes(groupSearch));
-  const filteredReg = REGISTRANTS.filter(r => regSearch === "" || r.name.includes(regSearch) || r.dept.includes(regSearch));
-  const filteredLogs = LOGS.filter(l => (logCategory === "전체" || l.category === logCategory) && (logSearch === "" || l.actor.includes(logSearch) || l.target.includes(logSearch) || l.action.includes(logSearch)));
+  const filteredReg = getRegistrants().filter(r => regSearch === "" || r.name.includes(regSearch) || r.dept.includes(regSearch));
+  const filteredLogs = getAuditLogs().filter(l => (logCategory === "전체" || l.category === logCategory) && (logSearch === "" || l.actor.includes(logSearch) || l.target.includes(logSearch) || l.action.includes(logSearch)));
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
@@ -620,7 +578,7 @@ export default function AdminUsers() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{REGISTRANTS.length}명</span></div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>등록 이력자 <span style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>{getRegistrants().length}명</span></div>
                   <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 3 }}>AX 플랫폼 항목(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
                 </div>
                 <input value={regSearch} onChange={e => setRegSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />

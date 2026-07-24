@@ -5,88 +5,22 @@ import AdminSidebar from "../../components/AdminSidebar";
 import { TEAMS_CHANNEL_URL as DEFAULT_TEAMS_CHANNEL_URL } from "../../config/operations";
 // 섹션 3은 읽기 전용 현황판 — 지정·해제는 AdminUsers(사용자 관리)에서만 편집한다.
 // 공유 목업 모듈을 관계사 중심으로 투영한다.
-import { INITIAL_COMPANY_ADMINS } from "../../mocks/companyAdminMockData";
+import { getCompanyAdmins, getOrgCompanies, getOrgDepts, getAssetItemRefs, getTeamsSyncSource } from "../../lib/dataSource";
 
-type Company = { code: string; name: string; visible: boolean };
-
-// TODO: 실제 연동 시 GET /api/v1/admin/companies 응답으로 교체 (Microsoft Teams 조직도 API)
-const INITIAL_COMPANIES: Company[] = [
-  { code: "KMH", name: "콜마홀딩스", visible: true },
-  { code: "KKM", name: "한국콜마", visible: true },
-  { code: "KBH", name: "콜마비앤에이치", visible: true },
-  { code: "HKN", name: "에이치케이이노엔", visible: true },
-  { code: "YWK", name: "연우", visible: true },
-  { code: "KAF", name: "근오농림", visible: false },
-  { code: "NAB", name: "넥스트앤바이오", visible: false },
-  { code: "HC", name: "콜마생활건강", visible: true },
-  { code: "HNG", name: "에치엔지", visible: false },
-  { code: "MOD", name: "엠오디머티리얼즈", visible: false },
-  { code: "KMG", name: "콜마글로벌", visible: true },
-  { code: "KMSK", name: "콜마스크", visible: true },
-  { code: "KUX", name: "콜마유엑스", visible: false },
-  { code: "KMW", name: "무석콜마", visible: true },
-  { code: "KMB", name: "북경콜마", visible: true },
-  { code: "KBJ", name: "강소콜마", visible: false },
-  { code: "KAY", name: "연태콜마", visible: false },
-  { code: "HKV", name: "한국헬스케어베너", visible: false },
-  { code: "PLT", name: "플래닛147", visible: false },
-  { code: "LSL", name: "레스리", visible: false },
-  { code: "LOD", name: "라우드랩스", visible: false },
-  { code: "KMP", name: "콜마헬스케어필리핀", visible: false },
-  { code: "KMS", name: "에이치케이콜마싱가포르", visible: false },
-  { code: "KML", name: "콜마랩스", visible: false },
-  { code: "KUS", name: "미국콜마", visible: true },
-  { code: "KCA", name: "캐나다콜마", visible: false },
-  { code: "HKJ", name: "에이치케이글로벌퍼팩", visible: false },
-  { code: "KMM", name: "에이치케이콜마말레이시아", visible: false },
-  { code: "KBT", name: "콜마바이오텍", visible: true },
-];
+// 조직 목업 데이터는 mocks/adminOrgMockData로 이관됨. 타입은 소비처(페이지)에 잔류하고
+// mocks·dataSource가 이를 참조한다.
+export type Company = { code: string; name: string; visible: boolean };
 
 // source: manual=수동등록 / teams=Teams동기화 / merged=수동+Teams 양쪽에 존재(병합됨)
 type DeptSource = "manual" | "teams" | "merged";
-type Dept = { id: number; name: string; parent: string | null; company: string; projectCount: number; source: DeptSource };
+export type Dept = { id: number; name: string; parent: string | null; company: string; projectCount: number; source: DeptSource };
 
-// TODO: 실제 연동 시 GET /api/v1/admin/departments 응답으로 교체
-const INITIAL_DEPTS: Dept[] = [
-  { id: 1, name: "메이크업연구소", parent: "연구개발본부", company: "KKM", projectCount: 8, source: "manual" },
-  { id: 2, name: "스킨케어연구소", parent: "연구개발본부", company: "KKM", projectCount: 5, source: "manual" },
-  { id: 3, name: "IT개발팀", parent: "IT본부", company: "KKM", projectCount: 14, source: "manual" },
-  { id: 4, name: "IT인프라팀", parent: "IT본부", company: "KKM", projectCount: 6, source: "manual" },
-  { id: 5, name: "재무팀", parent: "경영지원본부", company: "KKM", projectCount: 4, source: "manual" },
-  { id: 6, name: "인사팀", parent: "경영지원본부", company: "KKM", projectCount: 3, source: "manual" },
-  { id: 7, name: "마케팅팀", parent: "영업마케팅본부", company: "KKM", projectCount: 5, source: "manual" },
-  { id: 8, name: "영업팀", parent: "영업마케팅본부", company: "KKM", projectCount: 3, source: "manual" },
-  { id: 9, name: "품질관리팀", parent: "생산본부", company: "KKM", projectCount: 4, source: "manual" },
-  { id: 10, name: "제조기술팀", parent: "생산본부", company: "KKM", projectCount: 5, source: "manual" },
-  { id: 11, name: "헬스케어연구소", parent: "연구개발본부", company: "KBH", projectCount: 3, source: "manual" },
-  { id: 12, name: "사업기획팀", parent: "경영지원본부", company: "KBH", projectCount: 2, source: "manual" },
-  { id: 13, name: "글로벌사업팀", parent: "영업마케팅본부", company: "KMG", projectCount: 2, source: "manual" },
-  { id: 14, name: "생산관리팀", parent: "생산본부", company: "KMW", projectCount: 1, source: "manual" },
-  { id: 15, name: "전략기획팀", parent: null, company: "KMH", projectCount: 1, source: "manual" },
-];
+// ★ AssetItem 관계사 집계용 최소 타입 (목업 데이터는 mocks/adminOrgMockData로 이관)
+export type AssetItemRef = { id: string; company: string[] };
 
-// ★ AssetItem 관계사 집계용 최소 타입 + 목업 데이터
-// TODO: 실제 연동 시 GET /api/v1/admin/platform-items?fields=company 응답으로 교체
-type AssetItemRef = { id: string; company: string[] };
-
-const ASSET_ITEM_REFS: AssetItemRef[] = [
-  { id: "N8N-001", company: ["KKM"] },
-  { id: "N8N-002", company: ["KKM"] },
-  { id: "N8N-003", company: ["KKM", "KMG"] },
-  { id: "N8N-004", company: ["KMW"] },
-  { id: "AST-001", company: [] },
-  { id: "AST-002", company: [] },
-  { id: "AST-003", company: [] },
-  { id: "AST-004", company: ["KKM"] },
-  { id: "AIO-001", company: [] },
-  { id: "AIO-002", company: [] },
-  { id: "AIO-003", company: ["KKM", "KBH", "KMG"] },
-  { id: "AIO-004", company: [] },
-];
-
-const companyWideAssetItemCount = ASSET_ITEM_REFS.filter(p => p.company.length === 0).length;
+const companyWideAssetItemCount = getAssetItemRefs().filter(p => p.company.length === 0).length;
 const assetItemCountByCompany = (code: string): number =>
-  companyWideAssetItemCount + ASSET_ITEM_REFS.filter(p => p.company.includes(code)).length;
+  companyWideAssetItemCount + getAssetItemRefs().filter(p => p.company.includes(code)).length;
 
 const PARENTS = ["연구개발본부", "IT본부", "경영지원본부", "영업마케팅본부", "생산본부"];
 const NO_PARENT = "본부 없음 (관계사 직속)";
@@ -94,13 +28,7 @@ const NO_PARENT = "본부 없음 (관계사 직속)";
 // 부서 고유 식별 키 — company + parent + name 조합. 동명이라도 관계사·본부가 다르면 별개로 취급.
 const deptKey = (company: string, parent: string | null, name: string) => `${company}::${parent ?? "_"}::${name}`;
 
-// Teams 동기화 시 들어올 원천 데이터(목업). 실제로는 Graph API 조직도 응답.
-// TODO: 실제 연동 시 GET /api/v1/admin/teams/org-preview 응답으로 교체
-const TEAMS_SYNC_SOURCE: { name: string; parent: string; company: string }[] = [
-  { name: "디지털마케팅팀", parent: "영업마케팅본부", company: "KKM" }, // 신규
-  { name: "데이터분석팀", parent: "IT본부", company: "KKM" },          // 신규
-  { name: "IT개발팀", parent: "IT본부", company: "KKM" },              // 기존 수동 등록과 동일 키 → 병합
-];
+// Teams 동기화 원천 데이터(목업)는 mocks/adminOrgMockData로 이관됨(getTeamsSyncSource).
 
 const ACTION_STYLE: Record<string, { bg: string; color: string }> = {
   "추가": { bg: "#D1FAE5", color: "#065F46" },
@@ -354,8 +282,8 @@ function CompanyAccordion({
 
 export default function AdminOrg() {
   const navigate = useNavigate();
-  const [companies, setCompanies] = useState<Company[]>(INITIAL_COMPANIES);
-  const [depts, setDepts] = useState<Dept[]>(INITIAL_DEPTS);
+  const [companies, setCompanies] = useState<Company[]>(getOrgCompanies());
+  const [depts, setDepts] = useState<Dept[]>(getOrgDepts());
   const [search, setSearch] = useState("");
   const [filterCompany, setFilterCompany] = useState("전체");
   const [filterParent, setFilterParent] = useState("전체");
@@ -447,14 +375,14 @@ export default function AdminOrg() {
   // ===== 섹션 3. 관계사 관리자(CompanyAdmin) 현황 — 읽기 전용 투영 =====
   // 편집(지정·해제)은 AdminUsers(사용자 관리)에서만 수행. 여기서는 공유 목업을 관계사 중심으로 투영.
   const companyAdminsFor = (code: string) =>
-    INITIAL_COMPANY_ADMINS.filter(a => a.managedCompanies.includes(code));
+    getCompanyAdmins().filter(a => a.managedCompanies.includes(code));
   // 복수 담당자 배지용 — 해당 관리자가 담당하는 관계사 수
   const adminManagedCount = (email: string) =>
-    INITIAL_COMPANY_ADMINS.find(a => a.email.toLowerCase() === email.toLowerCase())?.managedCompanies.length ?? 0;
+    getCompanyAdmins().find(a => a.email.toLowerCase() === email.toLowerCase())?.managedCompanies.length ?? 0;
 
   // Teams 동기화 미리보기 — 기존 부서와 company+parent+name 키로 비교해 추가/병합 구분
   const syncPreview = useMemo(() => {
-    return TEAMS_SYNC_SOURCE.map(src => {
+    return getTeamsSyncSource().map(src => {
       const key = deptKey(src.company, src.parent, src.name);
       const existing = depts.find(d => deptKey(d.company, d.parent, d.name) === key);
       return { ...src, action: existing ? "병합" : "추가" as "추가" | "병합", existingId: existing?.id };
@@ -471,7 +399,7 @@ export default function AdminOrg() {
 
       setDepts(prev => {
         let next = [...prev];
-        TEAMS_SYNC_SOURCE.forEach(src => {
+        getTeamsSyncSource().forEach(src => {
           const key = deptKey(src.company, src.parent, src.name);
           const idx = next.findIndex(d => deptKey(d.company, d.parent, d.name) === key);
           if (idx >= 0) {
@@ -685,7 +613,7 @@ export default function AdminOrg() {
                         { label: "동기화 주기", value: autoSync ? apiConfig.syncInterval : "수동" },
                         { label: "Teams 연동 부서", value: `${teamsLinkedCount}개` },
                         { label: "관계사 노출 현황", value: `${visibleCount} / ${companies.length}개 노출` },
-                        { label: "자동화·AI 도구 항목 총 개수", value: `${ASSET_ITEM_REFS.length}건 (전사 공용 ${companyWideAssetItemCount}건 포함)` },
+                        { label: "자동화·AI 도구 항목 총 개수", value: `${getAssetItemRefs().length}건 (전사 공용 ${companyWideAssetItemCount}건 포함)` },
                       ].map((r, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid #F8FAFC", fontSize: 12 }}>
                           <span style={{ color: "#94A3B8", fontWeight: 600 }}>{r.label}</span>

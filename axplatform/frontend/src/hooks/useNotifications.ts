@@ -8,7 +8,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { AxNotification } from "../types/notificationTypes";
-import { notificationsByDate } from "../mocks/notificationMockData";
+import { getNotifications } from "../lib/dataSource";
 
 const KEY = "ax_notifications_read";
 
@@ -45,7 +45,7 @@ export function markRead(id: string): void {
   writeRead([...cur, id]);
 }
 export function markAllRead(): void {
-  const allIds = notificationsByDate().map(n => n.id);
+  const allIds = getNotifications().map(n => n.id);
   writeRead(Array.from(new Set([...readRaw(), ...allIds])));
 }
 
@@ -65,7 +65,7 @@ function getSnapshot(): string[] {
 export function useNotifications() {
   const readIds = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const readSet = new Set(readIds);
-  const notifications: AxNotification[] = notificationsByDate().map(n => ({
+  const notifications: AxNotification[] = getNotifications().map(n => ({
     ...n,
     read: n.read || readSet.has(n.id),
   }));

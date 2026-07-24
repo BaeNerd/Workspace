@@ -5,12 +5,8 @@ import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { useAuth } from "../../context/useAuth";
 import { CATEGORIES } from "../../types/categoryTypes";
-import {
-  STAT_COMPANIES,
-  scopedCompanies, aggregateMonthly, aggregateSourceTotal, aggregateDomain,
-  monthTotal, COMPANY_NAME,
-} from "../../mocks/statsMockData";
-import type { MonthPoint, SourceKey, StatCompany } from "../../mocks/statsMockData";
+import { getStatsByScope, monthTotal, COMPANY_NAME } from "../../lib/dataSource";
+import type { MonthPoint, SourceKey } from "../../lib/dataSource";
 
 const PERIODS = ["이번 달", "최근 3개월", "최근 6개월", "올해 전체"] as const;
 type Period = typeof PERIODS[number];
@@ -22,38 +18,21 @@ const SOURCES: { key: SourceKey; label: string; color: string }[] =
   CATEGORIES.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 // ============================================================
-// ★ 화면 고유 더미 — 상태·부서·난이도·비용·ML유형·키워드·절감시간
-// TODO: 백엔드 연동 시 폐기.
+// 화면 고유 통계 더미(부서·난이도·비용·ML유형·키워드·절감시간·후기 TOP5)와
+// 범위 집계 헬퍼는 mocks/statsMockData로 이관·합류됨. 소비 시점 합성은
+// dataSource.getStatsByScope가 담당한다. 아래 *_META는 표시(라벨·색상) 전용
+// 프레젠테이션 메타로 화면에 잔류한다.
 // ============================================================
-
-const DEPT_BY_COMPANY: Record<StatCompany, { dept: string; count: number }[]> = {
-  KKM: [
-    { dept: "IT개발팀", count: 14 }, { dept: "메이크업연구소", count: 8 }, { dept: "IT인프라팀", count: 6 },
-    { dept: "재무팀", count: 5 }, { dept: "마케팅팀", count: 5 }, { dept: "영업팀", count: 3 },
-  ],
-  KBH: [{ dept: "연구개발팀", count: 6 }, { dept: "경영지원팀", count: 4 }, { dept: "품질관리팀", count: 3 }],
-  HC:  [{ dept: "생활건강연구소", count: 5 }, { dept: "마케팅팀", count: 3 }, { dept: "영업팀", count: 2 }],
-  KMG: [{ dept: "글로벌사업팀", count: 4 }, { dept: "경영지원팀", count: 3 }],
-  KMW: [{ dept: "제조기술팀", count: 5 }, { dept: "품질관리팀", count: 4 }],
-  KUS: [{ dept: "US Operations", count: 3 }],
-  KBT: [{ dept: "바이오연구팀", count: 2 }],
-};
 
 // n8n 워크플로우 기준 (난이도 축은 n8n 전용)
 const DIFFICULTY_META = [
   { label: "쉬움", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "어려움", color: "#7C3AED" },
 ];
-const DIFFICULTY_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [15, 18, 7], KBH: [6, 7, 2], HC: [4, 5, 1], KMG: [3, 4, 2], KMW: [1, 2, 1], KUS: [1, 1, 1], KBT: [1, 1, 1],
-};
 
 // AI Model 모델 기준 (3단계)
 const COST_META = [
   { label: "낮음", color: "#059669" }, { label: "보통", color: "#2563EB" }, { label: "높음", color: "#EF4444" },
 ];
-const COST_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [21, 11, 8], KBH: [8, 4, 3], HC: [5, 3, 3], KMG: [4, 2, 2], KMW: [3, 1, 1], KUS: [2, 1, 1], KBT: [1, 0, 0],
-};
 
 // ML 모델 유형 분포
 const ML_TYPE_META = [
@@ -62,40 +41,6 @@ const ML_TYPE_META = [
   { label: "자연어 처리", color: "#7C3AED" },
   { label: "분류/회귀", color: "#059669" },
 ];
-const ML_TYPE_BY_COMPANY: Record<StatCompany, number[]> = {
-  KKM: [3, 2, 2, 1], KBH: [1, 1, 1, 1], HC: [1, 1, 0, 1], KMG: [0, 1, 1, 0], KMW: [1, 0, 0, 1], KUS: [0, 0, 1, 0], KBT: [0, 1, 0, 0],
-};
-
-const KEYWORD_BY_COMPANY: Record<StatCompany, { keyword: string; count: number }[]> = {
-  KKM: [{ keyword: "자동화", count: 22 }, { keyword: "AI", count: 18 }, { keyword: "승인", count: 14 }, { keyword: "원료", count: 12 }, { keyword: "데이터", count: 11 }, { keyword: "보고서", count: 10 }, { keyword: "API", count: 9 }, { keyword: "분류", count: 7 }],
-  KBH: [{ keyword: "자동화", count: 8 }, { keyword: "AI", count: 6 }, { keyword: "승인", count: 5 }, { keyword: "원료", count: 4 }, { keyword: "데이터", count: 4 }, { keyword: "보고서", count: 3 }, { keyword: "API", count: 3 }, { keyword: "분류", count: 2 }],
-  HC:  [{ keyword: "자동화", count: 5 }, { keyword: "AI", count: 4 }, { keyword: "승인", count: 3 }, { keyword: "원료", count: 3 }, { keyword: "데이터", count: 3 }, { keyword: "보고서", count: 2 }, { keyword: "API", count: 2 }, { keyword: "분류", count: 2 }],
-  KMG: [{ keyword: "자동화", count: 3 }, { keyword: "AI", count: 3 }, { keyword: "승인", count: 3 }, { keyword: "원료", count: 2 }, { keyword: "데이터", count: 2 }, { keyword: "보고서", count: 2 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
-  KMW: [{ keyword: "자동화", count: 2 }, { keyword: "AI", count: 2 }, { keyword: "승인", count: 2 }, { keyword: "원료", count: 2 }, { keyword: "데이터", count: 1 }, { keyword: "보고서", count: 1 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
-  KUS: [{ keyword: "자동화", count: 1 }, { keyword: "AI", count: 1 }, { keyword: "승인", count: 1 }, { keyword: "원료", count: 1 }, { keyword: "데이터", count: 1 }, { keyword: "보고서", count: 1 }, { keyword: "API", count: 1 }, { keyword: "분류", count: 1 }],
-  KBT: [{ keyword: "자동화", count: 1 }, { keyword: "AI", count: 1 }, { keyword: "승인", count: 0 }, { keyword: "원료", count: 0 }, { keyword: "데이터", count: 0 }, { keyword: "보고서", count: 0 }, { keyword: "API", count: 0 }, { keyword: "분류", count: 0 }],
-};
-
-const TIME_SAVED_BY_COMPANY: Record<StatCompany, string[]> = {
-  KKM: ["주 3시간", "월 4시간", "주 1시간", "하루 30분", "월 8시간", "주 2시간", "연 40시간", "추정 불가"],
-  KBH: ["주 1시간", "월 2시간", "주 5시간", "측정 어려움"],
-  HC: ["월 6시간", "하루 1시간", "주 2시간"],
-  KMG: ["월 3시간", "주 1시간", "미정"],
-  KMW: ["주 2시간", "월 1시간"],
-  KUS: ["월 2시간"],
-  KBT: [""],
-};
-
-// 후기 많은 항목 TOP 5 — 각 항목에 소유 관계사 코드를 부여하여 scope를 따르게 함.
-// 전사(admin) 기준에서는 5건 전량 노출(기존 표시와 동일). TODO: 백엔드 연동 시 폐기.
-type TopReview = { id: string; title: string; kind: string; reviewCount: number; avgLikes: number; company: StatCompany };
-const TOP5_REVIEWS_ALL: TopReview[] = [
-  { id: "N8N-2026-001", title: "신규 입사자 계정 자동 생성", kind: "n8n",              reviewCount: 18, avgLikes: 7.2, company: "KKM" },
-  { id: "AST-2026-019", title: "해외법인 계약서 1차 검토 비서", kind: "assistant",     reviewCount: 14, avgLikes: 8.5, company: "KBH" },
-  { id: "AIO-2026-014", title: "Claude Opus 4.8",              kind: "ai-orchestration", reviewCount: 11, avgLikes: 6.1, company: "HC" },
-  { id: "PA-2026-013",  title: "구매 결재 자동 승인 플로우",      kind: "pa",             reviewCount:  8, avgLikes: 5.9, company: "KKM" },
-  { id: "ML-2026-007",  title: "성분 이미지 품질 분류 모델",      kind: "ml",             reviewCount:  6, avgLikes: 4.8, company: "KBH" },
-];
 
 // 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로) — AdminDashboard와 동일 방식
 const scopeCompanyNames = (codes: string[]): string =>
@@ -103,26 +48,6 @@ const scopeCompanyNames = (codes: string[]): string =>
 
 const PICK_YEARS = [2025];
 const PICK_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-const aggregateIndexed = (companies: StatCompany[], table: Record<StatCompany, number[]>, len: number): number[] =>
-  Array.from({ length: len }, (_, i) => companies.reduce((s, co) => s + (table[co][i] ?? 0), 0));
-
-const aggregateDept = (companies: StatCompany[]): { dept: string; count: number }[] => {
-  const map = new Map<string, number>();
-  companies.forEach(co => DEPT_BY_COMPANY[co].forEach(d => map.set(d.dept, (map.get(d.dept) ?? 0) + d.count)));
-  return [...map.entries()].map(([dept, count]) => ({ dept, count })).sort((a, b) => b.count - a.count).slice(0, 8);
-};
-
-const aggregateKeyword = (companies: StatCompany[]): { keyword: string; count: number }[] => {
-  const keys = KEYWORD_BY_COMPANY[STAT_COMPANIES[0]].map(k => k.keyword);
-  return keys.map((keyword, i) => ({
-    keyword,
-    count: companies.reduce((s, co) => s + (KEYWORD_BY_COMPANY[co][i]?.count ?? 0), 0),
-  })).sort((a, b) => b.count - a.count);
-};
-
-const aggregateTimeSaved = (companies: StatCompany[]): string[] =>
-  companies.flatMap(co => TIME_SAVED_BY_COMPANY[co]);
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
   "일": 365, "하루": 365, "주": 52, "주일": 52, "월": 12, "개월": 12, "년": 1, "연": 1,
@@ -183,29 +108,21 @@ export default function AdminStatistics() {
 
   const agg = useMemo(() => {
     const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
-    const companies = scopedCompanies(currentScope);
-    const monthSeries = aggregateMonthly(companies);
-    const sourceTotal = aggregateSourceTotal(companies);
-    const domain = aggregateDomain(companies);
-    const difficultyCounts = aggregateIndexed(companies, DIFFICULTY_BY_COMPANY, DIFFICULTY_META.length);
-    const costCounts = aggregateIndexed(companies, COST_BY_COMPANY, COST_META.length);
-    const mlTypeCounts = aggregateIndexed(companies, ML_TYPE_BY_COMPANY, ML_TYPE_META.length);
-    const dept = aggregateDept(companies);
-    const keyword = aggregateKeyword(companies);
-    const timeSamples = aggregateTimeSaved(companies);
-    const topReviews = TOP5_REVIEWS_ALL.filter(r => companies.includes(r.company));
+    const s = getStatsByScope(currentScope);
 
-    const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: difficultyCounts[i] }));
-    const cost = COST_META.map((c, i) => ({ ...c, count: costCounts[i] }));
-    const mlType = ML_TYPE_META.map((t, i) => ({ ...t, count: mlTypeCounts[i] }));
+    // 표시 전용 META 병합·시간 파싱은 화면 프레젠테이션에서 처리 (데이터·집계는 dataSource가 공급).
+    const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: s.difficultyCounts[i] }));
+    const cost = COST_META.map((c, i) => ({ ...c, count: s.costCounts[i] }));
+    const mlType = ML_TYPE_META.map((t, i) => ({ ...t, count: s.mlTypeCounts[i] }));
 
-    const parsed = timeSamples.map(parseTimeSaved);
+    const parsed = s.timeSamples.map(parseTimeSaved);
     const totalAnnualHoursSaved = parsed.reduce<number>((sum, v) => sum + (v ?? 0), 0);
     const unestimableCount = parsed.filter(v => v === null).length;
     const estimableCount = parsed.length - unestimableCount;
 
-    return { companies, monthSeries, sourceTotal, domain, difficulty, cost, mlType, dept, keyword,
-      topReviews, totalAnnualHoursSaved, unestimableCount, estimableCount };
+    return { companies: s.companies, monthSeries: s.monthSeries, sourceTotal: s.sourceTotal, domain: s.domain,
+      difficulty, cost, mlType, dept: s.dept, keyword: s.keyword,
+      topReviews: s.topReviews, totalAnnualHoursSaved, unestimableCount, estimableCount };
   }, [scopeKey]);
 
   const MONTH_SERIES = agg.monthSeries;

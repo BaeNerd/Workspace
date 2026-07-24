@@ -5,13 +5,9 @@ import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { CATEGORIES } from "../../types/categoryTypes";
-import type { ApprovalSlots } from "../../types/categoryTypes";
 import { useAuth } from "../../context/useAuth";
-import {
-  scopedCompanies, aggregateSourceTotal, aggregateMonthly, aggregateDomain,
-  monthTotal, COMPANY_NAME,
-} from "../../mocks/statsMockData";
-import type { SourceKey, StatCompany } from "../../mocks/statsMockData";
+import { getDashboardData, monthTotal, COMPANY_NAME } from "../../lib/dataSource";
+import type { SourceKey } from "../../lib/dataSource";
 
 // 출처 표시용 정의 — CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
@@ -25,39 +21,8 @@ const detailPathOf = (source: SourceKey, id: string) => {
   return `${category.path}/${id}`;
 };
 
-// ============================================================
-// ★ 화면 고유 더미 — 승인 대기·최근 승인 목록, 운영 중 도구 수
-// TODO: 백엔드 연동 시 폐기.
-// ============================================================
-
-// 병렬 2슬롯 승인 상태 더미 (company/global). 두 슬롯 모두 미승인=승인 대기, 하나만=부분 승인.
-const slots = (company: boolean, global: boolean): ApprovalSlots => ({ company: { approved: company }, global: { approved: global } });
-
-type PendingItem = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: StatCompany; approvalSlots: ApprovalSlots };
-const PENDING_ALL: PendingItem[] = [
-  { id: "N8N-2026-031", title: "재고 알림 자동화 워크플로우", dept: "구매팀", submittedAt: "2026.06.02", type: "n8n 워크플로우", source: "n8n", company: "KKM", approvalSlots: slots(false, false) },
-  { id: "AST-2026-018", title: "계약서 요약 비서", dept: "법무팀", submittedAt: "2026.06.03", type: "나만의 비서", source: "assistant", company: "KBH", approvalSlots: slots(true, false) },
-  { id: "PA-2026-012", title: "월별 경비 승인 자동화 흐름", dept: "재무팀", submittedAt: "2026.06.04", type: "Power Automate 흐름", source: "pa", company: "KMG", approvalSlots: slots(false, false) },
-  { id: "AIO-2026-012", title: "GPT-5.4 Mini", dept: "IT개발팀", submittedAt: "2026.06.05", type: "AI Model", source: "ai-orchestration", company: "HC", approvalSlots: slots(false, true) },
-  { id: "ML-2026-006", title: "불량품 분류 ML 모델", dept: "품질관리팀", submittedAt: "2026.06.06", type: "ML 모델", source: "ml", company: "KKM", approvalSlots: slots(false, false) },
-];
-
-type ApprovedItem = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey; company: StatCompany };
-const RECENT_APPROVED_ALL: ApprovedItem[] = [
-  { id: "AIO-2026-013", title: "Claude Sonnet 5", dept: "메이크업연구소", approvedAt: "2026.05.31", source: "ai-orchestration", company: "KKM" },
-  { id: "N8N-2026-029", title: "일일 매출 리포트 자동 발송", dept: "재무팀", approvedAt: "2026.05.29", source: "n8n", company: "KBH" },
-  { id: "PA-2026-009", title: "신규 입사자 IT 장비 신청 흐름", dept: "인사팀", approvedAt: "2026.05.28", source: "pa", company: "HC" },
-  { id: "VIBE-2026-007", title: "주간 보고서 초안 생성 도구", dept: "경영지원팀", approvedAt: "2026.05.27", source: "vibe", company: "KKM" },
-];
-
-const ACTIVE_TOOLS_BY_COMPANY: Record<StatCompany, number> = {
-  KKM: 44, KBH: 14, HC: 10, KMG: 8, KMW: 4, KUS: 2, KBT: 2,
-};
-
-// 누적 활용 후기 — 관계사별 더미 (합 47 = 기존 전사 표기와 일치). TODO: 백엔드 연동 시 폐기.
-const REVIEW_COUNT_BY_COMPANY: Record<StatCompany, number> = {
-  KKM: 22, KBH: 9, HC: 6, KMG: 5, KMW: 2, KUS: 2, KBT: 1,
-};
+// 화면 고유 더미(승인 대기·최근 승인·게시 도구 수·후기 수)는 mocks/adminDashboardMockData로
+// 이관됨. 범위 집계는 dataSource.getDashboardData가 합성한다.
 
 const CARD_BORDER = "1.5px solid #E2E8F0";
 
@@ -87,17 +52,7 @@ export default function AdminDashboard() {
 
   const agg = useMemo(() => {
     const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
-    const companies = scopedCompanies(currentScope);
-    const sourceTotal = aggregateSourceTotal(companies);
-    const monthly = aggregateMonthly(companies);
-    const domain = aggregateDomain(companies);
-    const pending = PENDING_ALL.filter(p => companies.includes(p.company));
-    const recentApproved = RECENT_APPROVED_ALL.filter(p => companies.includes(p.company));
-    const activeTools = companies.reduce((s, co) => s + (ACTIVE_TOOLS_BY_COMPANY[co] ?? 0), 0);
-    const reviewTotal = companies.reduce((s, co) => s + (REVIEW_COUNT_BY_COMPANY[co] ?? 0), 0);
-    // 대기 = 미게시·미반려 중 미승인 슬롯이 남은 항목(= 승인 대기 + 부분 승인). 부분 승인 = 한 슬롯만 완료.
-    const partialCount = pending.filter(p => p.approvalSlots.company.approved !== p.approvalSlots.global.approved).length;
-    return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount };
+    return getDashboardData(currentScope);
   }, [scopeKey]);
 
   const { sourceTotal, monthly, domain, pending, recentApproved } = agg;
@@ -105,9 +60,7 @@ export default function AdminDashboard() {
   // 사이드바 pendingCount — 조회 선택과 무관하게 권한 범위(baseScope) 기준으로 산출
   // (조회 범위는 표시용 필터일 뿐, "내가 처리할 건수" 알림을 바꾸지 않는다)
   // admin: 미종결 대기 항목 전체 / companyAdmin: 담당 범위 내 관계사 슬롯 미승인 항목
-  const permCompanies = scopedCompanies(baseScope);
-  const userPendingCount = PENDING_ALL
-    .filter(p => permCompanies.includes(p.company))
+  const userPendingCount = getDashboardData(baseScope).pending
     .filter(p => isCompanyAdmin ? !p.approvalSlots.company.approved : true).length;
 
   const totalRegistrations =

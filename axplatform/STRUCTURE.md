@@ -333,7 +333,8 @@ axplatform/
         ├── main.tsx
         ├── App.tsx           # IS_SHARE_MODE 분기 라우트 + AuthProvider
         ├── lib/
-        │   └── api.ts        # 백엔드 연동 대비 스텁 (현재 미사용)
+        │   ├── api.ts        # 백엔드 연동 대비 스텁 (현재 미사용)
+        │   └── dataSource.ts # 데이터 접근 계층(동기, DEMO) — 페이지·훅↔mocks 유일 경유 지점
         ├── config/
         │   ├── shareMode.ts  # IS_SHARE_MODE 단일 참조점
         │   └── operations.ts # TEAMS_CHANNEL_URL 단일 상수 (운영 설정 참조점)
@@ -351,8 +352,16 @@ axplatform/
         │   ├── useScraps.ts            # ax_scraps
         │   ├── useInterests.ts         # ax_user_interests
         │   └── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
-        ├── mocks/
-        │   ├── statsMockData.ts        # 통계 공용 더미
+        ├── mocks/                       # 목업 SSOT 모듈군 — 페이지·훅은 직접 import 금지(lib/dataSource 경유)
+        │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백) — M1
+        │   ├── adminReviewMockData.ts  # 검토 대기 큐(INITIAL_ITEMS)
+        │   ├── myStatusMockData.ts     # 내 신청(INITIAL_ITEMS)·내 후기(MOCK_MY_REVIEWS)
+        │   ├── adminDashboardMockData.ts # 대시보드 화면 고유(승인 대기·최근 승인·게시 도구 수·후기 수)
+        │   ├── adminProjectManageMockData.ts # 게시 항목 관리(INITIAL_ASSET_ITEMS)
+        │   ├── adminUsersMockData.ts   # 사용자·권한·활동 로그(⚠️ 감사 로그 소급 수정 금지)
+        │   ├── adminOrgMockData.ts     # 조직(관계사·부서·자산 관계사 투영·Teams 동기화 원천)
+        │   ├── adminTaxonomyMockData.ts # 분류체계·자유 태그
+        │   ├── statsMockData.ts        # 통계 공용 더미 + AdminStatistics 화면 고유 통계(M2 합류)
         │   ├── companyAdminMockData.ts # 관계사 관리자 지정 공용 목업
         │   ├── noticeMockData.ts       # 공지·업데이트 소식 단일 소스(SSOT)
         │   └── notificationMockData.ts # 알림 단일 소스(SSOT)
@@ -416,7 +425,7 @@ axplatform/
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
 - **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
-- **정합화**: 목업 항목(`LANDING_ITEMS`) ID·제목이 `ProjectListPage` `MOCK_ASSET_ITEMS`와 일치 / 운영 상태 표시·실행 URL·**항목 단위 관계사(그룹사) 표시 없음**(company 표시 제거) / **참여 관계사 로고 마퀴(`PartnerMarquee`)는 그룹 브랜딩 요소로 관계사 표시 폐기(0.5)의 대상이 아니며, 복원 예정**(원본 소스 `_incoming-landing`이 저장소에 부재하여 원본 컴포넌트·로고 에셋 확보 후 이식 — 임의 창작 금지) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `mocks/noticeMockData`(단일 소스)를 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
+- **정합화**: **[M2] `LANDING_ITEMS`는 데이터 사본을 보유하지 않는다** — 노출할 항목 ID·순서만 `LANDING_ITEM_IDS`(표시 전용 큐레이션)로 남기고, 제목·요약·부서·좋아요·조회수·수정일·도메인 등 데이터 필드는 `dataSource.getAssetItem(id)`에서 파생한다(자산 SSOT와의 사본 드리프트 제거). 표시 전용 원본 에셋 매핑(`CAT_MEDIA` 등)은 프레젠테이션 정보로 페이지 잔류 / 운영 상태 표시·실행 URL·**항목 단위 관계사(그룹사) 표시 없음**(company 표시 제거) / **참여 관계사 로고 마퀴(`PartnerMarquee`)는 그룹 브랜딩 요소로 관계사 표시 폐기(0.5)의 대상이 아니며, 원본 소실(`_incoming-landing` 저장소 부재)로 원본 컴포넌트·로고 에셋 재확보가 필요해 별도 담당자가 복원 예정**(임의 창작 금지) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `noticeMockData`(단일 소스)를 `dataSource.getNotices` 경유로 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
 - **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
 - **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
 - **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
@@ -678,11 +687,38 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 ---
 
+## 데이터 접근 계층 (`lib/dataSource.ts`)
+
+> 목업 → 실서버 전환의 **유일한 교체 지점**. 동기 시그니처(DEMO) — 비동기 전환·로딩 상태 도입은 실제 연동 시로 유보.
+
+- **철칙: 페이지·훅은 `mocks/*`를 직접 import하지 않는다.** 조회 진입점은 오직 `lib/dataSource`를 경유한다. (예외: `components/AdminScopeSelect`가 통계 기준 상수 `STAT_COMPANIES`/`COMPANY_NAME`를 mocks에서 직접 참조 — 컴포넌트 레이어는 규칙 범위 밖. 개인화 훅 3종 중 `useNotifications`만 목업 참조를 갖고, 이를 dataSource로 배선함.)
+- 백엔드 연동 시 `mocks` 배열을 삭제하고 각 함수 본문만 실제 API 호출로 교체한다. 집계 헬퍼는 mocks에 단일 정의를 두고 dataSource가 위임/재-export(로직 복제 금지).
+
+### 함수 카탈로그
+
+| 도메인 | 함수 | 반환/역할 |
+|--------|------|-----------|
+| 자산(M1) | `getAssetItems` · `getAssetItem(id)` · `getReviewsByItem(id)` · `getPostsByItem(id)` · `getFallbackN8nWorkflowJson` | 자산 목록·단건·후기·게시글·n8n 폴백 JSON |
+| 검토/신청 | `getReviewQueue` · `getMyApplications` · `getMyReviews` | 검토 대기 큐 · 내 신청 · 내 후기 |
+| 대시보드 | `getDashboardData(scope)` | 범위 합성: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount}` |
+| 통계 | `getStatsByScope(scope)` | 범위 합성: `{companies, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, keyword, timeSamples, topReviews}` (META 병합·시간 파싱은 화면 프레젠테이션) |
+| 관리 | `getManagedAssetItems` · `getAdmins` · `getGroupViewers` · `getRegistrants` · `getAuditLogs` · `getSsoUsers` · `getSelectableCompanies` | 게시 항목·전사 관리자·그룹 뷰어·등록자·활동 로그·SSO 검색·관계사 선택지 |
+| 관계사 관리자 | `getCompanyAdmins` · `getManagedCompanies(email)` | 관계사 관리자 목록 · 이메일→담당 관계사(auth/me 모사) |
+| 조직 | `getOrgCompanies` · `getOrgDepts` · `getAssetItemRefs` · `getTeamsSyncSource` | 관계사·부서·자산 관계사 투영·Teams 동기화 원천 |
+| 분류체계 | `getCategoryTaxonomy` · `getFreeTags` | 분류체계 · 자유 태그 |
+| 소식/알림 | `getNotices(kind)` · `getAdminNotices` · `sortNotices`(재-export) · `getNotifications` | 공개 소식 · 관리자 전체 소식 · 정렬 헬퍼 · 알림(벨·훅·패널) |
+| 통계 위임 | `monthTotal` · `COMPANY_NAME`(값 재-export) / `SourceKey` · `StatCompany` · `MonthPoint` · `CompanyAdminUser`(타입 재-export) | mocks 단일 정의 위임 — 화면 프레젠테이션 계산용 |
+
+- 타입 흐름: 각 mocks 모듈은 소비처(페이지)의 도메인 타입을 `import type`로만 참조하고(런타임 간선 없음), dataSource는 mocks 배열을 값으로 반환한다. 런타임 그래프는 `page → dataSource → mocks`로 수렴(역방향은 타입 전용, 소거됨).
+
+---
+
 ## 공용 Mock 모듈
 
 ### `mocks/statsMockData.ts`
 
 > AdminStatistics / AdminDashboard 공유 더미. **DEMO 전용 — 백엔드 연동 시 폐기.**
+> **[M2]** 과거 AdminStatistics 화면에 있던 화면 고유 통계(부서·난이도·비용·ML유형·키워드·절감시간·후기 TOP5)와 그 범위 집계 헬퍼(`aggregateIndexed`·`aggregateDept`·`aggregateKeyword`·`aggregateTimeSaved`, `DEPT_BY_COMPANY`·`DIFFICULTY_BY_COMPANY`·`COST_BY_COMPANY`·`ML_TYPE_BY_COMPANY`·`KEYWORD_BY_COMPANY`·`TIME_SAVED_BY_COMPANY`·`TOP5_REVIEWS_ALL`·`TopReview`)를 이 통계 SSOT에 합류시켰다. 소비 화면은 `dataSource.getStatsByScope(scope)`가 합성해 공급한다. (구 "화면 고유 데이터는 각 화면 파일에 둔다" 방침은 M2에서 폐기.)
 
 | 항목 | 설명 |
 |---|---|
@@ -732,6 +768,23 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `notificationsByDate()` | 게시일 최신순 정렬 반환 |
 
 타입 import 주의: `AxNotification`, `NotificationKind`는 `import type` 분리 필수.
+
+### M2 이관 모듈 (페이지 내장 목업 → mocks SSOT)
+
+> 아래 모듈은 각 화면에 인라인돼 있던 목업을 **내용 무변경·식별자명 유지**로 이관한 것. 페이지는 `lib/dataSource` 경유로만 참조한다. 각 모듈 헤더에 SSOT 선언·DEMO 폐기 예고·교체 엔드포인트 TODO를 둔다.
+
+| 모듈 | 주요 export | 소비 화면 (dataSource 함수) |
+|---|---|---|
+| `mocks/adminReviewMockData.ts` | `INITIAL_ITEMS`(6) | AdminReview (`getReviewQueue`) |
+| `mocks/myStatusMockData.ts` | `INITIAL_ITEMS`(6)·`MOCK_MY_REVIEWS`(2) | MyStatusPage (`getMyApplications`·`getMyReviews`) |
+| `mocks/adminDashboardMockData.ts` | `PENDING_ALL`(5)·`RECENT_APPROVED_ALL`(4)·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`·`slots`·`PendingItem`·`ApprovedItem` | AdminDashboard (`getDashboardData`) |
+| `mocks/adminProjectManageMockData.ts` | `INITIAL_ASSET_ITEMS`(7) | AdminProjectManage (`getManagedAssetItems`) |
+| `mocks/adminUsersMockData.ts` | `INITIAL_ADMINS`(2)·`INITIAL_GROUP_VIEWERS`(2)·`REGISTRANTS`(4)·`LOGS`(7)·`SELECTABLE_COMPANIES`(12)·`MOCK_SSO_USERS`(4) | AdminUsers (`getAdmins`·`getGroupViewers`·`getRegistrants`·`getAuditLogs`·`getSelectableCompanies`·`getSsoUsers`) |
+| `mocks/adminOrgMockData.ts` | `INITIAL_COMPANIES`(28)·`INITIAL_DEPTS`(15)·`ASSET_ITEM_REFS`(12)·`TEAMS_SYNC_SOURCE`(3) | AdminOrg (`getOrgCompanies`·`getOrgDepts`·`getAssetItemRefs`·`getTeamsSyncSource`) |
+| `mocks/adminTaxonomyMockData.ts` | `INITIAL_CATEGORY_TAXONOMY`·`INITIAL_FREE_TAGS`(7) | AdminTaxonomy (`getCategoryTaxonomy`·`getFreeTags`) |
+
+- **⚠️ 감사 로그 소급 수정 금지**: `adminUsersMockData.LOGS`는 과거 표기(`AGENT-2025-007`·`HKGPT-2025-018`·`N8N-2025-031` 등)를 **바이트 동일**하게 보존한다.
+- **표시 전용 메타는 페이지 잔류**(이관 대상 아님): 옵션 열거(`DIFFICULTY_LEVELS`·`COST_TIERS`·`ML_TYPES`·`ASSISTANT_MODEL_HINTS`·`CONTEXT_SIZE_OPTIONS`·`AGENT_AVAILABILITY`·`TIME_PERIODS` 등)·스타일 객체(`*_STYLE`·`*_META`·`*_COLOR`·`DOMAIN_CHIP`·`CAT_MEDIA`·`PROMO_COPY`)·`CATEGORIES` 파생 배열(`SOURCES`·`INITIAL_CATEGORIES`)·정적 안내 콘텐츠(AboutPage·GuidePage의 FAQ·스텝·팩트 배열). `EditRequestPage.MOCK_CURRENT`는 단건 폼 프리필 픽스처(배열 아님, 타입이 페이지 폼 모델에 결합)로 페이지 잔류.
 
 ---
 

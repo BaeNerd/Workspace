@@ -4,7 +4,7 @@ import AdminSidebar from "../../components/AdminSidebar";
 import { useAuth } from "../../context/useAuth";
 import { NOTICE_KINDS } from "../../types/noticeTypes";
 import type { Notice, NoticeKind } from "../../types/noticeTypes";
-import { NOTICE_MOCK_DATA, sortNotices } from "../../mocks/noticeMockData";
+import { getAdminNotices, sortNotices } from "../../lib/dataSource";
 
 // ============================================================
 // ADM-09 공지사항·업데이트 소식 관리 화면 (/admin/notices)
@@ -108,8 +108,8 @@ const emptyDraft = (): Notice => ({
 export default function AdminNotices() {
   const { isCompanyAdmin } = useAuth();
 
-  const [notices, setNotices] = useState<Notice[]>(NOTICE_MOCK_DATA);
-  const [selected, setSelected] = useState<string>(NOTICE_MOCK_DATA[0]?.id ?? "");
+  const [notices, setNotices] = useState<Notice[]>(getAdminNotices());
+  const [selected, setSelected] = useState<string>(getAdminNotices()[0]?.id ?? "");
   const [filter, setFilter] = useState<FilterKey>("전체");
   const [editMode, setEditMode] = useState(false);
   const [isNew, setIsNew] = useState(false);

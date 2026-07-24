@@ -5,10 +5,9 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
 import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS, detailPathForItemId } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
-import { getAssetItems } from "../lib/dataSource";
+import { getAssetItems, getAssetItem, getNotices } from "../lib/dataSource";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import type { NoticeKind } from "../types/noticeTypes";
-import { visibleNoticesByKind } from "../mocks/noticeMockData";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { useShareNotice } from "../context/ShareNoticeContext";
@@ -18,7 +17,7 @@ import { useNotifications } from "../hooks/useNotifications";
 import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 
 // ============================================================================
-// LandingPage — Next.js 원본(_incoming-landing/app/page.tsx) 포팅 + 신 체계 정합화
+// LandingPage — Next.js 원본(page.tsx) 포팅 + 신 체계 정합화
 // ----------------------------------------------------------------------------
 // 포팅 규약:
 //  - "use client"/next/link/next/image/next/font 제거 → Vite SPA + 인라인 스타일
@@ -80,36 +79,29 @@ const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; i
   Object.fromEntries(CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
 
 // ── 목업 항목 (mocks SSOT MOCK_ASSET_ITEMS와 ID·제목 일치) ──
+// 랜딩 노출 큐레이션 — 표시할 항목 ID·순서만 보유(표시 전용 메타). 제목·요약·부서·
+// 좋아요·조회수·수정일·도메인 등 데이터 필드는 dataSource.getAssetItem(id)에서 파생해
+// 자산 SSOT와의 사본 드리프트를 제거한다.
 // TODO: 실제 연동 시 GET /api/v1/platform-items 응답으로 교체
 type LItem = {
   id: string; categoryId: CategoryId; title: string; summary: string;
   dept: string; likes: number; views: number; updated: string; domain?: BusinessDomain;
 };
-const LANDING_ITEMS: LItem[] = [
-  { id: "N8N-2026-001", categoryId: "n8n", title: "신규 입사자 계정 자동 생성", summary: "HR 시스템 입력 시 AD/Teams/이메일 계정을 자동 생성", dept: "IT인프라팀", likes: 19, views: 540, updated: "2025.06.05", domain: "IT" },
-  { id: "N8N-2026-005", categoryId: "n8n", title: "Outlook 긴급 메일 자동 전달", summary: "긴급 키워드 메일 수신 시 팀장에게 즉시 자동 전달", dept: "IT인프라팀", likes: 22, views: 666, updated: "2025.07.03", domain: "IT" },
-  { id: "N8N-2026-003", categoryId: "n8n", title: "일일 매출 리포트 자동 발송", summary: "매일 오전 9시 전일 매출 요약을 경영진에게 자동 발송", dept: "재무팀", likes: 12, views: 387, updated: "2025.06.12", domain: "재무" },
-  { id: "N8N-2026-006", categoryId: "n8n", title: "주간 재고 현황 자동 취합", summary: "매주 월요일 각 창고의 재고 데이터를 취합해 경영진에게 요약 메일 발송", dept: "구매팀", likes: 8, views: 288, updated: "2025.07.02", domain: "생산" },
-  { id: "N8N-2026-008", categoryId: "n8n", title: "생산 실적 KPI 일일 집계", summary: "생산 시스템에서 라인별 실적을 자동 집계해 품질·생산팀에 공유", dept: "품질관리팀", likes: 10, views: 367, updated: "2025.07.05", domain: "생산" },
-  { id: "PA-2026-001", categoryId: "pa", title: "결재 문서 SharePoint 자동 저장", summary: "전자결재 완료 시 문서를 SharePoint 지정 폴더에 자동으로 보관", dept: "경영지원팀", likes: 12, views: 380, updated: "2025.07.01", domain: "재무" },
-  { id: "PA-2026-003", categoryId: "pa", title: "팀 주간 보고서 Teams 자동 게시", summary: "SharePoint에 업로드된 주간 보고서를 매주 월요일 Teams 채널에 자동 게시", dept: "기획팀", likes: 14, views: 467, updated: "2025.07.04", domain: "HR" },
-  { id: "PA-2026-005", categoryId: "pa", title: "계약 만료 사전 알림 플로우", summary: "계약 만료 30일·7일 전 계약 담당자에게 자동으로 갱신 알림 이메일 발송", dept: "법무팀", likes: 11, views: 389, updated: "2025.07.06", domain: "재무" },
-  { id: "AST-2026-001", categoryId: "assistant", title: "법무 검토 보조 봇", summary: "계약서 초안의 위험 조항을 자동으로 식별하고 검토 의견 제시", dept: "법무팀", likes: 25, views: 384, updated: "2025.06.10", domain: "재무" },
-  { id: "AST-2026-002", categoryId: "assistant", title: "회의록 요약 봇", summary: "Teams 회의 녹취록을 업로드하면 핵심 결정사항을 자동 정리", dept: "IT개발팀", likes: 18, views: 261, updated: "2025.06.14", domain: "IT" },
-  { id: "AST-2026-005", categoryId: "assistant", title: "영업 제안서 초안 봇", summary: "고객사 정보와 요구사항을 입력하면 맞춤형 제안서 초안을 자동 생성", dept: "영업기획팀", likes: 15, views: 240, updated: "2025.07.02", domain: "영업" },
-  { id: "AST-2026-006", categoryId: "assistant", title: "HR 정책 문답 봇", summary: "복리후생·휴가·규정 등 HR 정책 질문에 즉시 답변하는 직원용 Q&A 봇", dept: "인사팀", likes: 20, views: 324, updated: "2025.07.01", domain: "HR" },
-  { id: "AIO-2026-003", categoryId: "ai-orchestration", title: "Claude Opus 4.8", summary: "가장 어려운 문제를 끝까지 푸는 데 강한 최상위 모델입니다.", dept: "DX전략팀", likes: 29, views: 516, updated: "2026.07.01" },
-  { id: "AIO-2026-004", categoryId: "ai-orchestration", title: "Claude Sonnet 4.6", summary: "일상 업무의 기본기가 가장 균형 잡힌 모델입니다.", dept: "DX전략팀", likes: 35, views: 674, updated: "2026.07.01" },
-  { id: "AIO-2026-010", categoryId: "ai-orchestration", title: "웍스 대표 모델", summary: "무엇을 골라야 할지 모를 때 쓰는 사내 기본 모델입니다.", dept: "DX전략팀", likes: 44, views: 882, updated: "2026.07.01" },
-  { id: "ML-2026-001", categoryId: "ml", title: "조색 예측 ML 모델", summary: "원료 배합 비율로 최종 색상을 예측하는 회귀 모델", dept: "메이크업연구소", likes: 21, views: 428, updated: "2025.06.01", domain: "연구" },
-  { id: "ML-2026-004", categoryId: "ml", title: "처방 성분 상호작용 예측 모델", summary: "의약품 성분 조합의 부작용 가능성을 예측하는 분류 모델", dept: "건강기능식품연구소", likes: 12, views: 279, updated: "2025.06.15", domain: "연구" },
-  { id: "ML-2026-003", categoryId: "ml", title: "불량품 이미지 분류 모델", summary: "생산 라인 카메라 이미지로 불량품을 실시간 자동 판별하는 CNN 모델", dept: "품질관리팀", likes: 16, views: 333, updated: "2025.07.06", domain: "생산" },
-  { id: "ML-2026-005", categoryId: "ml", title: "판매 채널별 수요 예측 모델", summary: "온라인·오프라인·홈쇼핑 채널별 제품 수요를 동시에 예측하는 다변량 시계열 모델", dept: "영업기획팀", likes: 9, views: 238, updated: "2025.07.07", domain: "영업" },
-  { id: "VIBE-2026-001", categoryId: "vibe", title: "일일 판매 리포트 자동 생성기", summary: "ERP 데이터를 읽어 매일 아침 판매 실적 요약을 Slack으로 발송", dept: "영업기획팀", likes: 8, views: 200, updated: "2025.07.05", domain: "영업" },
-  { id: "VIBE-2026-003", categoryId: "vibe", title: "부서별 KPI 현황판 자동화", summary: "Excel KPI 데이터를 읽어 자동으로 부서별 성과 대시보드를 그려주는 Python 앱", dept: "경영기획팀", likes: 13, views: 292, updated: "2025.07.06", domain: "HR" },
-  { id: "VIBE-2026-004", categoryId: "vibe", title: "커피 룰렛 웹앱", summary: "팀원 명단을 업로드하면 커피 당번을 무작위 선정하는 인트라넷 미니앱", dept: "마케팅팀", likes: 31, views: 764, updated: "2025.06.20", domain: "영업" },
-  { id: "VIBE-2026-005", categoryId: "vibe", title: "ECM 멀티 파일 다운로더", summary: "ECM에서 여러 파일을 한 번에 선택하고 다운로드하는 유틸리티 프로그램", dept: "IT인프라팀", likes: 24, views: 635, updated: "2025.07.04", domain: "IT" },
+const LANDING_ITEM_IDS: string[] = [
+  "N8N-2026-001", "N8N-2026-005", "N8N-2026-003", "N8N-2026-006", "N8N-2026-008",
+  "PA-2026-001", "PA-2026-003", "PA-2026-005",
+  "AST-2026-001", "AST-2026-002", "AST-2026-005", "AST-2026-006",
+  "AIO-2026-003", "AIO-2026-004", "AIO-2026-010",
+  "ML-2026-001", "ML-2026-004", "ML-2026-003", "ML-2026-005",
+  "VIBE-2026-001", "VIBE-2026-003", "VIBE-2026-004", "VIBE-2026-005",
 ];
+const LANDING_ITEMS: LItem[] = LANDING_ITEM_IDS.map(id => {
+  const it = getAssetItem(id)!;
+  return {
+    id: it.id, categoryId: it.categoryId, title: it.title, summary: it.summary,
+    dept: it.dept, likes: it.likes, views: it.views ?? 0, updated: it.updatedAt, domain: it.domain,
+  };
+});
 
 // 최신소식 — 공지/업데이트 소식은 mocks/noticeMockData(단일 소스)를 참조.
 // 관리자 화면(/admin/notices)이 작성·관리, 여기선 visible=true를 pinned·최신순으로 표시.
@@ -874,7 +866,7 @@ function ItemsByDomain({ onNavigate }: { onNavigate: (p: string) => void }) {
 function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [tab, setTab] = useState<NoticeKind>("공지사항");
   // 표시 규칙: visible=true만, pinned 우선 + 최신순, 탭별 최대 5건 (mocks/noticeMockData 헬퍼).
-  const news = visibleNoticesByKind(tab).slice(0, 5);
+  const news = getNotices(tab).slice(0, 5);
   // 실시간 인기 — 조회수(views) 기준 정렬. TODO: 백엔드 연동 시 기간 가중 트렌딩 스코어로 교체
   const trending = [...LANDING_ITEMS].sort((a, b) => b.views - a.views).slice(0, 5);
   return (

@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { NOTICE_KINDS } from "../types/noticeTypes";
 import type { NoticeKind } from "../types/noticeTypes";
-import { visibleNoticesByKind } from "../mocks/noticeMockData";
+import { getNotices } from "../lib/dataSource";
 
 // ============================================================
 // NoticesPage — 공지사항·업데이트 소식 목록 (/notices)
@@ -32,7 +32,7 @@ export default function NoticesPage() {
   const [tab, setTab] = useState<NoticeKind>(initialTab);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const notices = visibleNoticesByKind(tab);
+  const notices = getNotices(tab);
 
   const selectTab = (t: NoticeKind) => {
     setTab(t);
