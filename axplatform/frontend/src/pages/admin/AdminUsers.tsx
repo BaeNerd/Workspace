@@ -6,6 +6,8 @@ import {
   getSelectableCompanies, getCompanyAdmins,
 } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { useVisibleCount } from "../../hooks/useVisibleCount";
+import LoadMoreButton from "../../components/LoadMoreButton";
 import type { CompanyAdminUser } from "../../lib/dataSource";
 
 export type Admin = { id: number; name: string; email: string; dept: string; title: string; grantedAt: string; grantedBy: string };
@@ -244,6 +246,10 @@ export default function AdminUsers() {
   const filteredGroupViewers = groupViewers.filter(g => groupSearch === "" || g.name.includes(groupSearch) || g.dept.includes(groupSearch));
   const filteredReg = getRegistrants().filter(r => regSearch === "" || r.name.includes(regSearch) || r.dept.includes(regSearch));
   const filteredLogs = getAuditLogs().filter(l => (logCategory === "전체" || l.category === logCategory) && (logSearch === "" || l.actor.includes(logSearch) || l.target.includes(logSearch) || l.action.includes(logSearch)));
+
+  // 성장형 목록 — 탭·검색·필터가 바뀌면 표시 수 초기화(탭별 독립 카운트).
+  const reg = useVisibleCount(12, 12, `${activeTab}|${regSearch}`);
+  const logs = useVisibleCount(20, 20, `${activeTab}|${logCategory}|${logSearch}`);
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
@@ -588,7 +594,7 @@ export default function AdminUsers() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 80px 70px 90px 90px", padding: "10px 18px", background: COLOR.bgSubtle, borderBottom: `1px solid ${COLOR.border}` }}>
                   {["이름 / 부서", "이메일", "등록 수", "승인", "대기/반려", "최근 신청"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3 }}>{h}</div>)}
                 </div>
-                {filteredReg.map((r, i) => (
+                {filteredReg.slice(0, reg.visibleCount).map((r, i) => (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 150px 80px 70px 90px 90px", padding: "12px 18px", borderBottom: `1px solid ${COLOR.bgSubtle}`, alignItems: "center", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text }}>{r.name}</div>
@@ -605,6 +611,7 @@ export default function AdminUsers() {
                   <div style={{ textAlign: "center", padding: "40px 0", color: COLOR.text3, fontSize: 13 }}>검색 결과가 없습니다.</div>
                 )}
               </div>
+              <LoadMoreButton remaining={filteredReg.length - reg.visibleCount} onClick={reg.showMore} />
             </div>
           )}
 
@@ -630,7 +637,7 @@ export default function AdminUsers() {
                 <div style={{ display: "grid", gridTemplateColumns: "140px 80px 100px 1fr", padding: "10px 18px", background: COLOR.bgSubtle, borderBottom: `1px solid ${COLOR.border}` }}>
                   {["일시", "사용자", "액션", "대상"].map((h, i) => <div key={i} style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3 }}>{h}</div>)}
                 </div>
-                {filteredLogs.map((log, i) => {
+                {filteredLogs.slice(0, logs.visibleCount).map((log, i) => {
                   const catStyle = LOG_CATEGORY_STYLE[log.category] || LOG_CATEGORY_FALLBACK;
                   const srcStyle = log.source ? LOG_SOURCE_STYLE[log.source] : null;
                   return (
@@ -652,6 +659,7 @@ export default function AdminUsers() {
                   <div style={{ textAlign: "center", padding: "40px 0", color: COLOR.text3, fontSize: 13 }}>해당 조건의 로그가 없습니다.</div>
                 )}
               </div>
+              <LoadMoreButton remaining={filteredLogs.length - logs.visibleCount} onClick={logs.showMore} />
             </div>
           )}
         </main>

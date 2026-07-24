@@ -54,6 +54,7 @@ v3은 랜딩 교체·공지 기능·전역 검수 수정·목업 정합 마감·
   - 상수: `CATEGORIES`(7개 카테고리 메타 배열, 색·라벨·경로의 단일 소스) · `CATEGORY_ICON_PATH` · `ID_PREFIX` · `makeItemId`
   - 필드: `categoryId`(항목의 카테고리) · `companyScope`(승인 자격 판정용 내부 데이터)
   - 파일: `types/categoryTypes.ts` · `pages/AssetItemDetailPage.tsx` · `pages/admin/AdminCategories.tsx`
+- **개별 자산의 사용자 노출 총칭은 "카드"로 표준화**한다 — 카탈로그 카드·관리 화면 헤더·안내·빈 상태·삭제 확인 등 렌더 문구에서 개별 자산 1건을 지칭할 때 "카드"를 쓴다(예: 카드 관리·"이 카드를 삭제하시겠습니까"). 코드 심볼(`AssetItem`)·내부 데이터·타입명은 불변이며 이 표준은 렌더 문자열에 한정한다. (舊 렌더 표기 "항목 관리"는 "카드 관리"로 교체됨 — ADM-03.)
 - **명칭 예외(현행 유지, 변경 금지)**: 라우트 경로(`/admin/platforms`, `/n8n/:itemId` 등), API TODO 경로(`/api/v1/platform-items` 등 — 백엔드 계약 확정 시 정리), URL 쿼리 키 `?platform=`, 카테고리 값 문자열(`"n8n"`…`"etc"`), ID 접두어, 제품명 "AX Platform / AX 플랫폼", localStorage 키 `ax_recent_viewed`(최근 조회) · **`ax_scraps`(스크랩) · `ax_user_interests`(관심사) · `ax_notifications_read`(알림 읽음)**(개인화 3종 — 0.10 참조).
   - (v2에 예외로 적혀 있던 `PlatformItemStatus` 계열 @deprecated 타입은 랜딩 교체와 함께 **삭제 완료**되어 더 이상 "잔존 명칭 예외"가 아니다 — 0.4 참조.)
 
@@ -685,7 +686,7 @@ Footer: 서비스 표기 · 사내 전용 고지 · 운영 채널 링크(Teams)
 
 ---
 
-## ADM-03 항목 관리 (舊 프로젝트 관리, AdminProjectManage, /admin/projects)
+## ADM-03 카드 관리 (舊 항목 관리·프로젝트 관리, AdminProjectManage, /admin/projects)
 
 **정의·역할**: 게시·반려 포함 전체 항목의 조회·편집·삭제를 담당하는 관리 화면.
 
@@ -708,7 +709,7 @@ Footer: 서비스 표기 · 사내 전용 고지 · 운영 채널 링크(Teams)
 
 **화면 구조**
 ```
-항목 관리
+카드 관리
 ├─ 목록 (검색 · 유형 필터 · 승인 단계 표시)
 └─ 편집 패널 (등록 체계 필드 편집 + 담당자 교체 + 삭제)
 ```
@@ -943,5 +944,6 @@ Footer: 서비스 표기 · 사내 전용 고지 · 운영 채널 링크(Teams)
 - 조회수(views) 서버 집계 전환(현 목업 상수, 0.9) — 상세 조회 이벤트 카운트·중복 방지·트렌딩 스코어는 백엔드 책임.
 - 향후 선택 필드 후보(vibe·AI 프로젝트): "핵심 기능"(불릿 렌더링), "제작 후기" — 기능상 불필요 판정, 디자인 단계 재검토용 백로그.
 - 설정(USR-11) 확장 항목: 프로필·알림 수신 설정·표시 환경 — 화면 확장 지점 TODO만, 이번 범위 밖.
+- AdminOrg(ADM-06) 섹션3 그룹핑 보강 — 관계사·부서 목록의 그룹 단위 묶음/접힘 표시 개선. 미착수, 향후 검토.
 - 큐레이션(하이라이트·금주의 발견) — Phase 2. 항목 큐레이션 필드 + 랜딩 노출 배선을 서버 연동과 함께 설계.
 - Phase 2: pgvector 기반 RAG/LLM 검색.

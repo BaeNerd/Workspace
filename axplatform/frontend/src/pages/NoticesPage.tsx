@@ -7,6 +7,8 @@ import { COLOR } from "../styles/tokens";
 import { NOTICE_KINDS } from "../types/noticeTypes";
 import type { NoticeKind } from "../types/noticeTypes";
 import { getNotices } from "../lib/dataSource";
+import { useVisibleCount } from "../hooks/useVisibleCount";
+import LoadMoreButton from "../components/LoadMoreButton";
 
 // ============================================================
 // NoticesPage — 공지사항·업데이트 소식 목록 (/notices)
@@ -34,6 +36,8 @@ export default function NoticesPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const notices = getNotices(tab);
+  // 탭별 독립 카운트 — resetKey=tab이므로 종류 전환 시 표시 수가 초기값으로 되돌아간다.
+  const { visibleCount, showMore } = useVisibleCount(10, 10, tab);
 
   const selectTab = (t: NoticeKind) => {
     setTab(t);
@@ -72,7 +76,7 @@ export default function NoticesPage() {
               등록된 소식이 없어요
             </div>
           ) : (
-            notices.map((n, i) => {
+            notices.slice(0, visibleCount).map((n, i) => {
               const open = expanded === n.id;
               return (
                 <div key={n.id} style={{ borderTop: i === 0 ? "none" : `1px solid ${C.border}` }}>
@@ -108,6 +112,7 @@ export default function NoticesPage() {
             })
           )}
         </div>
+        <LoadMoreButton remaining={notices.length - visibleCount} onClick={showMore} />
       </div>
 
       <div style={{ flex: 1 }} />

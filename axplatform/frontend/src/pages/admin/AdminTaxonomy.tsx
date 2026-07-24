@@ -5,6 +5,8 @@ import { CATEGORIES } from "../../types/categoryTypes";
 import type { CategoryId } from "../../types/categoryTypes";
 import { getCategoryTaxonomy, getFreeTags } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { useVisibleCount } from "../../hooks/useVisibleCount";
+import LoadMoreButton from "../../components/LoadMoreButton";
 
 // ===== 타입 정의 =====
 // 분류체계·자유 태그 목업 데이터는 mocks/adminTaxonomyMockData로 이관됨. 타입은 소비처에 잔류.
@@ -139,6 +141,8 @@ export default function AdminTaxonomy() {
 
   const cat = activeTab !== "freeTags" ? categoryTaxonomy[activeTab] : null;
   const filteredFreeTags = freeTags.filter(t => freeTagSourceFilter === "전체" || t.sourceKind === freeTagSourceFilter);
+  // 자유 태그 성장형 목록 — 탭·출처 필터가 바뀌면 표시 수 초기화(출처 필터와 병행 동작).
+  const { visibleCount, showMore } = useVisibleCount(12, 12, `${activeTab}|${freeTagSourceFilter}`);
 
   const handleAdd = () => {
     if (!newItem.trim() || activeTab === "freeTags") return;
@@ -303,7 +307,7 @@ export default function AdminTaxonomy() {
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {filteredFreeTags.map((t, i) => {
+                    {filteredFreeTags.slice(0, visibleCount).map((t, i) => {
                       const style = SOURCE_STYLE[t.sourceKind];
                       const canPromote = IMPORT_DEST_OPTIONS[t.sourceKind]?.length > 0;
                       return (
@@ -331,6 +335,7 @@ export default function AdminTaxonomy() {
                       );
                     })}
                     {filteredFreeTags.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: COLOR.text3, fontSize: 13 }}>누적된 자유 태그가 없습니다.</div>}
+                    <LoadMoreButton remaining={filteredFreeTags.length - visibleCount} onClick={showMore} />
                   </div>
                 </div>
               )}

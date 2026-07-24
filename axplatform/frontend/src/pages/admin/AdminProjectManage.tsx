@@ -414,7 +414,7 @@ export default function AdminProjectManage() {
           <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 항목 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{manageableItems.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 카드 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{manageableItems.length}</span></span>
                 {isAdmin && (
                   <select
                     value=""
@@ -432,7 +432,7 @@ export default function AdminProjectManage() {
                 )}
               </div>
 
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="항목명, 부서 검색" style={{ ...inputStyle, padding: "7px 12px", fontSize: 12, marginBottom: 8 }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="카드명, 부서 검색" style={{ ...inputStyle, padding: "7px 12px", fontSize: 12, marginBottom: 8 }} />
 
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {SOURCE_OPTIONS.map(opt => {
@@ -496,9 +496,9 @@ export default function AdminProjectManage() {
             {!displayData ? (
               <div style={{ maxWidth: 900, margin: "0 auto" }}>
                 <div style={{ marginBottom: 20 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>항목 관리</h2>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>카드 관리</h2>
                   <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>
-                    관리 대상 총 <strong style={{ fontWeight: 700, color: COLOR.text }}>{manageableItems.length}</strong>건 · 좌측 목록에서 항목을 선택하면 상세·편집 패널이 열립니다.
+                    관리 대상 총 <strong style={{ fontWeight: 700, color: COLOR.text }}>{manageableItems.length}</strong>건 · 좌측 목록에서 카드를 선택하면 상세·편집 패널이 열립니다.
                   </p>
                 </div>
                 <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 20px" }}>
@@ -557,8 +557,8 @@ export default function AdminProjectManage() {
 
                 {deleteConfirm === displayData.id && (
                   <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>이 항목을 삭제하시겠습니까?</div>
-                    <div style={{ fontSize: 12, color: COLOR.text2, marginBottom: 12 }}>삭제된 항목은 복구할 수 없습니다.</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>이 카드를 삭제하시겠습니까?</div>
+                    <div style={{ fontSize: 12, color: COLOR.text2, marginBottom: 12 }}>삭제된 카드는 복구할 수 없습니다.</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
                       <button onClick={() => handleDelete(displayData.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>삭제 확인</button>

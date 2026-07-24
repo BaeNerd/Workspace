@@ -16,6 +16,8 @@ import N8nFlowPreview from "../components/N8nFlowPreview";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
 import { useScraps } from "../hooks/useScraps";
+import { useVisibleCount } from "../hooks/useVisibleCount";
+import LoadMoreButton from "../components/LoadMoreButton";
 import CardIdTag from "../components/CardIdTag";
 import { getAssetItem, getReviewsByItem, getPostsByItem, getFallbackN8nWorkflowJson } from "../lib/dataSource";
 
@@ -99,6 +101,9 @@ export default function AssetItemDetailPage() {
   const [postTag, setPostTag] = useState<PostTag>("Q&A");
   const [reviews, setReviews] = useState<AssetReview[]>(item ? getReviewsByItem(item.id) : []);
   const [reviewText, setReviewText] = useState("");
+  // 후기·게시판 글 성장형 목록(탭별 독립) — 다른 항목으로 이동(itemId 변경) 시 표시 수 초기화.
+  const reviewsView = useVisibleCount(5, 5, itemId);
+  const postsView = useVisibleCount(5, 5, itemId);
 
   useEffect(() => {
     if (!item?.id) return;
@@ -115,6 +120,9 @@ export default function AssetItemDetailPage() {
       </div>
     );
   }
+
+  const shownReviews = reviews.slice(0, reviewsView.visibleCount);
+  const shownPosts = posts.slice(0, postsView.visibleCount);
 
   // vibe/etc는 유형별 전용 필드가 없어 상세 탭을 숨기고 개요에 통합한다.
   const hasDetailTab = item.categoryId !== "vibe" && item.categoryId !== "etc";
@@ -339,8 +347,8 @@ export default function AssetItemDetailPage() {
                     아직 등록된 후기가 없습니다.
                   </div>
                 )}
-                {reviews.map((r, ri) => (
-                  <div key={r.id} style={{ paddingBottom: 14, marginBottom: ri < reviews.length - 1 ? 14 : 0, borderBottom: ri < reviews.length - 1 ? `1px solid ${COLOR.bgSubtle}` : "none" }}>
+                {shownReviews.map((r, ri) => (
+                  <div key={r.id} style={{ paddingBottom: 14, marginBottom: ri < shownReviews.length - 1 ? 14 : 0, borderBottom: ri < shownReviews.length - 1 ? `1px solid ${COLOR.bgSubtle}` : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                       <div style={{ width: 26, height: 26, borderRadius: "50%", background: COLOR.border, color: COLOR.text2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                         {r.author[0]}
@@ -352,6 +360,7 @@ export default function AssetItemDetailPage() {
                     <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.8, paddingLeft: 32 }}>{r.text}</div>
                   </div>
                 ))}
+                <LoadMoreButton remaining={reviews.length - reviewsView.visibleCount} onClick={reviewsView.showMore} />
                 <div style={{ marginTop: reviews.length > 0 ? 16 : 8, paddingTop: reviews.length > 0 ? 14 : 0, borderTop: reviews.length > 0 ? `1px solid ${COLOR.bgSubtle}` : "none" }}>
                   <textarea
                     value={reviewText}
@@ -614,7 +623,7 @@ export default function AssetItemDetailPage() {
               </div>
             )}
 
-            {posts.map(p => (
+            {shownPosts.map(p => (
               <div key={p.id} style={{
                 background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 22px",
               }}>
@@ -661,6 +670,7 @@ export default function AssetItemDetailPage() {
                 </div>
               </div>
             ))}
+            <LoadMoreButton remaining={posts.length - postsView.visibleCount} onClick={postsView.showMore} />
 
             <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 22px" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text, marginBottom: 10 }}>글 작성</div>

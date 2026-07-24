@@ -9,6 +9,8 @@ import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 import { getReviewQueue, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { useVisibleCount } from "../../hooks/useVisibleCount";
+import LoadMoreButton from "../../components/LoadMoreButton";
 
 // 등록 관계사 배지 (관리자 화면 전용 — 표시명은 조직 SSOT 파생, 신규 리터럴 금지).
 // ownerCompany = 신청 등록 주체 소속 관계사(노출 범위 company와 별개 축). 사용자 화면 노출 금지(0.5).
@@ -484,6 +486,9 @@ export default function AdminReview() {
     })
     .filter(i => sourceFilter === "전체" ? true : i.kind === sourceFilter);
 
+  // 검토 큐 성장형 목록 — 상태·출처 필터가 바뀌면 표시 수 초기화.
+  const { visibleCount, showMore } = useVisibleCount(12, 12, `${filter}|${sourceFilter}`);
+
   const SOURCE_OPTIONS: { key: "전체" | CategoryId; label: string }[] = [
     { key: "전체", label: "전체" },
     ...CATEGORIES.map(p => ({ key: p.id, label: p.name })),
@@ -540,7 +545,7 @@ export default function AdminReview() {
             </div>
 
             <div style={{ flex: 1, overflowY: "auto" }}>
-              {filteredList.map(item => {
+              {filteredList.slice(0, visibleCount).map(item => {
                 const st = stageOf(item);
                 const isDone = isTerminalStage(st);
                 const isSelected = activeId === item.id;
@@ -571,6 +576,7 @@ export default function AdminReview() {
                   {isCompanyAdmin ? "담당 관계사의 승인 대기 신청이 없습니다." : "해당하는 신청 건이 없습니다."}
                 </div>
               )}
+              <LoadMoreButton remaining={filteredList.length - visibleCount} onClick={showMore} />
             </div>
           </div>
 

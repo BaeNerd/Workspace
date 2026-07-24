@@ -6,6 +6,8 @@ import { NOTICE_KINDS } from "../../types/noticeTypes";
 import type { Notice, NoticeKind } from "../../types/noticeTypes";
 import { getAdminNotices, sortNotices } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { useVisibleCount } from "../../hooks/useVisibleCount";
+import LoadMoreButton from "../../components/LoadMoreButton";
 
 // ============================================================
 // ADM-09 공지사항·업데이트 소식 관리 화면 (/admin/notices)
@@ -124,6 +126,8 @@ export default function AdminNotices() {
   const isEditing = editMode || isNew;
 
   const listItems = sortNotices(filter === "전체" ? notices : notices.filter(n => n.kind === filter));
+  // 좌측 목록 성장형 — 종류 필터가 바뀌면 표시 수 초기화.
+  const { visibleCount, showMore } = useVisibleCount(12, 12, filter);
 
   const setF = <K extends keyof Notice>(k: K, v: Notice[K]) =>
     setDraft(p => p ? { ...p, [k]: v } : p);
@@ -242,7 +246,7 @@ export default function AdminNotices() {
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-              {listItems.map(n => {
+              {listItems.slice(0, visibleCount).map(n => {
                 const isSelected = selected === n.id && !isNew;
                 return (
                   <div
@@ -271,6 +275,7 @@ export default function AdminNotices() {
               {listItems.length === 0 && (
                 <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>표시할 소식이 없습니다.</div>
               )}
+              <LoadMoreButton remaining={listItems.length - visibleCount} onClick={showMore} />
             </div>
           </div>
 

@@ -7,6 +7,8 @@ import type { CategoryId, ApprovalStage, ApprovalSlots, ApprovalSlotKey } from "
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
 import CardIdTag from "../components/CardIdTag";
+import { useVisibleCount } from "../hooks/useVisibleCount";
+import LoadMoreButton from "../components/LoadMoreButton";
 import { getMyApplications, getMyReviews } from "../lib/dataSource";
 
 // 운영 상태(PlatformItemStatus)는 폐기. 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)만 유지.
@@ -152,6 +154,8 @@ export default function MyStatusPage() {
   }, []);
 
   const visible = items.filter(i => !deleted.includes(i.id) && (filter === "전체" || i.approvalStage === filter));
+  // 신청 목록 성장형 — 승인 단계 탭이 바뀌면 표시 수 초기화.
+  const { visibleCount, showMore } = useVisibleCount(10, 10, filter);
   const counts: Record<"전체" | ApprovalStage, number> = {
     "전체":     items.filter(i => !deleted.includes(i.id)).length,
     "승인 대기": items.filter(i => !deleted.includes(i.id) && i.approvalStage === "승인 대기").length,
@@ -200,7 +204,7 @@ export default function MyStatusPage() {
               해당 단계의 신청 내역이 없습니다.
             </div>
           )}
-          {visible.map((item) => {
+          {visible.slice(0, visibleCount).map((item) => {
             const stageStyle = STAGE_CONFIG[item.approvalStage];
             const isExpanded = expanded === item.id;
             const isResubmit = resubmit === item.id;
@@ -344,6 +348,7 @@ export default function MyStatusPage() {
             );
           })}
         </div>
+        <LoadMoreButton remaining={visible.length - visibleCount} onClick={showMore} />
 
         {/* ===== 내가 남긴 후기 ===== */}
         <div style={{ marginTop: 40 }}>
