@@ -6,7 +6,7 @@ import { COLOR } from "../styles/tokens";
 const ADMIN_NAV = [
   { label: "대시보드", path: "/admin", companyAdmin: true },
   { label: "등록 신청 검토", path: "/admin/review", companyAdmin: true },
-  { label: "프로젝트 관리", path: "/admin/projects", companyAdmin: true },
+  { label: "항목 관리", path: "/admin/projects", companyAdmin: true },
   { label: "분류체계 관리", path: "/admin/taxonomy", companyAdmin: false },
   { label: "부서/조직 관리", path: "/admin/org", companyAdmin: false },
   { label: "사용자 관리", path: "/admin/users", companyAdmin: false },

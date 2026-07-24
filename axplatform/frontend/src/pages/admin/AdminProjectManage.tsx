@@ -8,6 +8,7 @@ import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 import { getManagedAssetItems, orgCompanyName } from "../../lib/dataSource";
+import { ImageCarouselInput, MAX_IMAGES } from "../../components/ImageCarouselInput";
 import { COLOR } from "../../styles/tokens";
 
 // 등록 관계사 배지 (관리자 화면 전용 — 표시명은 조직 SSOT 파생, 신규 리터럴 금지).
@@ -121,7 +122,23 @@ const inputStyle: React.CSSProperties = {
 const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`;
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", appearance: "none", backgroundImage: selectArrow, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32 };
 
+// 좌측 목록 카테고리 그룹 아코디언 헤더 — 검색/필터 칩 아래에서 스크롤 시 상단 고정.
+const groupHeaderStyle: React.CSSProperties = {
+  display: "flex", alignItems: "center", gap: 7, width: "100%",
+  padding: "7px 12px", background: COLOR.bgSubtle, border: "none",
+  borderTop: `1px solid ${COLOR.border}`, cursor: "pointer",
+  position: "sticky", top: 0, zIndex: 1, textAlign: "left",
+};
+
 // ===== 재사용 서브컴포넌트 (모듈 레벨) =====
+// 아코디언 펼침 표시 셰브런 (open일 때 아래를 향하도록 회전).
+const Chevron = ({ open }: { open: boolean }) => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s", flexShrink: 0 }}>
+    <polyline points="9 6 15 12 9 18" />
+  </svg>
+);
+
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: 14 }}>
     <label style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 6 }}>{label}</label>
@@ -235,9 +252,22 @@ export default function AdminProjectManage() {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"전체" | CategoryId>("전체");
   const [saved, setSaved] = useState(false);
+  const [imageOver, setImageOver] = useState(false);
+  // 카테고리 그룹 아코디언 — 기본 전체 접힘 + 선택 항목 소속 그룹만 펼침(초기값).
+  const [openKinds, setOpenKinds] = useState<Set<CategoryId>>(() => {
+    const first = getManagedAssetItems()[0];
+    return new Set(first ? [first.kind] : []);
+  });
 
   const [timeSavedValue, setTimeSavedValue] = useState("");
   const [timeSavedPeriod, setTimeSavedPeriod] = useState<TimePeriod>("주");
+
+  const toggleKind = (k: CategoryId) =>
+    setOpenKinds(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
 
   const SOURCE_OPTIONS: { key: "전체" | CategoryId; label: string }[] = [
     { key: "전체", label: "전체" },
@@ -279,6 +309,7 @@ export default function AdminProjectManage() {
       setEditData({ ...activeItem });
       setEditMode(true);
       setSaved(false);
+      setImageOver(false);
       loadTimeSavedFrom(activeItem);
     }
   };
@@ -287,16 +318,44 @@ export default function AdminProjectManage() {
     setEditData({ ...emptyAssetItem(kind), id: makeItemId(kind, Math.floor(Math.random() * 900) + 100, 2026) });
     setTimeSavedValue("");
     setTimeSavedPeriod("주");
+    setImageOver(false);
     setIsNew(true); setEditMode(false); setSaved(false);
+    setOpenKinds(prev => prev.has(kind) ? prev : new Set(prev).add(kind));
   };
 
   const cancelEdit = () => {
     setEditMode(false); setIsNew(false); setEditData(null); setSaved(false);
+    setImageOver(false);
     setTimeSavedValue(""); setTimeSavedPeriod("주");
   };
 
   const setF = (k: keyof ManagedAssetItem, v: unknown) =>
     setEditData(p => p ? { ...p, [k]: v } as ManagedItem : p);
+
+  // 이미지 편집(데모) — 등록 폼과 동일한 첨부 방식·상한(MAX_IMAGES). data URL 미리보기만 유지.
+  // TODO: 실제 연동 시 이미지 스토리지 업로드로 교체(ImageCarouselInput 주석 참조).
+  const handleImageFiles = (files: FileList) => {
+    const current = editData?.images ?? [];
+    const room = MAX_IMAGES - current.length;
+    const picked = Array.from(files);
+    setImageOver(picked.length > room);
+    picked.slice(0, Math.max(0, room)).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const url = e.target?.result as string;
+        setEditData(p => {
+          if (!p) return p;
+          if ((p.images?.length ?? 0) >= MAX_IMAGES) return p;
+          return { ...p, images: [...(p.images ?? []), url] };
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  const removeImageAt = (i: number) => {
+    setImageOver(false);
+    setEditData(p => p ? { ...p, images: (p.images ?? []).filter((_, ii) => ii !== i) } : p);
+  };
 
   const addContact = () => { if (!editData) return; setF("contacts", [...editData.contacts, { name: "", dept: "", role: "공동담당자", email: "" }]); };
   const removeContact = (i: number) => { if (!editData) return; setF("contacts", editData.contacts.filter((_, ci) => ci !== i)); };
@@ -331,6 +390,18 @@ export default function AdminProjectManage() {
 
   const displayImages = displayData?.images ?? [];
 
+  // 관리 가능한 전체(검색·필터 무관) — 헤더 건수·미선택 플레이스홀더 분포의 기준.
+  const manageableItems = items.filter(i => !isCompanyAdmin || canManageItem(i));
+  const kindDistribution = CATEGORIES
+    .map(c => ({ cat: c, count: manageableItems.filter(i => i.kind === c.id).length }))
+    .filter(d => d.count > 0);
+
+  // 검색어 입력 시 매칭 그룹 자동 펼침. 그 외에는 openKinds(선택 그룹 포함) 기준.
+  const searchActive = search.trim() !== "";
+  const groups = CATEGORIES
+    .map(c => ({ cat: c, rows: filtered.filter(i => i.kind === c.id) }))
+    .filter(g => g.rows.length > 0);
+
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
@@ -343,7 +414,7 @@ export default function AdminProjectManage() {
           <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 항목 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{items.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 항목 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{manageableItems.length}</span></span>
                 {isAdmin && (
                   <select
                     value=""
@@ -385,25 +456,35 @@ export default function AdminProjectManage() {
               {filtered.length === 0 && (
                 <div style={{ padding: "40px 16px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>검색 결과가 없습니다.</div>
               )}
-              {filtered.map(item => {
-                const style = SOURCE_STYLE[item.kind];
+              {groups.map(({ cat, rows }) => {
+                const style = SOURCE_STYLE[cat.id];
+                const open = searchActive || openKinds.has(cat.id);
                 return (
-                  <div
-                    key={item.id}
-                    onClick={() => { setSelected(item.id); setEditMode(false); setIsNew(false); setEditData(null); }}
-                    style={{
-                      padding: "12px 14px", borderBottom: `1px solid ${COLOR.bgSubtle}`, cursor: "pointer",
-                      background: selected === item.id && !isNew ? COLOR.primaryWeak : "#fff",
-                      borderLeft: `3px solid ${selected === item.id && !isNew ? COLOR.primary : "transparent"}`,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: style.bg, color: style.color, padding: "2px 7px", borderRadius: 10 }}>{style.label}</span>
-                      <OwnerCompanyBadge code={item.ownerCompany} />
-                      <span style={{ fontSize: 10, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{item.id}</span>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: COLOR.text3 }}>{item.dept} · {item.updatedAt}</div>
+                  <div key={cat.id}>
+                    <button onClick={() => toggleKind(cat.id)} style={groupHeaderStyle}>
+                      <Chevron open={open} />
+                      <span style={{ width: 7, height: 7, borderRadius: 2, background: style.color, display: "inline-block", flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.text }}>{style.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3, background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 20, padding: "0 7px", marginLeft: "auto" }}>{rows.length}</span>
+                    </button>
+                    {open && rows.map(item => (
+                      <div
+                        key={item.id}
+                        onClick={() => { setSelected(item.id); setEditMode(false); setIsNew(false); setEditData(null); setImageOver(false); }}
+                        style={{
+                          padding: "7px 12px 8px 14px", borderBottom: `1px solid ${COLOR.bgSubtle}`, cursor: "pointer",
+                          background: selected === item.id && !isNew ? COLOR.primaryWeak : "#fff",
+                          borderLeft: `3px solid ${selected === item.id && !isNew ? COLOR.primary : "transparent"}`,
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 10, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{item.id}</span>
+                          <span style={{ fontSize: 10, color: COLOR.text3 }}>· {item.dept}</span>
+                          <OwnerCompanyBadge code={item.ownerCompany} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               })}
@@ -413,9 +494,30 @@ export default function AdminProjectManage() {
           {/* ===== 우측: 상세/편집 패널 ===== */}
           <div style={{ flex: 1, minWidth: 0, padding: "24px 32px", overflowY: "auto" }}>
             {!displayData ? (
-              <div style={{ padding: 60, textAlign: "center", color: COLOR.text3, fontSize: 13 }}>좌측에서 항목을 선택하세요.</div>
+              <div style={{ maxWidth: 900, margin: "0 auto" }}>
+                <div style={{ marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>항목 관리</h2>
+                  <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>
+                    관리 대상 총 <strong style={{ fontWeight: 700, color: COLOR.text }}>{manageableItems.length}</strong>건 · 좌측 목록에서 항목을 선택하면 상세·편집 패널이 열립니다.
+                  </p>
+                </div>
+                <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 20px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text, marginBottom: 14 }}>카테고리 분포</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+                    {kindDistribution.map(({ cat, count }) => {
+                      const style = SOURCE_STYLE[cat.id];
+                      return (
+                        <div key={cat.id} style={{ display: "flex", alignItems: "center", gap: 8, background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "10px 12px" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{style.label}</span>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: COLOR.text, marginLeft: "auto" }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div style={{ maxWidth: 720, margin: "0 auto" }}>
+              <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
                 {saved && (
                   <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#065F46", marginBottom: 16 }}>
@@ -466,11 +568,15 @@ export default function AdminProjectManage() {
 
                 {/* ===== 공통: 기본 정보 ===== */}
                 <SectionBlock title="기본 정보">
-                  {displayImages.length > 0 && (
+                  {isEditing ? (
+                    <FieldRow label="첨부 사진">
+                      <ImageCarouselInput images={displayImages} onFiles={handleImageFiles} onRemoveAt={removeImageAt} overCapacity={imageOver} />
+                    </FieldRow>
+                  ) : displayImages.length > 0 ? (
                     <FieldRow label="첨부 사진">
                       <ImageStripView images={displayImages} />
                     </FieldRow>
-                  )}
+                  ) : null}
                   <FieldRow label="한 줄 요약">
                     {isEditing
                       ? <input value={displayData.summary} onChange={e => setF("summary", e.target.value)} style={inputStyle} />

@@ -85,12 +85,12 @@ export type CurrentUser = {
 | `/admin/platforms` | ✓ | — |
 | `/admin/notices` | ✓ | ✓* |
 
-→ companyAdmin이 접근 가능한 4종은 **대시보드·검토·프로젝트 관리·통계**. `taxonomy·org·users·platforms`는 **admin 단독**.
+→ companyAdmin이 접근 가능한 4종은 **대시보드·검토·항목 관리(舊 프로젝트 관리)·통계**. `taxonomy·org·users·platforms`는 **admin 단독**.
 → **`*` `/admin/notices`는 실질 admin 전용.** 라우트는 `allowCompanyAdmin`으로 통과만 허용하되, 화면 내부에서 `isCompanyAdmin`이면 관리 UI 대신 "전사 관리자 전용" 안내를 렌더한다(사이드바 메뉴는 companyAdmin에게 비노출).
 
 ### 역할별 UI 노출
 
-- **AdminSidebar** (`src/components/AdminSidebar.tsx`): `ADMIN_NAV` 각 항목에 `companyAdmin: boolean` 플래그. `isCompanyAdmin`이면 `companyAdmin: true`인 4개(대시보드·등록 신청 검토·프로젝트 관리·통계)만 노출하고, 사이드바 라벨을 **"관계사 관리자 메뉴"**로(그 외 "관리자 메뉴") 표시. `/admin/review` 항목엔 `pendingCount` 뱃지. **admin 단독 메뉴**: 분류체계·부서/조직·사용자·자동화·AI 도구·**공지·업데이트 관리**(`/admin/notices`, `companyAdmin: false`).
+- **AdminSidebar** (`src/components/AdminSidebar.tsx`): `ADMIN_NAV` 각 항목에 `companyAdmin: boolean` 플래그. `isCompanyAdmin`이면 `companyAdmin: true`인 4개(대시보드·등록 신청 검토·항목 관리·통계)만 노출하고, 사이드바 라벨을 **"관계사 관리자 메뉴"**로(그 외 "관리자 메뉴") 표시. `/admin/review` 항목엔 `pendingCount` 뱃지. **admin 단독 메뉴**: 분류체계·부서/조직·사용자·자동화·AI 도구·**공지·업데이트 관리**(`/admin/notices`, `companyAdmin: false`).
 - **Navbar** (`src/components/Navbar.tsx`): 관리자 진입(별 아이콘 "관리자" 링크·드롭다운 "관리자 페이지")은 `isAdmin || isCompanyAdmin` 조건. 역할 배지 2종 — admin은 `관리자`(앰버 `#FEF3C7`/`#92400E`), companyAdmin은 `관계사 관리자`(파스텔 오렌지 `#FBEEE4`/`#B4602E`). 아바타 배경색도 역할별로 분기.
 
 ---
@@ -526,14 +526,15 @@ AX 항목 병렬 2슬롯 승인 검토. `SummaryStrip`(필터) · `SlotPill`(목
 - **승인 권한 가드는 현행 슬롯 모델 그대로 유지** — 병렬 2슬롯·전사 슬롯 admin 전용은 불변. companyAdmin 가시성·관계사 슬롯 자격은 신청 등록 주체 `ownerCompany` 기준으로 판정(`company`/`companyScope`는 노출 범위 데이터로 존치, 편집 UI 제거).
 - **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ImageStripView`.
 
-#### `AdminProjectManage.tsx` — `/admin/projects` (admin + companyAdmin)
+#### `AdminProjectManage.tsx` — `/admin/projects` (admin + companyAdmin) · 화면명 **항목 관리**(舊 프로젝트 관리)
 
-게시된 AX 항목 전체 관리. 편집 필드는 등록 폼과 동일한 간소화 7유형 체계(상태·관계사·실행 URL 편집 없음).
+게시된 AX 항목 전체 관리. 편집 필드는 등록 폼과 동일한 간소화 7유형 체계(상태·관계사·실행 URL 편집 없음). 이미지 편집도 등록 폼과 동일 컴포넌트(`ImageCarouselInput`)를 공유해 추가·개별 삭제 지원(조회는 `ImageStripView`).
 
+- **목록**: 카테고리 그룹 아코디언(그룹 헤더·건수·sticky, 기본 접힘 + 선택/검색 그룹 자동 펼침, 고밀도 행). 검색·유형 필터 칩은 그룹 위 고정. 미선택 시 총 건수·카테고리 분포 플레이스홀더.
 - **CompanyAdmin**: `canManageItem`(담당 관계사 + 전사 공용)만 표시. 삭제만 가능.
 - **Admin 전용**: 수정, 직접 등록. `expectedTimeSaved` 직렬화/역직렬화(`timeSavedValue`·`timeSavedPeriod`) 유지.
 - **데이터 소스**: `getManagedAssetItems()`가 자산 SSOT(`getAssetItems`)에서 `ManagedAssetItem`으로 파생(별도 목업 사본 없음). 편집·삭제 데모는 화면 로컬 state.
-- **내부 컴포넌트**(모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ImageStripView`, `TimeSavedInput`.
+- **내부 컴포넌트**(모듈 레벨): `Chevron`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ImageStripView`, `TimeSavedInput`. 이미지 편집 캐러셀 `ImageCarouselInput`은 등록 폼과 공유하는 공용 컴포넌트(`src/components/ImageCarouselInput.tsx`, `MAX_IMAGES` 동봉).
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy` (admin)
 

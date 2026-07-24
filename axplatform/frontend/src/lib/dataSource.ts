@@ -139,7 +139,7 @@ export function getStatsByScope(scope: string[] | null) {
 export { monthTotal, COMPANY_NAME } from "../mocks/statsMockData";
 export type { SourceKey, StatCompany, MonthPoint } from "../mocks/statsMockData";
 
-// ===== 관리자 프로젝트 관리 =====
+// ===== 관리자 항목 관리 =====
 
 // 자산 SSOT(AssetItem) → 게시 항목 관리 표시 모델(ManagedAssetItem) 파생 매핑.
 // 별도 목업 사본을 두지 않고 getAssetItems()의 단일 소스에서 관리 화면 전용 필드로 투영한다.
