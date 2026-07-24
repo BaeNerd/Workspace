@@ -2,7 +2,7 @@
 // AdminDashboard 화면 고유 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // AdminDashboard(/admin)가 lib/dataSource.ts(getDashboardData)를 경유해
-// 이 한 곳을 참조한다. (구 AdminDashboard 내장 배열 이관 — 식별자명 유지.)
+// 이 한 곳을 참조한다.
 // 관계사 차원 통계·범위 집계 헬퍼는 statsMockData.ts에 있으며 dataSource가 합성한다.
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.

@@ -11,7 +11,7 @@ import { COLOR } from "../styles/tokens";
 const NAV_LINKS = [
   { label: "이용 가이드", path: "/guide" },
   { label: "AX 플랫폼", path: "/projects" },
-  { label: "AX 항목 등록", path: "/projects/new" },
+  { label: "AX 카드 등록", path: "/projects/new" },
 ];
 
 export default function Navbar() {

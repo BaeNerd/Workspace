@@ -159,7 +159,7 @@ export type ApprovalRecord = {
 - **`SummaryStrip`** — 상단 요약 스트립(2×2 필터 겸용 칩). `ReviewFilterKey = "전체" | "승인 대기" | "부분 승인" | "처리완료"`. 각 칩은 `baseItems` 기준 카운트를 보이고 클릭 시 `filter`를 전환. `부분 승인` 칩은 count > 0일 때 `관계사만 N · 전사만 N` 서브라인 표시.
 - **`SlotPill`** — 목록 행의 2분할 진행 필(왼쪽 관계사 / 오른쪽 전사). 슬롯이 승인되면 해당 반쪽이 초록 + `✓`.
 - **`SlotCard`** — 상세 패널의 슬롯별 병렬 카드 2장(`display: flex`). 각 카드는 `APPROVAL_SLOT_LABEL` + 상태 배지(승인 완료/대기) + `이 슬롯 승인` 버튼 또는 비활성 사유(`disabledReason`)를 렌더. **승인된 슬롯 + 본인 권한 + 게시 전(부분 승인)** 이면 `승인 취소` 버튼(confirm 1단계 → 슬롯 대기 복귀)을 추가로 렌더한다.
-- **`OwnerCompanyBadge`**(모듈 레벨) — 목록 행·상세 메타의 **등록 관계사 배지**. `ownerCompany` 표시명(`orgCompanyName`, 조직 SSOT 파생)을 TONE 토큰 칩으로 렌더. 관리자 화면 전용(사용자 화면 노출 금지, 0.5). AdminProjectManage에도 동명 컴포넌트로 동일 배치.
+- **`OwnerCompanyBadge`**(모듈 레벨) — 목록 행·상세 메타의 **등록 관계사 배지**. `ownerCompany` 표시명(`orgCompanyName`, 조직 SSOT 파생)을 디자인 토큰 칩으로 렌더. 관리자 화면 전용(사용자 화면 노출 금지, 0.5). AdminProjectManage에도 동명 컴포넌트로 동일 배치.
 - **승인 취소(`cancelSlot`)** — 게시 전(부분 승인) 한정. 자격 predicate는 승인과 동일(`canActCompanySlot`/`canActGlobalSlot`). 슬롯을 `{approved:false}`로 되돌리고 `deriveStage` 재판정(부분 승인 → 승인 대기), `approvalHistory`에 `action: "취소"` 기록. 게시 완료(2/2·종결) 건은 슬롯 영역(`!isTerminal`) 자체가 비노출이라 도달 불가(정정은 "중지" 경로). `ApprovalRecord.action`은 3종(`승인`/`반려`/`취소`).
 - **가시성 필터(판정 축 = `ownerCompany`)** — companyAdmin은 신청 등록 주체(`ownerCompany`)가 본인 `managedCompanies`에 포함된 건만 본다(노출 범위 `company`가 아니라 등록 주체가 판정 축 — 관계사 슬롯은 신청자 소속 관계사 관리자의 몫). admin은 전체. `visibleToUser`가 산출하는 `baseItems`에 요약 스트립·목록·카운트가 모두 정합. 빈 상태 문구도 companyAdmin이면 "담당 관계사의 승인 대기 신청이 없습니다".
 - **슬롯 행동 자격**:
@@ -275,7 +275,7 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 - **`components/ShareRedirect.tsx`** — 랜딩 외 모든 경로를 가로채 마운트 시 `showNotice()` + `<Navigate to="/" replace />` → "안내 표시 + 랜딩 유지"로 수렴.
 - **`components/SharePreviewBanner.tsx`** — 최상단 sticky 안내 바. `SHARE_BANNER_HEIGHT = 32`(Navbar sticky top 오프셋과 동일). 기본(파랑) / 안내 활성(앰버) 톤. `Navbar`는 `IS_SHARE_MODE`일 때 `top: SHARE_BANNER_HEIGHT`로 밀리고 **SSO 로그인 버튼 숨김**.
 - **Teams 버튼 비활성** — LandingPage `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 실제 Teams 열기 대신 `showNotice()`를 호출(비공유 모드에서는 `window.open(TEAMS_CHANNEL_URL)`).
-- **산출물**: `ax-landing-preview.html` — **현재 삭제됨.** 랜딩(`/`)이 외부 제작 콘텐츠로 **교체 완료**(Next.js 원본 포팅). 이제 `npm run build:share`로 재생성 가능. 새 랜딩은 로컬 에셋·로컬 폰트·CSS 애니메이션만 사용해 자기완결(외부 CDN 이미지/라이브러리 의존 없음 — 단 앱 전역 `index.html`의 Google Fonts CDN은 기존 유지). 공유 빌드 체계(`VITE_SHARE_MODE`·`vite-plugin-singlefile`·`ShareRedirect`·`SharePreviewBanner`)는 그대로 유지한다.
+- **산출물**: `ax-landing-preview.html` — 현재 저장소에 존재하지 않는다(공유용 단일 HTML 미보유가 현재 상태). 재생성은 `npm run build:share`로 수행하며, 실행 자체는 **백로그**다(부록 B "build:share 재생성 — Google Fonts 로컬화 판단 포함"). 랜딩(`/`)은 로컬 에셋·로컬 폰트·CSS 애니메이션만 사용해 자기완결이며(외부 CDN 이미지/라이브러리 의존 없음 — 단 앱 전역 `index.html`의 Google Fonts CDN은 유지), 공유 빌드 체계(`VITE_SHARE_MODE`·`vite-plugin-singlefile`·`ShareRedirect`·`SharePreviewBanner`)는 그대로 존치한다.
 
 ---
 
@@ -308,8 +308,8 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 
 ```
 axplatform/
-├── docker-compose.yml
-├── .env / .env.example
+├── docker-compose.yml       # 컨테이너·DB 명명은 axplatform 계열(舊 techhub — 마이그레이션 노트)
+├── .env / .env.example      # POSTGRES_DB=axplatform
 ├── STRUCTURE.md              ← 이 문서
 │
 ├── backend/
@@ -330,7 +330,7 @@ axplatform/
     ├── tsconfig*.json
     ├── .env.local            # VITE_API_URL=http://localhost:8000
     ├── .env.share            # VITE_SHARE_MODE=true (공유 빌드용)
-    │   # ax-landing-preview.html — 공유 빌드 산출물(현재 삭제, 랜딩 교체 후 재생성)
+    │   # ax-landing-preview.html — build:share 산출물(현재 저장소에 없음; 재생성은 백로그·부록 B)
     ├── dist-share/           # build:share outDir (.gitignore)
     └── src/
         ├── main.tsx
@@ -356,7 +356,7 @@ axplatform/
         │   ├── useInterests.ts         # ax_user_interests
         │   └── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
         ├── mocks/                       # 목업 SSOT 모듈군 — 페이지·훅은 직접 import 금지(lib/dataSource 경유)
-        │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백, 게시 항목 관리 파생 원천) — M1
+        │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백, 카드 관리 파생 원천) — M1
         │   ├── adminReviewMockData.ts  # 검토 대기 큐(INITIAL_ITEMS)
         │   ├── myStatusMockData.ts     # 내 신청(INITIAL_ITEMS)·내 후기(MOCK_MY_REVIEWS)
         │   ├── adminDashboardMockData.ts # 대시보드 화면 고유(승인 대기·최근 승인·게시 도구 수·후기 수)
@@ -428,7 +428,7 @@ axplatform/
 - **애니메이션(외부 라이브러리 0 — 전부 CSS 키프레임 + rAF/IntersectionObserver)**: `RotatingHeadline`(세로 롤 + 폭 전환), `NumberTicker`(스크롤 진입 시 rAF 카운트업), 카테고리 막대(IntersectionObserver → CSS `width` 전환, 100ms stagger), 배너 슬라이더(5s 자동전환 + prev/next), `BannerScene`(카테고리별 CSS 씬: `beam`/`orbit`/`list`/`terminal` — 원본 `category-backgrounds`의 경량 재현, 마스크 뒤 은은한 플러시).
 - **서체**: 헤더 `SB Aggro`(`--font-heading`) · 본문 `SCoreDream`(`--font-landing`) — `index.css`의 로컬 `@font-face`(외부 CDN 의존 없음, `public/fonts/`).
 - **에셋**(`_incoming-landing`에서 복사): `public/banner/`(6종) · `public/icons/icon_*·hk.png` · `public/cta/cta_kolling.png`. 카테고리→에셋 매핑은 `CAT_MEDIA`(구 6종 에셋 → 신 7 `CategoryId`, `etc`는 SVG 폴백).
-- **정합화**: **[M2] `LANDING_ITEMS`는 데이터 사본을 보유하지 않는다** — 노출할 항목 ID·순서만 `LANDING_ITEM_IDS`(표시 전용 큐레이션)로 남기고, 제목·요약·부서·좋아요·조회수·수정일·도메인 등 데이터 필드는 `dataSource.getAssetItem(id)`에서 파생한다(자산 SSOT와의 사본 드리프트 제거). 표시 전용 원본 에셋 매핑(`CAT_MEDIA` 등)은 프레젠테이션 정보로 페이지 잔류 / 운영 상태 표시·실행 URL·**항목 단위 관계사(그룹사) 표시 없음**(company 표시 제거) / **참여 관계사 로고 마퀴(`PartnerMarquee`)는 그룹 브랜딩 요소로 관계사 표시 폐기(0.5)의 대상이 아니며, 원본 소실(`_incoming-landing` 저장소 부재)로 원본 컴포넌트·로고 에셋 재확보가 필요해 별도 담당자가 복원 예정**(임의 창작 금지) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `noticeMockData`(단일 소스)를 `dataSource.getNotices` 경유로 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
+- **정합화**: **[M2] `LANDING_ITEMS`는 데이터 사본을 보유하지 않는다** — 노출할 카드 ID·순서만 `LANDING_ITEM_IDS`(표시 전용 큐레이션)로 남기고, 제목·요약·부서·좋아요·조회수·수정일·도메인 등 데이터 필드는 `dataSource.getAssetItem(id)`에서 파생한다(자산 SSOT와의 사본 드리프트 제거). 표시 전용 원본 에셋 매핑(`CAT_MEDIA` 등)은 프레젠테이션 정보로 페이지 잔류 / 운영 상태 표시·실행 URL·**카드 단위 관계사(그룹사) 표시 없음**(company 표시 제거) / **참여 관계사 로고 마퀴(`PartnerMarquee`)는 그룹 브랜딩 요소로 관계사 표시 폐기(0.5)의 대상이 아니며, 원본 소실(`_incoming-landing` 저장소 부재)로 원본 컴포넌트·로고 에셋 재확보가 필요해 별도 담당자가 복원 예정**(임의 창작 금지) / 링크는 실제 라우트(`/projects`·`?platform=`·`?domain=`·상세 경로)로 재연결 / **최신소식은 `noticeMockData`(단일 소스)를 `dataSource.getNotices` 경유로 참조**(옛 정적 `LATEST_NEWS` 제거, "더보기"·각 행 클릭은 `/notices?kind=`로 연결). **개인화 패널은 F2r에서 실연동**(스크랩 카운트·관심사 매칭 추천·알림 현황 블록·설정 퀵메뉴 — 위 [개인화 — 스크랩·관심사·알림] 참조).
 - **공유 모드**: `CtaBoxes`의 "문의 채널" 박스가 공유 모드에서 Teams 열기 대신 `showNotice()`로 대체(`IS_SHARE_MODE`).
 - **아이콘**: lucide/tabler 미사용 — 인라인 SVG 컴포넌트(`ArrowRight`·`SearchIco`·`HeartIco` 등).
 - **내부 컴포넌트**(모듈 레벨): `NumberTicker`, `RotatingHeadline`, `BannerScene`, `CatIcon`, `PromoAndPanel`, `QuickAction`, `IconHero`, `PlatformStatus`, `ItemCard`, `PopularItems`, `ItemsByDomain`, `LatestNewsAndTrending`, `CtaBoxes` + 인라인 SVG 아이콘 세트.
@@ -592,7 +592,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 | `ProtectedRoute.tsx` | 라우트 가드. `requireAdmin` + `allowCompanyAdmin`. |
 | `N8nFlowPreview.tsx` | SVG 기반 n8n 워크플로우 시각화. |
 | `WorkflowDiagram.tsx` | 워크플로우 다이어그램 시각화. |
-| `CardIdTag.tsx` | **항목 ID(0.3 체계) 공용 표시 태그**. 사용자 화면 카드·상세 공용(목록·랜딩·상세 헤더·내 현황). 등록 부서 왼쪽 고정(없으면 메타 줄 선두). TONE 토큰만·신규 hex 금지·선택 가능 텍스트. 단일 정의 — 지점별 개별 스타일 금지. |
+| `CardIdTag.tsx` | **카드 ID(0.3 체계) 공용 표시 태그**. 사용자 화면 카드·상세 공용(목록·랜딩·상세 헤더·내 현황). 등록 부서 왼쪽 고정(없으면 메타 줄 선두). 디자인 토큰만·신규 hex 금지·선택 가능 텍스트. 단일 정의 — 지점별 개별 스타일 금지. |
 | `ScrollToTop.tsx` | 라우트 변경 시 스크롤 최상단 이동. |
 
 ### ProtectedRoute 구현
@@ -644,7 +644,7 @@ AuthProvider
 | 타입/상수 | 설명 |
 |---|---|
 | `CategoryId` | `"n8n" \| "pa" \| "assistant" \| "ai-orchestration" \| "ml" \| "vibe" \| "etc"` (**7종**, 변경 금지) |
-| `ID_PREFIX` / `makeItemId` | 항목 ID 접두어 매핑(`N8N`/`PA`/`AST`/`AIO`/`ML`/`VIBE`/`ETC`) + `{PREFIX}-{YYYY}-{NNN}` 생성기 (아래 [항목 ID 체계] 참조) |
+| `ID_PREFIX` / `makeItemId` | 카드 ID 접두어 매핑(`N8N`/`PA`/`AST`/`AIO`/`ML`/`VIBE`/`ETC`) + `{PREFIX}-{YYYY}-{NNN}` 생성기 (아래 [카드 ID 체계] 참조) |
 | `ICON_PRESETS` | 아이콘 레지스트리 `Record<string, {label, path}>` (21종, `etc` 포함). AdminCategories 아이콘 선택 SSOT |
 | `IconKey` | `keyof typeof ICON_PRESETS` (사실상 string — CATEGORY_ICON_PATH 호환) |
 | `Category` | 카테고리 메타 (id, name, shortDesc, path, accessUrl, color, bg, icon) |
@@ -664,7 +664,7 @@ AuthProvider
 | `AssetItem` | AX 항목 공용 타입. `company?: string[]`, `ownerCompany?`(등록 주체 관계사 — 노출 범위와 별개 축, 관리자 배지·판정용), `createdAt?`("YYYY.MM.DD", ≤ `updatedAt`), `expectedTimeSaved?`, `domain?`, `usageMode?`, 카테고리별 전용 필드 포함 |
 | `CATEGORY_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키, ICON_PRESETS 기존 6종과 동일 path) |
 
-### 항목 ID 체계 (`ID_PREFIX` / `makeItemId`)
+### 카드 ID 체계 (`ID_PREFIX` / `makeItemId`)
 
 ```
 형식: {PREFIX}-{YYYY}-{NNN}   예: N8N-2026-001, AIO-2026-012, ETC-2026-001
@@ -826,7 +826,7 @@ localStorage 상태를 병합해 파생값을 만든다. **DEMO 전용** — 백
 ### PART A — 스크랩(북마크)
 
 - **토글 지점 3곳**: 상세 헤더(`AssetItemDetailPage`, 좋아요 옆 "스크랩" 버튼) · 목록 카드(`ProjectListPage`, 조회수·좋아요 옆 북마크 아이콘, 카드 클릭과 분리 위해 `stopPropagation`) · 랜딩 카드(`LandingPage` `ItemCard` 우상단 북마크).
-- **개인화 패널 실연동**: "내가 스크랩한 항목 N개" 행이 `useScraps().count`를 표시, 클릭 시 **`/projects?scrap=1`**(전용 목록 대신 목록 재사용 — 단순한 쪽 선택, 코드 주석 명시). ProjectListPage는 `scrapOnly` 상태(초기값만 URL `?scrap=1`에서 읽음, 이후 로컬 유지)로 필터하고 2행 필터바에 "스크랩 N" 토글 칩 + 스크랩 0건 빈 상태 안내를 둔다.
+- **개인화 패널 실연동**: "내가 스크랩한 카드 N개" 행이 `useScraps().count`를 표시, 클릭 시 **`/projects?scrap=1`**(전용 목록 대신 목록 재사용 — 단순한 쪽 선택, 코드 주석 명시). ProjectListPage는 `scrapOnly` 상태(초기값만 URL `?scrap=1`에서 읽음, 이후 로컬 유지)로 필터하고 2행 필터바에 "스크랩 N" 토글 칩 + 스크랩 0건 빈 상태 안내를 둔다.
 - **TODO(백엔드)**: `scraps` 테이블(`user_id`·`item_id`), 멱등 **PUT/DELETE `/api/v1/scraps/:itemId`**.
 
 ### PART B — 설정(관심사) `SettingsPage.tsx` (`/settings`, ProtectedRoute)
@@ -834,7 +834,7 @@ localStorage 상태를 병합해 파생값을 만든다. **DEMO 전용** — 백
 - **① 관심 카테고리**(`CATEGORIES` 7종 칩 다중 선택) + **② 관심 업무 도메인**(`BUSINESS_DOMAINS` 6종 칩 다중 선택). 폼 로컬 상태 → **저장 버튼**으로 `useInterests().save` 호출 → **저장 완료 인라인 피드백**.
 - **안내 문구**: "추후 개인 정보 항목이 추가될 수 있습니다. (프로필·알림 수신 설정 등)" + 파일 상단 **확장 지점 TODO**(프로필·알림 수신 설정·표시 환경).
 - **진입 경로**: 개인화 패널 퀵메뉴 "설정"(부활) + **Navbar 아바타 드롭다운 "설정"** 항목.
-- **추천 실연동**(패널): "나에게 추천하는 항목"을 **관심사 매칭**(관심 카테고리 **또는** 도메인 일치 항목을 `views`→`likes` 순 상위 `RECOMMEND_N=12`, `LandingPage.recommendItems`)으로 전환. **관심사 미설정 시** 기존 placeholder 대신 "관심사를 설정하면 맞춤 추천을 받아요" 문구 + `/settings` 유도.
+- **추천 실연동**(패널): "나에게 추천하는 카드"를 **관심사 매칭**(관심 카테고리 **또는** 도메인 일치 항목을 `views`→`likes` 순 상위 `RECOMMEND_N=12`, `LandingPage.recommendItems`)으로 전환. **관심사 미설정 시** 기존 placeholder 대신 "관심사를 설정하면 맞춤 추천을 받아요" 문구 + `/settings` 유도.
 - **TODO(백엔드)**: **PUT `/api/v1/me/interests`** 저장 + 추천 API(`GET /api/v1/me/recommendations`).
 
 ### PART C — 알림

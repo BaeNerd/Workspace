@@ -457,7 +457,7 @@ export default function AdminUsers() {
                   )}
                 </div>
                 <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
-                  <strong>운영 유의사항</strong><br />전사 관리자는 전체 AX 플랫폼 항목을 승인·관리합니다. 관계사 관리자는 담당 관계사 범위만 승인·관리합니다. 전사 관리자는 최소 1명 유지되어야 하며, 본인 계정은 스스로 회수할 수 없습니다.
+                  <strong>운영 유의사항</strong><br />전사 관리자는 전체 AX 플랫폼 카드를 승인·관리합니다. 관계사 관리자는 담당 관계사 범위만 승인·관리합니다. 전사 관리자는 최소 1명 유지되어야 하며, 본인 계정은 스스로 회수할 수 없습니다.
                 </div>
               </div>
             </div>
@@ -468,7 +468,7 @@ export default function AdminUsers() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20, alignItems: "start" }}>
               <div>
                 <div style={{ background: "#F3E8FF", border: "1px solid #E9D5FF", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12, color: "#6D28D9", lineHeight: 1.7 }}>
-                  이 권한을 가진 사용자는 비노출 관계사의 항목도 AX 플랫폼 전 영역에서 조회할 수 있습니다. 관리자 권한과는 별개이며, 일반 사용자에게도 부여할 수 있습니다.
+                  이 권한을 가진 사용자는 비노출 관계사의 카드도 AX 플랫폼 전 영역에서 조회할 수 있습니다. 관리자 권한과는 별개이며, 일반 사용자에게도 부여할 수 있습니다.
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -574,7 +574,7 @@ export default function AdminUsers() {
                 </div>
 
                 <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
-                  <strong>운영 유의사항</strong><br />그룹 전체보기는 조회 전용 권한입니다. 항목 승인·관리 권한은 별도로 관리자 권한을 부여해야 합니다.
+                  <strong>운영 유의사항</strong><br />그룹 전체보기는 조회 전용 권한입니다. 카드 승인·관리 권한은 별도로 관리자 권한을 부여해야 합니다.
                 </div>
               </div>
             </div>
@@ -586,7 +586,7 @@ export default function AdminUsers() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.text }}>등록 이력자 <span style={{ fontSize: 13, color: COLOR.text3, fontWeight: 500 }}>{getRegistrants().length}명</span></div>
-                  <div style={{ fontSize: 11, color: COLOR.text3, marginTop: 3 }}>AX 플랫폼 항목(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
+                  <div style={{ fontSize: 11, color: COLOR.text3, marginTop: 3 }}>AX 플랫폼 카드(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe Coding · AI 프로젝트) 등록 이력을 통합 집계합니다.</div>
                 </div>
                 <input value={regSearch} onChange={e => setRegSearch(e.target.value)} placeholder="이름, 부서 검색" style={{ ...inputStyle, width: 220, fontSize: 12 }} />
               </div>

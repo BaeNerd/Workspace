@@ -116,7 +116,7 @@ export default function AssetItemDetailPage() {
   if (!item || !category) {
     return (
       <div style={{ padding: 60, textAlign: "center", color: COLOR.text3 }}>
-        항목을 찾을 수 없습니다. (id: {itemId})
+        카드를 찾을 수 없습니다. (id: {itemId})
       </div>
     );
   }
@@ -365,7 +365,7 @@ export default function AssetItemDetailPage() {
                   <textarea
                     value={reviewText}
                     onChange={e => setReviewText(e.target.value)}
-                    placeholder="이 항목을 활용한 경험을 공유해 주세요."
+                    placeholder="이 카드를 활용한 경험을 공유해 주세요."
                     style={{
                       width: "100%", boxSizing: "border-box", minHeight: 68,
                       padding: "10px 12px", fontSize: 13, color: COLOR.text,

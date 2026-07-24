@@ -63,7 +63,7 @@ function ParallelApprovalIndicator({ slots, stage }: { slots: ApprovalSlots; sta
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, padding: "10px 14px", background: STAGE_CONFIG[stage].bg, borderRadius: 8 }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: STAGE_CONFIG[stage].dot, flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 700, color: STAGE_CONFIG[stage].fg }}>
-          {stage === "반려" ? "승인이 반려되었습니다." : "항목이 중지되었습니다."}
+          {stage === "반려" ? "승인이 반려되었습니다." : "카드가 중지되었습니다."}
         </span>
       </div>
     );
@@ -311,7 +311,7 @@ export default function MyStatusPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px 16px", fontSize: 12 }}>
                       <span style={{ color: COLOR.text3, fontWeight: 600 }}>카테고리</span>
                       <span style={{ color: COLOR.text2 }}>{categoryMeta?.name ?? item.kind}</span>
-                      <span style={{ color: COLOR.text3, fontWeight: 600 }}>항목 ID</span>
+                      <span style={{ color: COLOR.text3, fontWeight: 600 }}>카드 ID</span>
                       <span style={{ color: COLOR.text2, fontFamily: "var(--font-mono)" }}>{item.id}</span>
                       {item.kind === "n8n" && item.difficulty && (
                         <><span style={{ color: COLOR.text3, fontWeight: 600 }}>구성 난이도</span><span style={{ color: COLOR.text2 }}>{item.difficulty}</span></>

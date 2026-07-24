@@ -505,7 +505,7 @@ export default function EditRequestPage() {
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "20px 32px" }}>
         <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>수정 요청</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>게시된 AX 항목 수정 요청</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>게시된 AX 카드 수정 요청</h1>
           <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>변경할 내용을 반영해 제출하면 관리자 검토 후 게시본에 적용됩니다.</p>
         </div>
       </div>
@@ -527,7 +527,7 @@ export default function EditRequestPage() {
             }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: COLOR.text2 }}>{current.id}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: kindMeta?.color ?? COLOR.text2 }}>{kindLabel}</span>
-              <span style={{ fontSize: 12, color: COLOR.text2 }}>항목을 수정합니다</span>
+              <span style={{ fontSize: 12, color: COLOR.text2 }}>카드를 수정합니다</span>
             </div>
 
             {/* --- 공통 기본 정보 --- */}
@@ -537,13 +537,13 @@ export default function EditRequestPage() {
               </Field>
               <Field label="제목" required>
                 <input value={form.title} onChange={e => set("title", e.target.value)}
-                  placeholder="항목 제목" style={inputStyle}
+                  placeholder="카드 제목" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = COLOR.primary)}
                   onBlur={e => (e.target.style.borderColor = COLOR.border)} />
               </Field>
               <Field label="한 줄 요약" required>
                 <input value={form.summary} onChange={e => set("summary", e.target.value)}
-                  placeholder="이 항목이 무엇을 하는지 한 문장으로 설명하세요"
+                  placeholder="이 카드가 무엇을 하는지 한 문장으로 설명하세요"
                   style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = COLOR.primary)}
                   onBlur={e => (e.target.style.borderColor = COLOR.border)} />
@@ -558,7 +558,7 @@ export default function EditRequestPage() {
 
               <SubHeading />
 
-              <Field label="업무 도메인" hint="이 항목이 주로 활용되는 업무 영역을 선택하세요.">
+              <Field label="업무 도메인" hint="이 카드가 주로 활용되는 업무 영역을 선택하세요.">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {BUSINESS_DOMAINS.map(d => (
                     <Tag key={d} label={d} selected={form.domain === d} onClick={() => set("domain", form.domain === d ? "" : d as BusinessDomain)} />

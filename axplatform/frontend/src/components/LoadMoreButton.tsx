@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { COLOR } from "../styles/tokens";
 
 // 성장형 목록 공용 "더보기" 버튼 — 남은 건수를 표기하고, 전량 노출(remaining<=0) 시 렌더하지 않는다.
-// useVisibleCount와 짝을 이루는 표시 단일 소스. 색은 TONE 토큰만 사용.
+// useVisibleCount와 짝을 이루는 표시 단일 소스. 색은 styles/tokens.ts 토큰만 사용.
 type Props = { remaining: number; onClick: () => void };
 
 export default function LoadMoreButton({ remaining, onClick }: Props) {

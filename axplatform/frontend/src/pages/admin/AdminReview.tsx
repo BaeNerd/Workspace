@@ -583,7 +583,7 @@ export default function AdminReview() {
           {/* ===== 우측: 상세 검토 패널 ===== */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
             {!merged ? (
-              <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3 }}>검토할 항목을 선택하세요.</div>
+              <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3 }}>검토할 카드를 선택하세요.</div>
             ) : (
               <div style={{ maxWidth: 720 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -619,7 +619,7 @@ export default function AdminReview() {
 
                 {isTerminal && stage && (
                   <div style={{ background: stage === "게시됨" ? "#D1FAE5" : "#FEE2E2", border: `1px solid ${stage === "게시됨" ? "#6EE7B7" : "#FECACA"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, fontWeight: 600, color: stage === "게시됨" ? "#065F46" : "#991B1B" }}>
-                    이 항목은 {APPROVAL_STAGE_STYLE[stage].label} 처리되었습니다.
+                    이 카드는 {APPROVAL_STAGE_STYLE[stage].label} 처리되었습니다.
                     {stage === "반려" && merged.rejectionReason && ` (사유: ${merged.rejectionReason})`}
                   </div>
                 )}
@@ -819,7 +819,7 @@ export default function AdminReview() {
                         </button>
                       ) : (
                         <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "14px 16px" }}>
-                          <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수) — 어느 슬롯이든 반려 시 항목이 종결됩니다.</label>
+                          <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "block", marginBottom: 8 }}>반려 사유 (필수) — 어느 슬롯이든 반려 시 카드가 종결됩니다.</label>
                           <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="반려 사유를 입력하세요. 신청자에게 그대로 전달됩니다." style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }} />
                           <div style={{ display: "flex", gap: 8 }}>
                             <button onClick={handleReject} disabled={!rejectReason.trim()} style={{ background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: rejectReason.trim() ? "pointer" : "not-allowed" }}>
@@ -833,7 +833,7 @@ export default function AdminReview() {
                       )
                     ) : (
                       <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 12, color: COLOR.text2 }}>
-                        이 항목에 대한 승인 권한이 없습니다.
+                        이 카드에 대한 승인 권한이 없습니다.
                       </div>
                     )}
                   </div>

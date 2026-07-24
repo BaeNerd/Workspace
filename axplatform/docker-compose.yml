@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: techhub_db
+    container_name: axplatform_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: techhub
+      POSTGRES_DB: axplatform
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
@@ -14,7 +14,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: techhub_backend
+    container_name: axplatform_backend
     restart: unless-stopped
     env_file: .env
     ports:

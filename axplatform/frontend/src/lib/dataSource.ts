@@ -139,9 +139,9 @@ export function getStatsByScope(scope: string[] | null) {
 export { monthTotal, COMPANY_NAME } from "../mocks/statsMockData";
 export type { SourceKey, StatCompany, MonthPoint } from "../mocks/statsMockData";
 
-// ===== 관리자 항목 관리 =====
+// ===== 관리자 카드 관리 =====
 
-// 자산 SSOT(AssetItem) → 게시 항목 관리 표시 모델(ManagedAssetItem) 파생 매핑.
+// 자산 SSOT(AssetItem) → 카드 관리 표시 모델(ManagedAssetItem) 파생 매핑.
 // 별도 목업 사본을 두지 않고 getAssetItems()의 단일 소스에서 관리 화면 전용 필드로 투영한다.
 // (owner/ownerEmail → 담당자 1인·신청자 이메일, tags 배열 → 쉼표 문자열, workflowDef → workflowInput 등)
 // ⚠️ 실제 연동 시 이 데모 파생 매퍼는 폐기하고 admin 전용 응답을 그대로 사용한다(아래 getManagedAssetItems 참조).

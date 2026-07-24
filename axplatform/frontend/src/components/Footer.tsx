@@ -10,7 +10,7 @@ export default function Footer() {
         <span style={{ fontSize: 11, color: "#b7b9bd" }}>AX Platform</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* 구 '서비스 소개' 링크는 USR-02 소개 화면 폐지(2026-07)와 함께 제거. */}
+        {/* '서비스 소개' 링크는 가이드(USR-09)로 통합되어 별도 노출 없음. */}
         <div style={{ fontSize: 11, color: "#b7b9bd" }}>사내 전용 플랫폼 · 외부 접근 불가</div>
       </div>
     </footer>

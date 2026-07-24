@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { COLOR } from "../styles/tokens";
 
-// 첨부 사진 최대 장수 — 등록 폼·게시 항목 관리 편집이 공유하는 단일 상한.
+// 첨부 사진 최대 장수 — 등록 폼·카드 관리 편집이 공유하는 단일 상한.
 export const MAX_IMAGES = 10;
 
 // 사진 업로드 + 좌우 캐러셀 미리보기 (모듈 레벨 — 리렌더 시 포커스 손실 방지).
-// 등록 폼(ProjectRegisterPage)과 게시 항목 관리(AdminProjectManage) 편집 모드가 공유해
+// 등록 폼(ProjectRegisterPage)과 카드 관리(AdminProjectManage) 편집 모드가 공유해
 // "편집 필드는 등록 폼과 동일" 원칙을 구조적으로 보장한다.
 // 데모 단계에서는 FileReader data URL로 미리보기만 유지한다.
 // TODO: 실제 연동 시 이미지 스토리지 업로드(POST /api/v1/platform-items/:id/images)로 교체.

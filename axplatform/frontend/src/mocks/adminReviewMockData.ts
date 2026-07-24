@@ -2,7 +2,7 @@
 // AdminReview 검토 대기 큐 공용 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // AdminReview(/admin/review)가 lib/dataSource.ts(getReviewQueue)를 경유해
-// 이 한 곳을 참조한다. (구 AdminReview.INITIAL_ITEMS 이관 — 식별자명 유지.)
+// 이 한 곳을 참조한다.
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/admin/review-queue — INITIAL_ITEMS (검토 대기 큐)

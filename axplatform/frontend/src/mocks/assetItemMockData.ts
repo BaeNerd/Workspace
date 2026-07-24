@@ -2,9 +2,8 @@
 // 자산 항목 공용 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // ProjectListPage(목록)·LandingPage(카운트)·AssetItemDetailPage(상세)가
-// lib/dataSource.ts를 경유해 이 한 곳을 참조한다. (페이지→페이지 import 해소.
-// 구 ProjectListPage.MOCK_ASSET_ITEMS + AssetItemDetailPage.MOCK_ITEMS 통합 —
-// MOCK_ITEMS 이름은 퇴역, 통합 배열명은 MOCK_ASSET_ITEMS로 유지.)
+// lib/dataSource.ts를 경유해 이 한 곳을 참조한다. (페이지→페이지 import를 피하기 위한
+// 단일 소스. 배열명은 MOCK_ASSET_ITEMS.)
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/platform-items              — MOCK_ASSET_ITEMS (목록/카운트)
@@ -12,10 +11,10 @@
 //   GET /api/v1/platform-items/:id/reviews  — MOCK_REVIEWS_BY_ITEM
 //   GET /api/v1/platform-items/:id/posts    — MOCK_POSTS_BY_ITEM
 //
-// ── 통합 시 필드 충돌 기준(왜 상세 값인가) ──
-// 두 사본이 어긋난 필드는 상세(detail)를 SSOT로 채택했다:
+// ── 필드 충돌 기준(왜 상세 값인가) ──
+// 두 사본이 어긋나는 필드는 상세(detail)를 SSOT로 삼는다:
 //  (a) 드리프트(views·summary·mlType·tags·likes·outputType) — 상세가 최신·완전.
-//  (b) modelMeta(11건) — 상세가 목록의 상위집합, 무손실 흡수(목록 표시 불변).
+//  (b) modelMeta(11건) — 상세가 목록의 상위집합이라 무손실(목록 표시 불변).
 //  (c) specificUrl — 항목 URL 폐기 정책(기획설명서 0.5)에 따라 AI Model(AIO)만
 //      보존, 그 외 전 항목은 목록·상세 값 모두 폐기(공백). 정책 집행 예외.
 // ============================================================

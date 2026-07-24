@@ -2,7 +2,6 @@
 // AdminTaxonomy 분류체계·자유 태그 공용 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // AdminTaxonomy(/admin/taxonomy)가 lib/dataSource.ts를 경유해 이 한 곳을 참조한다.
-// (구 AdminTaxonomy 내장 배열 이관 — 식별자명 유지.)
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/admin/taxonomy?scope=platform  — INITIAL_CATEGORY_TAXONOMY

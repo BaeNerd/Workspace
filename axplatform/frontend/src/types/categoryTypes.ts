@@ -100,8 +100,8 @@ export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "
 export type BusinessDomain = typeof BUSINESS_DOMAINS[number];
 
 // ===== ML 모델 유형 (공유 상수 · 단일 소스) =====
-// 분류 마스터(AdminTaxonomy mlTypes)·등록 폼(ProjectRegisterPage)·게시 항목 관리(AdminProjectManage)가
-// 모두 이 한 상수를 참조한다. 라벨 쌍은 "이미지 인식"·"NLP / 텍스트"를 채택하고, 등록 폼 전용이던 "기타"를 편입.
+// 분류 마스터(AdminTaxonomy mlTypes)·등록 폼(ProjectRegisterPage)·카드 관리(AdminProjectManage)가
+// 모두 이 한 상수를 참조한다. 라벨 쌍은 "이미지 인식"·"NLP / 텍스트"이며 "기타" 포함.
 // SSOT(assetItemMockData)의 mlType 값은 전부 이 목록에 정확히 일치해야 한다.
 export const ML_TYPES = [
   "분류 (Classification)", "회귀 (Regression)", "클러스터링", "NLP / 텍스트", "이미지 인식",
@@ -137,7 +137,7 @@ export type AssetItem = {
   company?: string[];
 
   // 등록 주체(신청자)의 소속 관계사 코드 — 노출 범위(company)와 별개 축(ADM-02).
-  // 관리자 화면(검토 큐·게시 항목 관리)의 "등록 관계사" 배지·companyAdmin 판정용.
+  // 관리자 화면(검토 큐·카드 관리)의 "등록 관계사" 배지·companyAdmin 판정용.
   // 사용자 화면에는 노출하지 않는다(0.5). company 보유 항목은 그 첫 요소와 정합.
   ownerCompany?: string;
 

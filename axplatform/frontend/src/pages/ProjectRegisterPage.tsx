@@ -437,7 +437,7 @@ export default function ProjectRegisterPage() {
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "20px 32px" }}>
         <div style={{ maxWidth: FORM_MAX_WIDTH, margin: "0 auto" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>등록</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>신규 항목 등록 신청</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>신규 카드 등록 신청</h1>
           <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>작성 완료 후 관리자 검토를 거쳐 AX Platform에 게시됩니다.</p>
         </div>
       </div>
@@ -467,7 +467,7 @@ export default function ProjectRegisterPage() {
 
         {/* ===== STEP 0 — 유형 선택 ===== */}
         {step === 0 && (
-          <Section title="등록할 항목의 유형을 선택하세요">
+          <Section title="등록할 카드의 유형을 선택하세요">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {visibleKindOptions.map(opt => (
                 <div key={opt.key} onClick={() => setKind(opt.key)} style={{
@@ -521,7 +521,7 @@ export default function ProjectRegisterPage() {
               </Field>
               <Field label="한 줄 요약" required>
                 <input value={form.summary} onChange={e => set("summary", e.target.value)}
-                  placeholder="이 항목이 무엇을 하는지 한 문장으로 설명하세요"
+                  placeholder="이 카드가 무엇을 하는지 한 문장으로 설명하세요"
                   style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = COLOR.primary)}
                   onBlur={e => (e.target.style.borderColor = COLOR.border)} />
@@ -536,7 +536,7 @@ export default function ProjectRegisterPage() {
 
               <SubHeading />
 
-              <Field label="업무 도메인" hint="이 항목이 주로 활용되는 업무 영역을 선택하세요.">
+              <Field label="업무 도메인" hint="이 카드가 주로 활용되는 업무 영역을 선택하세요.">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {BUSINESS_DOMAINS.map(d => (
                     <Tag key={d} label={d} selected={form.domain === d} onClick={() => set("domain", form.domain === d ? "" : d as BusinessDomain)} />

@@ -2,8 +2,7 @@
 // MyStatusPage 내 신청·내 후기 공용 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // MyStatusPage(/my-status)가 lib/dataSource.ts(getMyApplications·getMyReviews)를
-// 경유해 이 한 곳을 참조한다. (구 MyStatusPage.INITIAL_ITEMS·MOCK_MY_REVIEWS 이관 —
-// 식별자명 유지.)
+// 경유해 이 한 곳을 참조한다.
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/projects/mine — INITIAL_ITEMS (내 신청)

@@ -338,7 +338,7 @@ export default function AdminCategories() {
                   <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>이 도구를 삭제하시겠습니까?</div>
                     <div style={{ fontSize: 12, color: COLOR.text2, marginBottom: 12, lineHeight: 1.6 }}>
-                      이미 이 도구로 등록된 항목이 있으면 출처 표시가 깨질 수 있습니다. 삭제 대신 비활성화를 권장합니다.
+                      이미 이 도구로 등록된 카드가 있으면 출처 표시가 깨질 수 있습니다. 삭제 대신 비활성화를 권장합니다.
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
@@ -386,7 +386,7 @@ export default function AdminCategories() {
 
                 {/* ===== 경로·연결 ===== */}
                 <SectionBlock title="경로 · 연결">
-                  <FieldRow label="라우트 경로" hint="'/'로 시작. 항목 상세 페이지 경로의 접두사로 사용">
+                  <FieldRow label="라우트 경로" hint="'/'로 시작. 카드 상세 페이지 경로의 접두사로 사용">
                     {isEditing
                       ? <input value={displayData.path} onChange={e => setF("path", e.target.value)} placeholder="예: /n8n" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
                       : <div style={{ fontSize: 13, color: COLOR.text2, fontFamily: "var(--font-mono)" }}>{displayData.path}</div>}
@@ -481,7 +481,7 @@ export default function AdminCategories() {
                         {displayData.active ? "활성 (노출 중)" : "비활성 (숨김)"}
                       </div>
                       <div style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.5 }}>
-                        비활성 도구는 등록·탐색 화면의 출처 선택지에서 숨겨집니다. 기존 등록 항목은 유지됩니다.
+                        비활성 도구는 등록·탐색 화면의 출처 선택지에서 숨겨집니다. 기존 등록 카드는 유지됩니다.
                       </div>
                     </div>
                     <span style={{

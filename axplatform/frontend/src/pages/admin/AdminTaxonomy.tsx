@@ -9,7 +9,7 @@ import { useVisibleCount } from "../../hooks/useVisibleCount";
 import LoadMoreButton from "../../components/LoadMoreButton";
 
 // ===== 타입 정의 =====
-// 분류체계·자유 태그 목업 데이터는 mocks/adminTaxonomyMockData로 이관됨. 타입은 소비처에 잔류.
+// 분류체계·자유 태그 목업 데이터는 mocks/adminTaxonomyMockData에 있다. 타입은 소비처에 둔다.
 export type Category = {
   label: string; desc: string; type: "single" | "multi";
   items?: string[];
@@ -212,7 +212,7 @@ export default function AdminTaxonomy() {
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>분류체계 관리</h1>
-              <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
+              <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼 카드(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
             </div>
             {savedMsg && (
               <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#065F46" }}>
@@ -257,7 +257,7 @@ export default function AdminTaxonomy() {
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.text }}>{cat.label}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: "#F3E8FF", color: "#7E22CE", padding: "2px 8px", borderRadius: 20 }}>AX 플랫폼 항목 전용</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, background: "#F3E8FF", color: "#7E22CE", padding: "2px 8px", borderRadius: 20 }}>AX 플랫폼 카드 전용</span>
                     </div>
                     <div style={{ fontSize: 12, color: COLOR.text2 }}>{cat.desc}</div>
                   </div>
@@ -280,7 +280,7 @@ export default function AdminTaxonomy() {
                   <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${COLOR.bgSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.text, marginBottom: 4 }}>자유 태그 누적 목록</div>
-                      <div style={{ fontSize: 12, color: COLOR.text2 }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
+                      <div style={{ fontSize: 12, color: COLOR.text2 }}>사용자가 AX 플랫폼 카드 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
                     </div>
                     {selectedFreeTags.length > 0 && (
                       <button onClick={() => handleFreeTagDelete(selectedFreeTags)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>선택 삭제 ({selectedFreeTags.length})</button>
@@ -321,7 +321,7 @@ export default function AdminTaxonomy() {
                                 <span style={{ fontSize: 10, fontWeight: 700, background: COLOR.bgSubtle, color: COLOR.text2, padding: "1px 7px", borderRadius: 20 }}>사용 {t.count}건</span>
                               </div>
                               <div style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.6 }}>
-                                제안자: <strong style={{ color: COLOR.text2 }}>{t.proposedBy}</strong> ({t.dept}) · 사용 항목: {freeTagContext(t)}
+                                제안자: <strong style={{ color: COLOR.text2 }}>{t.proposedBy}</strong> ({t.dept}) · 사용 카드: {freeTagContext(t)}
                               </div>
                             </div>
                             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -374,7 +374,7 @@ export default function AdminTaxonomy() {
 
               <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
                 <strong>운영 유의사항</strong><br />
-                고정 분류 항목(업무 도메인, 구성 난이도, 비용 등급, ML 모델 유형)을 삭제하면 해당 분류가 지정된 기존 항목은 공란으로 처리될 수 있습니다. 삭제 전 사용 중인 항목 수를 확인하세요.
+                고정 분류 항목(업무 도메인, 구성 난이도, 비용 등급, ML 모델 유형)을 삭제하면 해당 분류가 지정된 기존 카드는 공란으로 처리될 수 있습니다. 삭제 전 사용 중인 카드 수를 확인하세요.
               </div>
             </div>
           </div>

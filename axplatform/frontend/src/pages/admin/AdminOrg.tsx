@@ -8,7 +8,7 @@ import { TEAMS_CHANNEL_URL as DEFAULT_TEAMS_CHANNEL_URL } from "../../config/ope
 import { getCompanyAdmins, getOrgCompanies, getOrgDepts, getAssetItemRefs, getTeamsSyncSource } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
 
-// 조직 목업 데이터는 mocks/adminOrgMockData로 이관됨. 타입은 소비처(페이지)에 잔류하고
+// 조직 목업 데이터는 mocks/adminOrgMockData에 있다. 타입은 소비처(페이지)에 두고
 // mocks·dataSource가 이를 참조한다.
 export type Company = { code: string; name: string; visible: boolean };
 
@@ -16,7 +16,7 @@ export type Company = { code: string; name: string; visible: boolean };
 type DeptSource = "manual" | "teams" | "merged";
 export type Dept = { id: number; name: string; parent: string | null; company: string; projectCount: number; source: DeptSource };
 
-// ★ AssetItem 관계사 집계용 최소 타입 (목업 데이터는 mocks/adminOrgMockData로 이관)
+// ★ AssetItem 관계사 집계용 최소 타입 (목업 데이터는 mocks/adminOrgMockData)
 export type AssetItemRef = { id: string; company: string[] };
 
 const companyWideAssetItemCount = getAssetItemRefs().filter(p => p.company.length === 0).length;
@@ -29,7 +29,7 @@ const NO_PARENT = "본부 없음 (관계사 직속)";
 // 부서 고유 식별 키 — company + parent + name 조합. 동명이라도 관계사·본부가 다르면 별개로 취급.
 const deptKey = (company: string, parent: string | null, name: string) => `${company}::${parent ?? "_"}::${name}`;
 
-// Teams 동기화 원천 데이터(목업)는 mocks/adminOrgMockData로 이관됨(getTeamsSyncSource).
+// Teams 동기화 원천 데이터(목업)는 mocks/adminOrgMockData에 있다(getTeamsSyncSource).
 
 const ACTION_STYLE: Record<string, { bg: string; color: string }> = {
   "추가": { bg: "#D1FAE5", color: "#065F46" },
@@ -205,7 +205,7 @@ function DeptRow({
       ) : isDelete ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
           <span style={{ flex: 1, fontSize: 13, color: "#991B1B", fontWeight: 600 }}>{dept.name} — 삭제하시겠습니까?</span>
-          {dept.projectCount > 0 && <span style={{ fontSize: 11, color: "#EF4444" }}>AX 항목 {dept.projectCount}건에 태깅됨</span>}
+          {dept.projectCount > 0 && <span style={{ fontSize: 11, color: "#EF4444" }}>AX 카드 {dept.projectCount}건에 태깅됨</span>}
           <button onClick={onConfirmDelete} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>삭제</button>
           <button onClick={onCancelDelete} style={{ background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
         </div>
@@ -221,7 +221,7 @@ function DeptRow({
                 <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, padding: "1px 7px", borderRadius: 20 }}>{badge.label}</span>
               )}
             </div>
-            <span style={{ fontSize: 11, color: COLOR.text3 }}>AX 항목 {dept.projectCount}건</span>
+            <span style={{ fontSize: 11, color: COLOR.text3 }}>AX 카드 {dept.projectCount}건</span>
           </div>
           <button onClick={onStartEdit} style={{ background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>수정</button>
           <button onClick={onAskDelete} style={{ background: "#fff", border: "1px solid #FECACA", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
@@ -450,14 +450,14 @@ export default function AdminOrg() {
                 노출 {visibleCount} / 전체 {companies.length}
               </span>
               <span style={{ fontSize: 11, fontWeight: 700, background: "#F5F3FF", color: "#6D28D9", padding: "2px 9px", borderRadius: 20 }}>
-                전사 공용 자동화·AI 도구 항목 {companyWideAssetItemCount}건 (모든 관계사 영향)
+                전사 공용 자동화·AI 도구 카드 {companyWideAssetItemCount}건 (모든 관계사 영향)
               </span>
             </div>
 
             <div style={{ marginLeft: 28, background: COLOR.primaryWeak, border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "#1E40AF", lineHeight: 1.6 }}>
               비노출 처리된 관계사는 해당 관계사 소속이 아닌 일반 사용자에게 AX Platform 목록·필터·통계에서 보이지 않습니다.
               단, <strong>"그룹 전체보기" 권한</strong>을 가진 사용자(사용자 관리에서 부여)는 비노출 관계사도 모두 조회·필터링할 수 있습니다.
-              목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Model 항목 수입니다(전사 공용 항목 포함).
+              목록의 <strong>자동화·AI 도구 N</strong> 배지는 해당 관계사를 대상으로 하는 n8n·나만의 비서·AI Model 카드 수입니다(전사 공용 카드 포함).
             </div>
 
             <div style={{ maxWidth: 420, marginLeft: 28 }}>
@@ -511,7 +511,7 @@ export default function AdminOrg() {
               </div>
 
               <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: COLOR.text2, lineHeight: 1.6 }}>
-                각 부서의 "AX 항목 N건" 카운트는 해당 부서에 태깅된 AX 플랫폼 등록물 수입니다. 관계사 전체 집계는 위 <strong>섹션 1</strong>의 "자동화·AI 도구 N" 배지에서 확인할 수 있습니다.
+                각 부서의 "AX 카드 N건" 카운트는 해당 부서에 태깅된 AX 플랫폼 등록물 수입니다. 관계사 전체 집계는 위 <strong>섹션 1</strong>의 "자동화·AI 도구 N" 배지에서 확인할 수 있습니다.
               </div>
 
               {companiesWithDepts.length === 0 ? (
@@ -614,7 +614,7 @@ export default function AdminOrg() {
                         { label: "동기화 주기", value: autoSync ? apiConfig.syncInterval : "수동" },
                         { label: "Teams 연동 부서", value: `${teamsLinkedCount}개` },
                         { label: "관계사 노출 현황", value: `${visibleCount} / ${companies.length}개 노출` },
-                        { label: "자동화·AI 도구 항목 총 개수", value: `${getAssetItemRefs().length}건 (전사 공용 ${companyWideAssetItemCount}건 포함)` },
+                        { label: "자동화·AI 도구 카드 총 개수", value: `${getAssetItemRefs().length}건 (전사 공용 ${companyWideAssetItemCount}건 포함)` },
                       ].map((r, i) => (
                         <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${COLOR.bgSubtle}`, fontSize: 12 }}>
                           <span style={{ color: COLOR.text3, fontWeight: 600 }}>{r.label}</span>
@@ -725,7 +725,7 @@ export default function AdminOrg() {
               <span style={{ fontSize: 10, fontWeight: 700, color: COLOR.text2, background: COLOR.bgSubtle, padding: "2px 8px", borderRadius: 20 }}>읽기 전용</span>
             </div>
             <p style={{ fontSize: 12, color: COLOR.text2, margin: "0 0 12px 28px", lineHeight: 1.6 }}>
-              각 관계사의 등록 신청을 관계사 관리자 승인·반려할 수 있는 CompanyAdmin 현황입니다. 지정된 계정은 관계사 범위의 AX 항목 목록도 관리할 수 있습니다.
+              각 관계사의 등록 신청을 관계사 관리자 승인·반려할 수 있는 CompanyAdmin 현황입니다. 지정된 계정은 관계사 범위의 AX 카드 목록도 관리할 수 있습니다.
             </p>
             <div style={{ marginLeft: 28, marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: COLOR.primaryWeak, border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px" }}>
               <span style={{ fontSize: 12, color: "#1E40AF", lineHeight: 1.6, flex: 1, minWidth: 200 }}>
@@ -824,8 +824,8 @@ export default function AdminOrg() {
 
           <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 16px", marginTop: 20, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
             <strong>운영 유의사항</strong><br />
-            관계사를 비노출로 전환해도 기존에 등록된 AX 플랫폼 항목 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
-            부서 삭제 시 해당 부서에 태깅된 AX 항목이 있다면 영향 범위를 사전에 확인하세요.
+            관계사를 비노출로 전환해도 기존에 등록된 AX 플랫폼 카드 데이터는 삭제되지 않습니다. 그룹 전체보기 권한자에게는 계속 조회됩니다.
+            부서 삭제 시 해당 부서에 태깅된 AX 카드가 있다면 영향 범위를 사전에 확인하세요.
           </div>
         </main>
       </div>

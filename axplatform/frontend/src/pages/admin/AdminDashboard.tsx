@@ -22,8 +22,8 @@ const detailPathOf = (source: SourceKey, id: string) => {
   return `${category.path}/${id}`;
 };
 
-// 화면 고유 더미(승인 대기·최근 승인·게시 도구 수·후기 수)는 mocks/adminDashboardMockData로
-// 이관됨. 범위 집계는 dataSource.getDashboardData가 합성한다.
+// 화면 고유 더미(승인 대기·최근 승인·게시 도구 수·후기 수)는 mocks/adminDashboardMockData에 있다.
+// 범위 집계는 dataSource.getDashboardData가 합성한다.
 
 const CARD_BORDER = `1.5px solid ${COLOR.border}`;
 
@@ -75,8 +75,8 @@ export default function AdminDashboard() {
     { label: "전체 등록물", value: String(totalRegistrations), sub: "자동화·AI 도구 합산", subColor: "#059669" },
     { label: "승인 대기", value: String(pending.length), sub: `부분 승인 ${agg.partialCount}건 포함`, subColor: "#D97706" },
     { label: "이번 달 신규", value: String(thisMonthTotal), sub: "전체 유형 합산", subColor: "#2563EB" },
-    { label: "게시된 도구", value: String(agg.activeTools), sub: "승인 완료·게시 항목", subColor: "#7C3AED" },
-    { label: "누적 활용 후기", value: String(agg.reviewTotal), sub: "전체 항목 합산", subColor: "#059669" },
+    { label: "게시된 도구", value: String(agg.activeTools), sub: "승인 완료·게시 카드", subColor: "#7C3AED" },
+    { label: "누적 활용 후기", value: String(agg.reviewTotal), sub: "전체 카드 합산", subColor: "#059669" },
   ];
 
   return (

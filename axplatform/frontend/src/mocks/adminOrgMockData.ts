@@ -2,7 +2,6 @@
 // AdminOrg 조직(관계사·부서) 공용 mock 데이터 (DEMO 전용) — 단일 소스(SSOT)
 // ------------------------------------------------------------
 // AdminOrg(/admin/org)가 lib/dataSource.ts를 경유해 이 한 곳을 참조한다.
-// (구 AdminOrg 내장 배열 이관 — 식별자명 유지.)
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/admin/companies              — INITIAL_COMPANIES (Teams 조직도 API)

@@ -16,7 +16,7 @@ import { COLOR } from "../styles/tokens";
    디자인 토큰·서브컴포넌트는 모듈 레벨 단일 체계로 맞춤.
    ============================================================ */
 
-// 중립·주조색은 styles/tokens.ts(COLOR) 단일 소스로 승격. surface(#fff)·blueDeep(승인 슬롯 의미색)는 구조/의미색이라 리터럴 유지.
+// 중립·주조색은 styles/tokens.ts(COLOR) 단일 소스를 사용. surface(#fff)·blueDeep(승인 슬롯 의미색)는 구조/의미색이라 리터럴 유지.
 const T = {
   ink: COLOR.text,
   slate700: COLOR.text2,
@@ -48,7 +48,7 @@ const GLOBAL_CSS = `
    데이터 (모듈 레벨)
    ============================================================ */
 
-// 왜 AX Platform인가 — 구 소개 화면(USR-02)에서 흡수한 Problem→Solution 4조
+// 왜 AX Platform인가 — Problem→Solution 4조
 const PROBLEM_SOLUTION = [
   {
     no: "01",
@@ -99,12 +99,12 @@ const START_STEPS = [
   {
     step: "03",
     title: "상세 확인",
-    desc: "마음에 드는 항목을 열어 무엇을 해 주는지, 어떻게 쓰는지, 누가 만들었는지를 확인합니다.",
+    desc: "마음에 드는 카드를 열어 무엇을 해 주는지, 어떻게 쓰는지, 누가 만들었는지를 확인합니다.",
   },
   {
     step: "04",
     title: "담당자 문의",
-    desc: "바로 써 볼 수 있는 항목은 접속해서 사용하고, 문의가 필요하면 상세 페이지의 담당자 연락처나 게시글로 물어봅니다.",
+    desc: "바로 써 볼 수 있는 카드는 접속해서 사용하고, 문의가 필요하면 상세 페이지의 담당자 연락처나 게시글로 물어봅니다.",
   },
 ];
 
@@ -150,7 +150,7 @@ const APPROVAL_SLOTS = [
   },
 ];
 
-// ④ 자주 묻는 질문 (핵심 문항 — 구 소개 FAQ의 고유 문항 흡수 포함)
+// ④ 자주 묻는 질문 (핵심 문항)
 const FAQ_ITEMS = [
   {
     q: "누가 쓸 수 있나요?",
@@ -472,7 +472,7 @@ export default function GuidePage() {
 
       <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "64px 32px 56px", width: "100%", boxSizing: "border-box" }}>
 
-        {/* 인트로 — 왜 AX Platform인가 (구 소개 화면에서 흡수) */}
+        {/* 인트로 — 왜 AX Platform인가 */}
         <div style={{ marginBottom: 84 }}>
           <SectionHeading
             eyebrow="Why AX Platform"

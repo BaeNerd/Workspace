@@ -61,7 +61,7 @@ export default function App() {
 
           {/* ===== 공개 (비로그인 접근 가능) ===== */}
           <Route path="/" element={<LandingPage />} />
-          {/* USR-02 소개(About) 폐지(2026-07) — 콘텐츠는 USR-09 가이드로 흡수. 구 링크 안전을 위한 리다이렉트만 유지. */}
+          {/* 구 소개(About) 경로 → 가이드(USR-09) 리다이렉트. 구 링크 안전용. */}
           <Route path="/about" element={<Navigate to="/guide" replace />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/login" element={<LoginPage />} />

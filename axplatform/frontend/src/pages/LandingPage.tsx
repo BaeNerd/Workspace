@@ -31,9 +31,9 @@ import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 //  - 목업 항목 ID·제목은 mocks SSOT(MOCK_ASSET_ITEMS, dataSource 경유)와 일치
 // ============================================================================
 
-// ── 디자인 토큰은 styles/tokens.ts로 승격 (COLOR→C, cardBase→card, headingFont) ──
+// ── 디자인 토큰: styles/tokens.ts의 COLOR를 C로, cardBase를 card로 별칭 사용(headingFont 포함) ──
 
-// ── 카테고리별 미디어/씬 매핑 (구 6종 에셋 → 신 7종) ──
+// ── 카테고리별 미디어/씬 매핑 ──
 // 원본 배너/아이콘 에셋은 구 id(ml·hkgpt·chatbot·n8n·power-automate·vibe-coding) 기준이라
 // 신 CategoryId로 다시 매핑한다. etc(AI 프로젝트)는 전용 에셋이 없어 SVG 아이콘으로 폴백.
 type Scene = "beam" | "orbit" | "list" | "terminal";
@@ -451,7 +451,7 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
           {/* 스크랩 — 클릭 시 /projects 스크랩 필터로 이동(단순한 쪽 선택: 전용 목록 대신 목록 재사용, 주석 명시) */}
           <div onClick={() => onNavigate("/projects?scrap=1")} style={panelRow}>
             <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
-              <BookmarkIco size={16} color={C.text3} /> 내가 스크랩한 항목
+              <BookmarkIco size={16} color={C.text3} /> 내가 스크랩한 카드
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.text }}>
               {scrapCount}개 <ArrowRight size={14} color={C.text3} />
@@ -461,7 +461,7 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
           {hasInterests ? (
             <div onClick={() => onNavigate("/projects")} style={panelRow}>
               <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
-                <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 항목
+                <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 카드
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.primary }}>
                 {recommended.length}개 <ArrowRight size={14} color={C.text3} />
@@ -471,7 +471,7 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
             <div onClick={() => onNavigate("/settings")} style={{ ...panelRow, alignItems: "flex-start", flexDirection: "column", gap: 4 }}>
               <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 8 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500, color: C.text2 }}>
-                  <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 항목
+                  <SparklesIco size={16} color={C.text3} /> 나에게 추천하는 카드
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 600, color: C.primary }}>
                   설정 <ArrowRight size={14} color={C.primary} />
@@ -533,7 +533,7 @@ function PromoAndPanel({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, borderTop: "1px solid #CDD1D5", paddingTop: 14 }}>
           <QuickAction icon={<DocIco size={16} />} label="내 등록 현황" onClick={() => onNavigate("/my-status")} />
           <QuickAction icon={<SettingsIco size={16} />} label="설정" onClick={() => onNavigate("/settings")} />
-          <QuickAction icon={<PlusSquareIco size={16} />} label="항목 등록" onClick={() => onNavigate("/projects/new")} />
+          <QuickAction icon={<PlusSquareIco size={16} />} label="카드 등록" onClick={() => onNavigate("/projects/new")} />
           <QuickAction icon={<LogoutIco size={16} />} label="로그아웃" onClick={() => { logout(); onNavigate("/"); }} />
         </div>
       </div>
@@ -668,7 +668,7 @@ function PlatformStatus({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div style={{ position: "absolute", top: 40, right: 112, width: 112, height: 112, borderRadius: "50%", background: C.primaryWeak }} />
         </div>
         <p style={{ position: "relative", zIndex: 1, margin: "0 0 16px", fontFamily: headingFont, fontSize: 34, fontWeight: 300, color: C.text }}>
-          <span style={{ fontWeight: 500 }}>플랫폼</span>에 쌓인 항목
+          <span style={{ fontWeight: 500 }}>플랫폼</span>에 쌓인 카드
         </p>
         <p style={{ position: "relative", zIndex: 1, margin: 0, fontSize: 60, fontWeight: 700, lineHeight: 1, color: C.text }}>
           <NumberTicker value={TOTAL_COUNT} /><span style={{ marginLeft: 4, fontSize: 24, fontWeight: 600 }}>건</span>
@@ -681,14 +681,14 @@ function PlatformStatus({ onNavigate }: { onNavigate: (p: string) => void }) {
           borderRadius: 12, background: C.primary, color: "#fff", border: "none", padding: "10px 16px",
           fontSize: 14, fontWeight: 600, cursor: "pointer",
         }}>
-          전체 항목 보기 <ArrowRight size={16} color="#fff" />
+          전체 카드 보기 <ArrowRight size={16} color="#fff" />
         </button>
       </div>
 
       {/* 우: 카테고리별 막대 */}
       <div style={{ ...card, overflow: "hidden", padding: 30, display: "flex", flexDirection: "column" }}>
         <p style={{ margin: "0 0 16px", fontFamily: headingFont, fontSize: 34, fontWeight: 300, color: C.text }}>
-          <span style={{ fontWeight: 500 }}>카테고리</span>별 항목
+          <span style={{ fontWeight: 500 }}>카테고리</span>별 카드
         </p>
         <div style={{ display: "flex", flex: 1, flexDirection: "column", justifyContent: "space-between", gap: 14 }}>
           {sorted.map((cat, i) => {
@@ -801,7 +801,7 @@ function PopularItems({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 8 }}>
-        <SectionTitle emphasis="인기" rest=" 항목" />
+        <SectionTitle emphasis="인기" rest=" 카드" />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <FilterChip label="전체" active={cat === null} onClick={() => setCat(null)} />
           {CATEGORIES.map(c => (
@@ -811,7 +811,7 @@ function PopularItems({ onNavigate }: { onNavigate: (p: string) => void }) {
       </div>
       {top.length === 0 ? (
         <div style={{ ...card, marginTop: 16, padding: "64px 0", textAlign: "center", fontSize: 14, fontWeight: 600, color: C.text }}>
-          등록된 항목이 없어요
+          등록된 카드가 없어요
         </div>
       ) : (
         <div key={cat ?? "all"} className="ax-card-grid" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, animation: "axFadeUp 0.4s ease-out" }}>
@@ -833,7 +833,7 @@ function ItemsByDomain({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 8 }}>
-        <SectionTitle emphasis="업무별" rest=" 항목" />
+        <SectionTitle emphasis="업무별" rest=" 카드" />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <FilterChip label="전체" active={dom === null} onClick={() => setDom(null)} />
           {BUSINESS_DOMAINS.map(d => (
@@ -843,7 +843,7 @@ function ItemsByDomain({ onNavigate }: { onNavigate: (p: string) => void }) {
       </div>
       {top.length === 0 ? (
         <div style={{ ...card, marginTop: 16, padding: "64px 0", textAlign: "center", fontSize: 14, fontWeight: 600, color: C.text }}>
-          등록된 항목이 없어요
+          등록된 카드가 없어요
         </div>
       ) : (
         <div key={dom ?? "all"} className="ax-card-grid" style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, animation: "axFadeUp 0.4s ease-out" }}>
@@ -905,7 +905,7 @@ function LatestNewsAndTrending({ onNavigate }: { onNavigate: (p: string) => void
       {/* 실시간 인기 항목 */}
       <div style={{ ...card, padding: 30 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <SectionTitle emphasis="실시간 인기" rest=" 항목" />
+          <SectionTitle emphasis="실시간 인기" rest=" 카드" />
           <button onClick={() => onNavigate("/projects")} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.text3 }}>
             더보기
             <span style={{ display: "flex", width: 20, height: 20, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: `1px solid ${C.text3}` }}>

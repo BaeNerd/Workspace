@@ -20,9 +20,9 @@ const SOURCES: { key: SourceKey; label: string; color: string }[] =
 
 // ============================================================
 // 화면 고유 통계 더미(부서·난이도·비용·ML유형·키워드·절감시간·후기 TOP5)와
-// 범위 집계 헬퍼는 mocks/statsMockData로 이관·합류됨. 소비 시점 합성은
+// 범위 집계 헬퍼는 mocks/statsMockData에 있다. 소비 시점 합성은
 // dataSource.getStatsByScope가 담당한다. 아래 *_META는 표시(라벨·색상) 전용
-// 프레젠테이션 메타로 화면에 잔류한다.
+// 프레젠테이션 메타로 화면에 둔다.
 // ============================================================
 
 // n8n 워크플로우 기준 (난이도 축은 n8n 전용)
@@ -344,7 +344,7 @@ export default function AdminStatistics() {
 
           {/* 등록 항목 분석 섹션 */}
           <div style={sectionLabelStyle}>
-            <span style={{ width: 4, height: 14, borderRadius: 2, background: "#DB2777" }} />등록 항목 분석
+            <span style={{ width: 4, height: 14, borderRadius: 2, background: "#DB2777" }} />등록 카드 분석
             <span style={{ fontSize: 11, fontWeight: 500, color: COLOR.text3, textTransform: "none", letterSpacing: 0 }}>전체 유형 기준 (총 {totalRegistrations}건)</span>
           </div>
 
@@ -354,7 +354,7 @@ export default function AdminStatistics() {
               <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>
                 절감 효과 요약
                 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 8 }}>
-                  n8n · PA 등록 항목의 예상 절감 시간 기준 (자유 입력 텍스트 정규화 집계)
+                  n8n · PA 등록 카드의 예상 절감 시간 기준 (자유 입력 텍스트 정규화 집계)
                 </span>
               </div>
             </div>
@@ -369,14 +369,14 @@ export default function AdminStatistics() {
                 </div>
               </div>
               <div style={{ border: `1px solid ${COLOR.bgSubtle}`, borderRadius: 8, padding: "14px 16px" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text3, marginBottom: 6 }}>집계 가능 항목 수</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text3, marginBottom: 6 }}>집계 가능 카드 수</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 24, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>{agg.estimableCount}</span>
                   <span style={{ fontSize: 12, color: COLOR.text3 }}>건</span>
                 </div>
               </div>
               <div style={{ border: `1px solid ${COLOR.bgSubtle}`, borderRadius: 8, padding: "14px 16px" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text3, marginBottom: 6 }}>추정 불가 항목 수</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text3, marginBottom: 6 }}>추정 불가 카드 수</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                   <span style={{ fontSize: 24, fontWeight: 800, color: "#D97706", letterSpacing: "-0.02em" }}>{agg.unestimableCount}</span>
                   <span style={{ fontSize: 12, color: COLOR.text3 }}>건 · 입력값 표준화 필요</span>
@@ -451,7 +451,7 @@ export default function AdminStatistics() {
             return (
               <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 24px", marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>
-                  후기 많은 항목 TOP 5 <span style={{ fontSize: 11, color: COLOR.text2, fontWeight: 500, marginLeft: 8 }}>누적 후기 수 기준</span>
+                  후기 많은 카드 TOP 5 <span style={{ fontSize: 11, color: COLOR.text2, fontWeight: 500, marginLeft: 8 }}>누적 후기 수 기준</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {topReviews.map((item, i) => {

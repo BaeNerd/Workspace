@@ -161,7 +161,7 @@ export default function ProjectListPage() {
               </h1>
               {isGroupViewer && (
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F3E8FF", border: "1px solid #E9D5FF", borderRadius: 20, padding: "4px 12px" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#6D28D9" }}>그룹 관리자 권한으로 모든 관계사 항목을 조회 중입니다</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#6D28D9" }}>그룹 관리자 권한으로 모든 관계사 카드를 조회 중입니다</span>
                 </div>
               )}
             </div>
@@ -294,7 +294,7 @@ export default function ProjectListPage() {
       <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "24px 32px", width: "100%", boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <span style={{ fontSize: 13, color: COLOR.text2 }}>
-            <strong style={{ color: COLOR.text }}>{filtered.length}</strong>개 항목
+            <strong style={{ color: COLOR.text }}>{filtered.length}</strong>개 카드
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             {SORT_OPTIONS.map(opt => (
@@ -315,7 +315,7 @@ export default function ProjectListPage() {
         {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3, fontSize: 14 }}>
             {scrapOnly && scraps.length === 0
-              ? "아직 스크랩한 항목이 없습니다. 카드나 상세에서 북마크를 눌러 스크랩해 보세요."
+              ? "아직 스크랩한 카드가 없습니다. 카드나 상세에서 북마크를 눌러 스크랩해 보세요."
               : "검색 결과가 없습니다."}
           </div>
         ) : (
