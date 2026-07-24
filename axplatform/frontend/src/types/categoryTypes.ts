@@ -200,6 +200,22 @@ export type AssetReview = {
   likes: number;
 };
 
+// ===== 상세 커뮤니티(업데이트 & 논의) =====
+// AssetItemDetailPage에서 이동(상세 게시판 타입). 런타임 태그 목록 POST_TAGS는
+// 상세 페이지 UI에 유지하고, 여기서는 타입만 관리한다.
+export type PostTag = "공지" | "Q&A" | "이슈제보" | "건의";
+
+export type Post = {
+  id: number;
+  author: string;
+  dept: string;
+  date: string;
+  tag: PostTag;
+  text: string;
+  likes: number;
+  likedByMe: boolean;
+};
+
 // ===== 에디터 픽 (금주의 발견) =====
 export type EditorsPick = {
   itemId: string;

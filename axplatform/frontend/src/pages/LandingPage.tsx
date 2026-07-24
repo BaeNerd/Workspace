@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
 import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS, detailPathForItemId } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
-import { MOCK_ASSET_ITEMS } from "./ProjectListPage";
+import { getAssetItems } from "../lib/dataSource";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import type { NoticeKind } from "../types/noticeTypes";
 import { visibleNoticesByKind } from "../mocks/noticeMockData";
@@ -27,7 +27,7 @@ import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 // 정합화 규약(신 체계):
 //  - 카테고리 = CATEGORIES(7종), 심볼 = CategoryId, 항목 ID = {PREFIX}-{YYYY}-{NNN}
 //  - 운영 상태 표시/필터 없음, 항목 실행 URL 없음, 관계사(그룹사) 표시 없음, 용어 "카테고리"
-//  - 목업 항목 ID·제목은 ProjectListPage의 MOCK_ASSET_ITEMS와 일치
+//  - 목업 항목 ID·제목은 mocks SSOT(MOCK_ASSET_ITEMS, dataSource 경유)와 일치
 // ============================================================================
 
 // ── 디자인 토큰(globals.css의 CSS 변수를 리터럴로 정의) ──
@@ -65,21 +65,21 @@ const PROMO_COPY: Partial<Record<CategoryId, { title: string; desc: string; cta:
   "vibe":             { title: "대화하듯 코드를 짜다", desc: "AI와 대화하며 완성하는 바이브 코딩 노하우를 확인하세요", cta: "Vibe Coding 보기" },
 };
 
-// 카테고리별 등록 수 (통계/막대그래프/타일용) — 목업 SSOT(ProjectListPage MOCK_ASSET_ITEMS) 실계수로 산출.
+// 카테고리별 등록 수 (통계/막대그래프/타일용) — 목업 SSOT(MOCK_ASSET_ITEMS, dataSource 경유) 실계수로 산출.
 // 하드코딩 수치를 배열 실측값으로 대체해 화면 간 건수 정합을 보장한다.
 // TODO: 실제 연동 시 GET /api/v1/stats/by-category 응답으로 교체(백엔드 집계).
 const CATEGORY_COUNTS: Record<CategoryId, number> = CATEGORIES.reduce((acc, c) => {
-  acc[c.id] = MOCK_ASSET_ITEMS.filter(i => i.categoryId === c.id).length;
+  acc[c.id] = getAssetItems().filter(i => i.categoryId === c.id).length;
   return acc;
 }, {} as Record<CategoryId, number>);
-const TOTAL_COUNT = MOCK_ASSET_ITEMS.length;
+const TOTAL_COUNT = getAssetItems().length;
 const MONTHLY_NEW = 18; // TODO: 실제 연동 시 통계 API 값으로 교체(현재는 데모 정적값)
 
 // 카테고리 스타일 인덱스
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Category["icon"] }> =
   Object.fromEntries(CATEGORIES.map(p => [p.id, { color: p.color, bg: p.bg, label: p.name, icon: p.icon }]));
 
-// ── 목업 항목 (ProjectListPage MOCK_ASSET_ITEMS와 ID·제목 일치) ──
+// ── 목업 항목 (mocks SSOT MOCK_ASSET_ITEMS와 ID·제목 일치) ──
 // TODO: 실제 연동 시 GET /api/v1/platform-items 응답으로 교체
 type LItem = {
   id: string; categoryId: CategoryId; title: string; summary: string;
@@ -1030,7 +1030,6 @@ export default function LandingPage() {
         <LatestNewsAndTrending onNavigate={go} />
         <ItemsByDomain onNavigate={go} />
         <CtaBoxes onNavigate={go} />
-        {/* 원본 PartnerMarquee(관계사 로고 마퀴)는 신 체계 '관계사 표시 금지'로 제거함 */}
       </div>
 
       <style>{`
