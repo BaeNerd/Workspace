@@ -99,6 +99,15 @@ export function detailPathForItemId(itemId: string): string | null {
 export const BUSINESS_DOMAINS = ["영업", "생산", "연구", "재무", "HR", "IT"] as const;
 export type BusinessDomain = typeof BUSINESS_DOMAINS[number];
 
+// ===== ML 모델 유형 (공유 상수 · 단일 소스) =====
+// 분류 마스터(AdminTaxonomy mlTypes)·등록 폼(ProjectRegisterPage)·게시 항목 관리(AdminProjectManage)가
+// 모두 이 한 상수를 참조한다. 라벨 쌍은 "이미지 인식"·"NLP / 텍스트"를 채택하고, 등록 폼 전용이던 "기타"를 편입.
+// SSOT(assetItemMockData)의 mlType 값은 전부 이 목록에 정확히 일치해야 한다.
+export const ML_TYPES = [
+  "분류 (Classification)", "회귀 (Regression)", "클러스터링", "NLP / 텍스트", "이미지 인식",
+  "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달", "기타",
+] as const;
+
 export type AssetItem = {
   id: string;
   categoryId: CategoryId;

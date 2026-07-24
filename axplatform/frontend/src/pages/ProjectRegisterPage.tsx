@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
-import { CATEGORIES, BUSINESS_DOMAINS, ID_PREFIX, makeItemId } from "../types/categoryTypes";
+import { CATEGORIES, BUSINESS_DOMAINS, ID_PREFIX, makeItemId, ML_TYPES } from "../types/categoryTypes";
 import type { CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
@@ -36,11 +36,7 @@ const ASSISTANT_MODEL_HINTS = [
 // "컨텍스트 윈도우"라는 어려운 말 대신 처리 가능한 글 분량을 쉬운 말로 선택
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
 
-// ML 모델 유형
-const ML_TYPES = [
-  "분류 (Classification)", "회귀 (Regression)", "클러스터링", "추천 시스템",
-  "NLP", "컴퓨터 비전", "시계열 예측", "기타",
-];
+// ML 모델 유형 — 공유 상수(types/categoryTypes ML_TYPES) 단일 소스 참조.
 
 type Contact = { name: string; dept: string; role: string; email: string };
 

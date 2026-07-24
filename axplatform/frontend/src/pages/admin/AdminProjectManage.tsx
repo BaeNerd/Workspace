@@ -2,7 +2,7 @@
 import { useState } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
-import { CATEGORIES, BUSINESS_DOMAINS, makeItemId } from "../../types/categoryTypes";
+import { CATEGORIES, BUSINESS_DOMAINS, makeItemId, ML_TYPES } from "../../types/categoryTypes";
 import type { CategoryId, BusinessDomain } from "../../types/categoryTypes";
 import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
@@ -24,10 +24,8 @@ const ASSISTANT_MODEL_HINTS = [
 // AI Model(HK GPT 게이트웨이) — 처리 가능한 글 분량(쉬운 표현)
 const CONTEXT_SIZE_OPTIONS = ["일반 대화 수준", "문서 여러 장 (수십 페이지)", "매우 긴 문서 (책 한 권 분량)"];
 
-const ML_TYPES = [
-  "분류 (Classification)", "회귀 (Regression)", "클러스터링",
-  "NLP / 텍스트", "이미지 인식", "시계열 예측", "추천 시스템", "이상 탐지", "강화학습", "멀티모달",
-];
+// ML 모델 유형 — 공유 상수(types/categoryTypes) 참조. SingleSelectTag는 string[]를 받으므로 사본 전개.
+const ML_TYPE_OPTIONS = [...ML_TYPES];
 
 // ===== 예상 절감 시간 정규화 (n8n / pa 전용) =====
 const TIME_PERIODS = ["일", "주", "월", "년"] as const;
@@ -92,9 +90,6 @@ export type ManagedAssetItem = {
   modelName?: string; contextWindow?: string; costTier?: string;
   // ml 전용
   mlType?: string; trainingDataDesc?: string; devTool?: string;
-  // Admin 전용
-  isHighlighted?: boolean;
-  isWeeklyDiscover?: boolean;
 };
 
 type ManagedItem = ManagedAssetItem;
@@ -249,11 +244,6 @@ export default function AdminProjectManage() {
       (search === "" || i.title.includes(search) || i.dept.includes(search))
     );
   });
-
-  const toggleHighlight = (id: string) =>
-    setItems(p => p.map(i => i.id === id ? { ...i, isHighlighted: !i.isHighlighted } : i));
-  const toggleWeeklyDiscover = (id: string) =>
-    setItems(p => p.map(i => i.id === id ? { ...i, isWeeklyDiscover: !i.isWeeklyDiscover } : { ...i, isWeeklyDiscover: false }));
 
   const activeItem = isNew ? editData : items.find(i => i.id === selected) ?? null;
   const displayData = editMode || isNew ? editData : activeItem;
@@ -433,24 +423,6 @@ export default function AdminProjectManage() {
                     </h2>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
-                    {isAdmin && !isEditing && (
-                      <>
-                        <button
-                          onClick={() => toggleHighlight(displayData.id)}
-                          title={displayData.isHighlighted ? "하이라이트 해제" : "하이라이트 지정"}
-                          style={{ background: displayData.isHighlighted ? "#FEF08A" : "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700, color: displayData.isHighlighted ? "#854D0E" : "#64748B", cursor: "pointer" }}
-                        >
-                          {displayData.isHighlighted ? "★ 하이라이트" : "☆ 하이라이트"}
-                        </button>
-                        <button
-                          onClick={() => toggleWeeklyDiscover(displayData.id)}
-                          title={displayData.isWeeklyDiscover ? "금주의 발견 해제" : "금주의 발견 지정"}
-                          style={{ background: displayData.isWeeklyDiscover ? "#D1FAE5" : "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700, color: displayData.isWeeklyDiscover ? "#065F46" : "#64748B", cursor: "pointer" }}
-                        >
-                          {displayData.isWeeklyDiscover ? "✦ 금주의 발견" : "✦ 금주의 발견"}
-                        </button>
-                      </>
-                    )}
                     {!isEditing ? (
                       <>
                         {isAdmin && <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>}
@@ -596,7 +568,7 @@ export default function AdminProjectManage() {
                   <SectionBlock title="ML 모델 정보">
                     <FieldRow label="모델 유형">
                       {isEditing
-                        ? <SingleSelectTag options={ML_TYPES} value={displayData.mlType ?? ""} onChange={v => setF("mlType", v)} />
+                        ? <SingleSelectTag options={ML_TYPE_OPTIONS} value={displayData.mlType ?? ""} onChange={v => setF("mlType", v)} />
                         : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.mlType || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="학습 데이터 개요">

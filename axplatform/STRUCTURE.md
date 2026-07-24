@@ -353,11 +353,10 @@ axplatform/
         │   ├── useInterests.ts         # ax_user_interests
         │   └── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
         ├── mocks/                       # 목업 SSOT 모듈군 — 페이지·훅은 직접 import 금지(lib/dataSource 경유)
-        │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백) — M1
+        │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백, 게시 항목 관리 파생 원천) — M1
         │   ├── adminReviewMockData.ts  # 검토 대기 큐(INITIAL_ITEMS)
         │   ├── myStatusMockData.ts     # 내 신청(INITIAL_ITEMS)·내 후기(MOCK_MY_REVIEWS)
         │   ├── adminDashboardMockData.ts # 대시보드 화면 고유(승인 대기·최근 승인·게시 도구 수·후기 수)
-        │   ├── adminProjectManageMockData.ts # 게시 항목 관리(INITIAL_ASSET_ITEMS)
         │   ├── adminUsersMockData.ts   # 사용자·권한·활동 로그(⚠️ 감사 로그 소급 수정 금지)
         │   ├── adminOrgMockData.ts     # 조직(관계사·부서·자산 관계사 투영·Teams 동기화 원천)
         │   ├── adminTaxonomyMockData.ts # 분류체계·자유 태그
@@ -523,7 +522,8 @@ AX 항목 병렬 2슬롯 승인 검토. `SummaryStrip`(필터) · `SlotPill`(목
 게시된 AX 항목 전체 관리. 편집 필드는 등록 폼과 동일한 간소화 7유형 체계(상태·관계사·실행 URL 편집 없음).
 
 - **CompanyAdmin**: `canManageItem`(담당 관계사 + 전사 공용)만 표시. 삭제만 가능.
-- **Admin 전용**: ★ 하이라이트 토글, ✦ 금주의 발견 토글, 수정, 직접 등록. `expectedTimeSaved` 직렬화/역직렬화(`timeSavedValue`·`timeSavedPeriod`) 유지.
+- **Admin 전용**: 수정, 직접 등록. `expectedTimeSaved` 직렬화/역직렬화(`timeSavedValue`·`timeSavedPeriod`) 유지.
+- **데이터 소스**: `getManagedAssetItems()`가 자산 SSOT(`getAssetItems`)에서 `ManagedAssetItem`으로 파생(별도 목업 사본 없음). 편집·삭제 데모는 화면 로컬 state.
 - **내부 컴포넌트**(모듈 레벨): `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ImageStripView`, `TimeSavedInput`.
 
 #### `AdminTaxonomy.tsx` — `/admin/taxonomy` (admin)
@@ -778,7 +778,6 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `mocks/adminReviewMockData.ts` | `INITIAL_ITEMS`(6) | AdminReview (`getReviewQueue`) |
 | `mocks/myStatusMockData.ts` | `INITIAL_ITEMS`(6)·`MOCK_MY_REVIEWS`(2) | MyStatusPage (`getMyApplications`·`getMyReviews`) |
 | `mocks/adminDashboardMockData.ts` | `PENDING_ALL`(5)·`RECENT_APPROVED_ALL`(4)·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`·`slots`·`PendingItem`·`ApprovedItem` | AdminDashboard (`getDashboardData`) |
-| `mocks/adminProjectManageMockData.ts` | `INITIAL_ASSET_ITEMS`(7) | AdminProjectManage (`getManagedAssetItems`) |
 | `mocks/adminUsersMockData.ts` | `INITIAL_ADMINS`(2)·`INITIAL_GROUP_VIEWERS`(2)·`REGISTRANTS`(4)·`LOGS`(7)·`SELECTABLE_COMPANIES`(12)·`MOCK_SSO_USERS`(4) | AdminUsers (`getAdmins`·`getGroupViewers`·`getRegistrants`·`getAuditLogs`·`getSelectableCompanies`·`getSsoUsers`) |
 | `mocks/adminOrgMockData.ts` | `INITIAL_COMPANIES`(28)·`INITIAL_DEPTS`(15)·`ASSET_ITEM_REFS`(12)·`TEAMS_SYNC_SOURCE`(3) | AdminOrg (`getOrgCompanies`·`getOrgDepts`·`getAssetItemRefs`·`getTeamsSyncSource`) |
 | `mocks/adminTaxonomyMockData.ts` | `INITIAL_CATEGORY_TAXONOMY`·`INITIAL_FREE_TAGS`(7) | AdminTaxonomy (`getCategoryTaxonomy`·`getFreeTags`) |

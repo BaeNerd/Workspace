@@ -18,6 +18,8 @@
 // ============================================================
 
 import type { AssetItem, AssetReview, Post } from "../types/categoryTypes";
+import type { ManagedAssetItem } from "../pages/admin/AdminProjectManage";
+import { fromWorkflowDef } from "../components/WorkflowDiagram";
 import {
   MOCK_ASSET_ITEMS,
   MOCK_REVIEWS_BY_ITEM,
@@ -35,7 +37,6 @@ import {
   DIFFICULTY_BY_COMPANY, COST_BY_COMPANY, ML_TYPE_BY_COMPANY, TOP5_REVIEWS_ALL,
   STAT_COMPANIES,
 } from "../mocks/statsMockData";
-import { INITIAL_ASSET_ITEMS } from "../mocks/adminProjectManageMockData";
 import {
   INITIAL_ADMINS, INITIAL_GROUP_VIEWERS, REGISTRANTS, LOGS, MOCK_SSO_USERS, SELECTABLE_COMPANIES,
 } from "../mocks/adminUsersMockData";
@@ -140,9 +141,51 @@ export type { SourceKey, StatCompany, MonthPoint } from "../mocks/statsMockData"
 
 // ===== 관리자 프로젝트 관리 =====
 
-// AdminProjectManage 게시 항목 전체. TODO: 실제 연동 시 GET /api/v1/admin/platform-items
-export function getManagedAssetItems() {
-  return INITIAL_ASSET_ITEMS;
+// 자산 SSOT(AssetItem) → 게시 항목 관리 표시 모델(ManagedAssetItem) 파생 매핑.
+// 별도 목업 사본을 두지 않고 getAssetItems()의 단일 소스에서 관리 화면 전용 필드로 투영한다.
+// (owner/ownerEmail → 담당자 1인·신청자 이메일, tags 배열 → 쉼표 문자열, workflowDef → workflowInput 등)
+// ⚠️ 실제 연동 시 이 데모 파생 매퍼는 폐기하고 admin 전용 응답을 그대로 사용한다(아래 getManagedAssetItems 참조).
+function toManagedAssetItem(item: AssetItem): ManagedAssetItem {
+  const company = item.company ?? [];
+  return {
+    kind: item.categoryId,
+    id: item.id,
+    title: item.title,
+    dept: item.dept,
+    summary: item.summary,
+    description: item.description,
+    contacts: [{ name: item.owner, dept: item.dept, role: "주담당자", email: item.ownerEmail }],
+    updatedAt: item.updatedAt,
+    createdByEmail: item.ownerEmail,
+    tags: item.tags.join(", "),
+    images: item.images,
+    domain: item.domain,
+    company,
+    companyScope: company.length > 0 ? "specific" : "company-wide",
+    // n8n / pa
+    expectedTimeSaved: item.expectedTimeSaved,
+    difficulty: item.difficulty,
+    workflowInput: item.workflowDef ? fromWorkflowDef(item.workflowDef) : undefined,
+    // assistant
+    sharedPrompt: item.sharedPrompt,
+    basedModel: item.basedModel,
+    // ai-orchestration (모델 접속 URL은 specificUrl)
+    agentAvailability: item.agentAvailability,
+    strengthsDetail: item.modelMeta?.strengthsDetail,
+    specificUrl: item.specificUrl,
+    modelName: item.modelMeta?.modelName,
+    contextWindow: item.modelMeta?.contextWindow,
+    costTier: item.modelMeta?.costTier,
+    // ml
+    mlType: item.mlType,
+    trainingDataDesc: item.trainingDataDesc,
+    devTool: item.devTool,
+  };
+}
+
+// AdminProjectManage 게시 항목 전체 (자산 SSOT 파생). TODO: 실제 연동 시 GET /api/v1/admin/platform-items
+export function getManagedAssetItems(): ManagedAssetItem[] {
+  return MOCK_ASSET_ITEMS.map(toManagedAssetItem);
 }
 
 // ===== 관리자 사용자·권한·로그 =====
