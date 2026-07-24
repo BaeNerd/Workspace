@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
@@ -9,7 +9,6 @@ import SharePreviewBanner from "./components/SharePreviewBanner";
 
 // 공개 페이지
 import LandingPage from "./pages/LandingPage";
-import AboutPage from "./pages/AboutPage";
 import GuidePage from "./pages/GuidePage";
 import LoginPage from "./pages/LoginPage";
 import NoticesPage from "./pages/NoticesPage";
@@ -62,7 +61,8 @@ export default function App() {
 
           {/* ===== 공개 (비로그인 접근 가능) ===== */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/about" element={<AboutPage />} />
+          {/* USR-02 소개(About) 폐지(2026-07) — 콘텐츠는 USR-09 가이드로 흡수. 구 링크 안전을 위한 리다이렉트만 유지. */}
+          <Route path="/about" element={<Navigate to="/guide" replace />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/notices" element={<NoticesPage />} />

@@ -380,7 +380,8 @@ axplatform/
         └── pages/
             ├── LandingPage.tsx
             ├── LoginPage.tsx
-            ├── AboutPage.tsx
+            ├── GuidePage.tsx
+            │   # /guide 이용 가이드 (구 AboutPage/USR-02 폐지·결번, /about→/guide 리다이렉트)
             ├── NoticesPage.tsx
             │   # /notices 공지·업데이트 목록
             ├── ProjectListPage.tsx
@@ -440,9 +441,14 @@ axplatform/
 - **로그인 후 이동**(`handleDemoLogin`): `admin` **및** `companyAdmin` → `/admin`, 그 외 → `redirectTo`.
 - `mocks/companyAdminMockData.ts`에서 `managedCompaniesOf`만 import(SSOT 연동). 공유 모드 분기 없음.
 
-#### `AboutPage.tsx` — `/about`
+#### `GuidePage.tsx` — `/guide`
 
-정적 소개 페이지. 섹션 구성: **01 왜 AX Platform인가**(문제→해법) → **02 무엇을 다루나**(카테고리 카드) → **03 질문에서 출발**(콘텐츠 콘셉트) → **04 어떻게 이용하나**(4-step 흐름) → **05 FAQ** → **CTA 배너**. (로드맵 성격 문구는 CTA 배너에 포함.)
+정적 이용 가이드 페이지. 섹션 구성: **인트로 — 왜 AX Platform인가**(Problem→Solution 4조, 구 AboutPage에서 흡수) → **① 시작하기**(로그인→탐색→상세→문의) → **② 등록 가이드**(3단계 + 유형별 팁) → **③ 승인 절차**(병렬 2슬롯) → **④ FAQ**(문의처 문항 포함).
+
+- **내부 컴포넌트**(모듈 레벨): `SectionHeading`(`index` 옵션) · `WhyIcon` · `WhyCard`(구 AboutPage에서 이식) · `StepCard` · `FaqRow`.
+- **인트로 부제(확정 문구)**: "현장의 문제를, 한곳에 모으고, 찾고, 질문에 답하고, 좋은 사례를 전파하여 해결합니다".
+
+> **구 `AboutPage.tsx` — `/about` 폐지(2026-07, USR-02 결번)**: 소개 화면은 가이드와 역할이 중복되어 삭제(`git rm`)했다. "왜 AX Platform" 섹션과 FAQ 고유 문항("문의는 어디로 하나요?")만 GuidePage로 이관했다. `/about`는 `<Navigate to="/guide" replace />`로 리다이렉트하며(App.tsx, 구 링크 안전용 1줄), 푸터 "서비스 소개" 링크·가이드 내 About 진입 링크는 제거했다.
 
 #### `NoticesPage.tsx` — `/notices`
 
@@ -783,7 +789,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `mocks/adminTaxonomyMockData.ts` | `INITIAL_CATEGORY_TAXONOMY`·`INITIAL_FREE_TAGS`(7) | AdminTaxonomy (`getCategoryTaxonomy`·`getFreeTags`) |
 
 - **⚠️ 감사 로그 소급 수정 금지**: `adminUsersMockData.LOGS`는 과거 표기(`AGENT-2025-007`·`HKGPT-2025-018`·`N8N-2025-031` 등)를 **바이트 동일**하게 보존한다.
-- **표시 전용 메타는 페이지 잔류**(이관 대상 아님): 옵션 열거(`DIFFICULTY_LEVELS`·`COST_TIERS`·`ML_TYPES`·`ASSISTANT_MODEL_HINTS`·`CONTEXT_SIZE_OPTIONS`·`AGENT_AVAILABILITY`·`TIME_PERIODS` 등)·스타일 객체(`*_STYLE`·`*_META`·`*_COLOR`·`DOMAIN_CHIP`·`CAT_MEDIA`·`PROMO_COPY`)·`CATEGORIES` 파생 배열(`SOURCES`·`INITIAL_CATEGORIES`)·정적 안내 콘텐츠(AboutPage·GuidePage의 FAQ·스텝·팩트 배열). `EditRequestPage.MOCK_CURRENT`는 단건 폼 프리필 픽스처(배열 아님, 타입이 페이지 폼 모델에 결합)로 페이지 잔류.
+- **표시 전용 메타는 페이지 잔류**(이관 대상 아님): 옵션 열거(`DIFFICULTY_LEVELS`·`COST_TIERS`·`ML_TYPES`·`ASSISTANT_MODEL_HINTS`·`CONTEXT_SIZE_OPTIONS`·`AGENT_AVAILABILITY`·`TIME_PERIODS` 등)·스타일 객체(`*_STYLE`·`*_META`·`*_COLOR`·`DOMAIN_CHIP`·`CAT_MEDIA`·`PROMO_COPY`)·`CATEGORIES` 파생 배열(`SOURCES`·`INITIAL_CATEGORIES`)·정적 안내 콘텐츠(GuidePage의 FAQ·스텝·팩트·Problem→Solution 배열). `EditRequestPage.MOCK_CURRENT`는 단건 폼 프리필 픽스처(배열 아님, 타입이 페이지 폼 모델에 결합)로 페이지 잔류.
 
 ---
 

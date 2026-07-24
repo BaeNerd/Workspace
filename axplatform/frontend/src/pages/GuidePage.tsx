@@ -8,9 +8,11 @@ import { CONTENT_MAX_WIDTH } from "../styles/layout";
    GuidePage (/guide) — 이용 가이드
    ------------------------------------------------------------
    처음 쓰는 직원 기준의 안내 페이지. 코드/기술 용어는 배제하고,
-   ① 시작하기 ② 등록 가이드 ③ 승인 절차 ④ 자주 묻는 질문 4단으로 구성.
-   콘텐츠 근거: docs/AX-Platform-화면별-기획설명서.md · AboutPage · 등록/승인 실제 흐름.
-   디자인 토큰·서브컴포넌트는 AboutPage와 동일 체계(모듈 레벨)로 맞춤.
+   왜 AX Platform인가(인트로) + ① 시작하기 ② 등록 가이드 ③ 승인 절차
+   ④ 자주 묻는 질문으로 구성. 구 소개 화면(USR-02)의 "왜 AX Platform"
+   섹션을 흡수했다(USR-02 폐지·결번, 2026-07).
+   콘텐츠 근거: docs/AX-Platform-화면별-기획설명서.md · 등록/승인 실제 흐름.
+   디자인 토큰·서브컴포넌트는 모듈 레벨 단일 체계로 맞춤.
    ============================================================ */
 
 const T = {
@@ -43,6 +45,42 @@ const GLOBAL_CSS = `
 /* ============================================================
    데이터 (모듈 레벨)
    ============================================================ */
+
+// 왜 AX Platform인가 — 구 소개 화면(USR-02)에서 흡수한 Problem→Solution 4조
+const PROBLEM_SOLUTION = [
+  {
+    no: "01",
+    icon: "scatter",
+    problem: "흩어진 자산",
+    problemDesc: "29개 관계사의 자동화·AI 자산이 어디에 무엇이 있는지 알 수 없습니다.",
+    solution: "한곳에 모은 카탈로그",
+    solutionDesc: "그룹의 모든 자동화·AI 도구를 하나의 지도에서 탐색합니다.",
+  },
+  {
+    no: "02",
+    icon: "duplicate",
+    problem: "중복 개발",
+    problemDesc: "여러 팀이 이미 있는 기능을 모른 채 다시 만듭니다.",
+    solution: "먼저 찾고, 재사용",
+    solutionDesc: "등록하기 전에 검색하고, 있는 것은 그대로 가져다 씁니다.",
+  },
+  {
+    no: "03",
+    icon: "question",
+    problem: "무엇을 써야 할지 모름",
+    problemDesc: "AI 모델과 도구가 많아질수록 선택은 더 어려워집니다.",
+    solution: "질문에 답하는 콘텐츠",
+    solutionDesc: "“나는 어떤 AI Model을 써야 할까”에 카탈로그가 직접 답합니다.",
+  },
+  {
+    no: "04",
+    icon: "share",
+    problem: "사례의 단절",
+    problemDesc: "옆 회사의 좋은 활용법이 우리 팀까지 오지 않습니다.",
+    solution: "우수 사례 전파",
+    solutionDesc: "프롬프트 원문과 제작기를 그대로 따라 쓸 수 있게 공유합니다.",
+  },
+];
 
 // ① 시작하기 — 로그인 → 탐색 → 상세 확인 → 담당자 문의 여정
 const START_STEPS = [
@@ -110,7 +148,7 @@ const APPROVAL_SLOTS = [
   },
 ];
 
-// ④ 자주 묻는 질문 (핵심 3~5개, 자세한 내용은 /about FAQ)
+// ④ 자주 묻는 질문 (핵심 문항 — 구 소개 FAQ의 고유 문항 흡수 포함)
 const FAQ_ITEMS = [
   {
     q: "누가 쓸 수 있나요?",
@@ -128,6 +166,10 @@ const FAQ_ITEMS = [
     q: "무엇이든 등록할 수 있나요?",
     a: "일곱 가지 유형에 해당하는 자동화·AI 자산만 다룹니다. 일반 IT 프로젝트나 시스템 구축·개선 과제(MES·SRM·ERP 등)는 등록 대상이 아닙니다.",
   },
+  {
+    q: "문의는 어디로 하나요?",
+    a: "각 자산 상세 페이지의 담당자 연락처 또는 게시글(Q&A)을 이용해 주세요. AI Model 카탈로그 관련 문의는 관리자에게 전달됩니다.",
+  },
 ];
 
 /* ============================================================
@@ -135,14 +177,16 @@ const FAQ_ITEMS = [
    ============================================================ */
 
 function SectionHeading({ index, eyebrow, title, sub }: {
-  index: string; eyebrow: string; title: string; sub?: string;
+  index?: string; eyebrow: string; title: string; sub?: string;
 }) {
   return (
     <div style={{ marginBottom: 32 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: T.blue, fontVariantNumeric: "tabular-nums", letterSpacing: "0.04em" }}>
-          {index}
-        </span>
+        {index && (
+          <span style={{ fontSize: 12, fontWeight: 800, color: T.blue, fontVariantNumeric: "tabular-nums", letterSpacing: "0.04em" }}>
+            {index}
+          </span>
+        )}
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: T.slate400, textTransform: "uppercase" }}>
           {eyebrow}
         </span>
@@ -156,6 +200,134 @@ function SectionHeading({ index, eyebrow, title, sub }: {
           {sub}
         </p>
       )}
+    </div>
+  );
+}
+
+/** 왜 AX Platform 섹션의 Problem 아이콘 (구 소개 화면에서 이식) */
+function WhyIcon({ name }: { name: string }) {
+  const common = {
+    width: 20, height: 20, viewBox: "0 0 24 24", fill: "none",
+    stroke: "#F87171", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
+  };
+  switch (name) {
+    case "scatter":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="6" r="2.5" />
+          <circle cx="18" cy="5" r="2" />
+          <circle cx="16" cy="17" r="2.5" />
+          <circle cx="6" cy="18" r="2" />
+          <circle cx="12" cy="11" r="1.5" />
+        </svg>
+      );
+    case "duplicate":
+      return (
+        <svg {...common}>
+          <rect x="9" y="9" width="12" height="12" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      );
+    case "question":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.5 9.3a2.5 2.5 0 0 1 4.9.7c0 1.6-2.4 2-2.4 3.5" />
+          <path d="M12 17h.01" />
+        </svg>
+      );
+    case "share":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="12" r="2.5" />
+          <circle cx="17" cy="6" r="2.5" />
+          <circle cx="17" cy="18" r="2.5" />
+          <path d="M8.3 10.8l6.4-3.6M8.3 13.2l6.4 3.6" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+/** Problem → Solution 카드 (구 소개 화면에서 이식, 가이드 톤에 맞춰 lift 클래스만 조정) */
+function WhyCard({ item }: { item: (typeof PROBLEM_SOLUTION)[number] }) {
+  return (
+    <div
+      className="axg-lift"
+      style={{
+        background: T.surface, borderRadius: T.radiusLg, overflow: "hidden",
+        borderTop: `1px solid ${T.line}`, borderRight: `1px solid ${T.line}`,
+        borderBottom: `1px solid ${T.line}`, borderLeft: `1px solid ${T.line}`,
+        boxShadow: T.shadowCard, display: "flex", flexDirection: "column",
+      }}
+    >
+      {/* PROBLEM 존 */}
+      <div style={{
+        position: "relative",
+        background: "linear-gradient(150deg, #0E1526 0%, #1A2438 100%)",
+        padding: "20px 22px 22px",
+      }}>
+        <div style={{
+          position: "absolute", top: 10, right: 18,
+          fontSize: 48, fontWeight: 900, color: "rgba(148, 163, 184, 0.10)",
+          letterSpacing: "-0.04em", lineHeight: 1, userSelect: "none",
+          fontVariantNumeric: "tabular-nums",
+        }}>
+          {item.no}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(248, 113, 113, 0.10)",
+            border: "1px solid rgba(248, 113, 113, 0.22)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <WhyIcon name={item.icon} />
+          </div>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: "#F87171",
+            letterSpacing: "0.16em", textTransform: "uppercase",
+          }}>
+            Problem
+          </div>
+        </div>
+        <div style={{
+          fontSize: 16.5, fontWeight: 800, color: "#F4F6F9",
+          marginBottom: 6, letterSpacing: "-0.01em", position: "relative",
+        }}>
+          {item.problem}
+        </div>
+        <div style={{ fontSize: 12.5, color: "#8C9AB1", lineHeight: 1.65, position: "relative" }}>
+          {item.problemDesc}
+        </div>
+      </div>
+
+      {/* SOLUTION 존 */}
+      <div style={{ position: "relative", padding: "22px 22px 22px", flex: 1 }}>
+        <div style={{
+          position: "absolute", top: 0, left: 22, right: 22, height: 2,
+          background: `linear-gradient(90deg, ${T.blue}, rgba(28, 107, 255, 0))`,
+        }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.blue} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="13 6 19 12 13 18" />
+          </svg>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: T.blue,
+            letterSpacing: "0.16em", textTransform: "uppercase",
+          }}>
+            Solution
+          </div>
+        </div>
+        <div style={{ fontSize: 16.5, fontWeight: 800, color: T.ink, marginBottom: 6, letterSpacing: "-0.01em" }}>
+          {item.solution}
+        </div>
+        <div style={{ fontSize: 12.5, color: T.slate500, lineHeight: 1.65 }}>
+          {item.solutionDesc}
+        </div>
+      </div>
     </div>
   );
 }
@@ -298,6 +470,20 @@ export default function GuidePage() {
 
       <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "64px 32px 56px", width: "100%", boxSizing: "border-box" }}>
 
+        {/* 인트로 — 왜 AX Platform인가 (구 소개 화면에서 흡수) */}
+        <div style={{ marginBottom: 84 }}>
+          <SectionHeading
+            eyebrow="Why AX Platform"
+            title="왜 AX Platform인가요?"
+            sub="현장의 문제를, 한곳에 모으고, 찾고, 질문에 답하고, 좋은 사례를 전파하여 해결합니다"
+          />
+          <div className="axg-2col" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 18 }}>
+            {PROBLEM_SOLUTION.map((ps) => (
+              <WhyCard key={ps.no} item={ps} />
+            ))}
+          </div>
+        </div>
+
         {/* 01 — 시작하기 */}
         <div style={{ marginBottom: 84 }}>
           <SectionHeading
@@ -415,22 +601,6 @@ export default function GuidePage() {
             {FAQ_ITEMS.map((f, i) => (
               <FaqRow key={i} q={f.q} a={f.a} isLast={i === FAQ_ITEMS.length - 1} />
             ))}
-          </div>
-          <div style={{ marginTop: 16, textAlign: "center" }}>
-            <button
-              onClick={() => navigate("/about")}
-              style={{
-                background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 13, fontWeight: 700, color: T.blue,
-                display: "inline-flex", alignItems: "center", gap: 6,
-              }}
-            >
-              더 많은 질문은 서비스 소개의 FAQ에서 확인하기
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="13 6 19 12 13 18" />
-              </svg>
-            </button>
           </div>
         </div>
       </div>
