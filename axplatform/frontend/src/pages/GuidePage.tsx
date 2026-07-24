@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR } from "../styles/tokens";
 
 /* ============================================================
    GuidePage (/guide) — 이용 가이드
@@ -15,16 +16,17 @@ import { CONTENT_MAX_WIDTH } from "../styles/layout";
    디자인 토큰·서브컴포넌트는 모듈 레벨 단일 체계로 맞춤.
    ============================================================ */
 
+// 중립·주조색은 styles/tokens.ts(COLOR) 단일 소스로 승격. surface(#fff)·blueDeep(승인 슬롯 의미색)는 구조/의미색이라 리터럴 유지.
 const T = {
-  ink: "#0B1220",
-  slate700: "#334155",
-  slate500: "#697386",
-  slate400: "#94A3B8",
-  line: "#EBEEF3",
-  blue: "#1C6BFF",
+  ink: COLOR.text,
+  slate700: COLOR.text2,
+  slate500: COLOR.text2,
+  slate400: COLOR.text3,
+  line: COLOR.border,
+  blue: COLOR.primary,
   blueDeep: "#1D4ED8",
   surface: "#FFFFFF",
-  canvas: "#F4F6F9",
+  canvas: COLOR.page,
   radiusLg: 16,
   radiusMd: 12,
   shadowCard: "0 1px 2px rgba(11, 18, 32, 0.04), 0 8px 24px rgba(11, 18, 32, 0.05)",
@@ -374,7 +376,7 @@ function FaqRow({ q, a, isLast }: { q: string; a: string; isLast: boolean }) {
         </span>
         <span style={{
           width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-          background: open ? T.blue : "#F1F5F9",
+          background: open ? T.blue : COLOR.bgSubtle,
           display: "flex", alignItems: "center", justifyContent: "center", transition: "background .18s ease",
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"

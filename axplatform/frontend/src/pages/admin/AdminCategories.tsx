@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { CATEGORIES, ICON_PRESETS } from "../../types/categoryTypes";
+import { COLOR } from "../../styles/tokens";
 import type { Category, CategoryId, IconKey } from "../../types/categoryTypes";
 
 // ============================================================
@@ -48,25 +49,25 @@ const emptyDraft = (): ManagedCategory => ({
 
 // ===== 공통 스타일 (모듈 레벨) =====
 const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 13, color: "#0F172A",
-  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, outline: "none", fontFamily: "inherit",
+  width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 13, color: COLOR.text,
+  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, outline: "none", fontFamily: "inherit",
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6,
+  fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 6,
 };
 
 // ===== 재사용 서브컴포넌트 (모듈 레벨) =====
 const FieldRow = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: 14 }}>
-    <label style={labelStyle}>{label}{hint && <span style={{ fontWeight: 500, color: "#94A3B8", marginLeft: 6 }}>{hint}</span>}</label>
+    <label style={labelStyle}>{label}{hint && <span style={{ fontWeight: 500, color: COLOR.text3, marginLeft: 6 }}>{hint}</span>}</label>
     {children}
   </div>
 );
 
 const SectionBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #F1F5F9" }}>{title}</div>
+  <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text, marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${COLOR.bgSubtle}` }}>{title}</div>
     {children}
   </div>
 );
@@ -109,29 +110,29 @@ const IconPicker = ({ value, color, bg, onChange }: { value: IconKey; color: str
       <button type="button" onClick={() => setOpen(v => !v)} style={iconTriggerStyle}>
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <CategoryIcon icon={value} color={color} bg={bg} size={28} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{iconLabelOf(value)}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: COLOR.text2 }}>{iconLabelOf(value)}</span>
         </span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLOR.text3} strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 40, background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: 10, maxHeight: 360, overflowY: "auto" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 40, background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: 10, maxHeight: 360, overflowY: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
             {ICON_OPTION_KEYS.map(k => {
               const on = k === value;
               return (
                 <button key={k} type="button" onClick={() => { onChange(k); setOpen(false); }} style={{
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 6px", borderRadius: 8, cursor: "pointer",
-                  border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff",
+                  border: `1.5px solid ${on ? COLOR.primary : COLOR.border}`, background: on ? COLOR.primaryWeak : "#fff",
                 }}>
                   <CategoryIcon icon={k} color={color} bg={bg} size={30} />
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: on ? "#2563EB" : "#475569", textAlign: "center", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{ICON_PRESETS[k].label}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: on ? COLOR.primary : COLOR.text2, textAlign: "center", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{ICON_PRESETS[k].label}</span>
                 </button>
               );
             })}
           </div>
-          <div style={{ fontSize: 10.5, color: "#94A3B8", marginTop: 8, paddingTop: 8, borderTop: "1px solid #F1F5F9" }}>
+          <div style={{ fontSize: 10.5, color: COLOR.text3, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${COLOR.bgSubtle}` }}>
             프리셋 외 아이콘은 개발 반영이 필요합니다.
           </div>
         </div>
@@ -234,7 +235,7 @@ export default function AdminCategories() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
 
       <div style={{ display: "flex" }}>
@@ -243,16 +244,16 @@ export default function AdminCategories() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 플랫폼 목록 ===== */}
-          <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid #F1F5F9" }}>
+          <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>카테고리 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{categories.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>카테고리 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{categories.length}</span></span>
                 <button onClick={startNew} style={{
-                  background: "#2563EB", color: "#fff", border: "none", borderRadius: 6,
+                  background: COLOR.primary, color: "#fff", border: "none", borderRadius: 6,
                   padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer",
                 }}>+ 추가</button>
               </div>
-              <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5, marginTop: 6 }}>
+              <p style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.5, marginTop: 6 }}>
                 등록물의 출처가 되는 도구 종류를 관리합니다.
               </p>
             </div>
@@ -266,25 +267,25 @@ export default function AdminCategories() {
                     onClick={() => { setSelected(p.id); setEditMode(false); setIsNew(false); setDraft(null); setError(""); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer",
-                      background: isSelected ? "#EFF6FF" : "transparent",
-                      borderLeft: `3px solid ${isSelected ? "#2563EB" : "transparent"}`,
+                      background: isSelected ? COLOR.primaryWeak : "transparent",
+                      borderLeft: `3px solid ${isSelected ? COLOR.primary : "transparent"}`,
                     }}
                   >
                     <CategoryIcon icon={p.icon} color={p.color} bg={p.bg} size={36} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                         {!p.active && (
-                          <span style={{ fontSize: 9, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "1px 6px", borderRadius: 10, flexShrink: 0 }}>비활성</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: COLOR.text3, background: COLOR.bgSubtle, padding: "1px 6px", borderRadius: 10, flexShrink: 0 }}>비활성</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 10.5, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{p.id}</div>
+                      <div style={{ fontSize: 10.5, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{p.id}</div>
                     </div>
                   </div>
                 );
               })}
               {categories.length === 0 && (
-                <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>등록된 도구가 없습니다.</div>
+                <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>등록된 도구가 없습니다.</div>
               )}
             </div>
           </div>
@@ -292,7 +293,7 @@ export default function AdminCategories() {
           {/* ===== 우측: 상세/편집 패널 ===== */}
           <div style={{ flex: 1, minWidth: 0, padding: "24px 32px", overflowY: "auto" }}>
             {!displayData ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#94A3B8", fontSize: 13 }}>좌측에서 도구를 선택하세요.</div>
+              <div style={{ padding: 60, textAlign: "center", color: COLOR.text3, fontSize: 13 }}>좌측에서 도구를 선택하세요.</div>
             ) : (
               <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
@@ -307,26 +308,26 @@ export default function AdminCategories() {
                   <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
                     <CategoryIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={48} />
                     <div style={{ minWidth: 0 }}>
-                      <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {displayData.name || "(이름 없음)"}
                       </h2>
-                      <div style={{ fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-mono)", marginTop: 2 }}>{displayData.id || "(신규)"}</div>
+                      <div style={{ fontSize: 11, color: COLOR.text3, fontFamily: "var(--font-mono)", marginTop: 2 }}>{displayData.id || "(신규)"}</div>
                     </div>
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     {!isEditing ? (
                       <>
-                        <button onClick={() => toggleActive(displayData.id)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+                        <button onClick={() => toggleActive(displayData.id)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>
                           {displayData.active ? "비활성화" : "활성화"}
                         </button>
-                        <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>
+                        <button onClick={startEdit} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>수정</button>
                         <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={cancelEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>취소</button>
-                        <button onClick={handleSave} style={{ background: "#2563EB", border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
+                        <button onClick={cancelEdit} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
+                        <button onClick={handleSave} style={{ background: COLOR.primary, border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
                       </>
                     )}
                   </div>
@@ -336,11 +337,11 @@ export default function AdminCategories() {
                 {deleteConfirm === displayData.id && (
                   <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>이 도구를 삭제하시겠습니까?</div>
-                    <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12, lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 12, color: COLOR.text2, marginBottom: 12, lineHeight: 1.6 }}>
                       이미 이 도구로 등록된 항목이 있으면 출처 표시가 깨질 수 있습니다. 삭제 대신 비활성화를 권장합니다.
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
                       <button onClick={() => handleDelete(displayData.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>삭제 확인</button>
                     </div>
                   </div>
@@ -366,20 +367,20 @@ export default function AdminCategories() {
                     {isNew ? (
                       <input value={displayData.id} onChange={e => setF("id", e.target.value as CategoryId)} placeholder="예: my-tool" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
                     ) : (
-                      <div style={{ ...inputStyle, background: "#F8FAFC", color: "#64748B", fontFamily: "var(--font-mono)" }}>{displayData.id}</div>
+                      <div style={{ ...inputStyle, background: COLOR.bgSubtle, color: COLOR.text2, fontFamily: "var(--font-mono)" }}>{displayData.id}</div>
                     )}
                   </FieldRow>
 
                   <FieldRow label="표시명">
                     {isEditing
                       ? <input value={displayData.name} onChange={e => setF("name", e.target.value)} placeholder="예: n8n" style={inputStyle} />
-                      : <div style={{ fontSize: 14, fontWeight: 600, color: "#0F172A" }}>{displayData.name}</div>}
+                      : <div style={{ fontSize: 14, fontWeight: 600, color: COLOR.text }}>{displayData.name}</div>}
                   </FieldRow>
 
                   <FieldRow label="짧은 설명" hint="목록·카드에 표시되는 한 줄 소개">
                     {isEditing
                       ? <input value={displayData.shortDesc} onChange={e => setF("shortDesc", e.target.value)} placeholder="예: 업무 자동화 워크플로우 플랫폼" style={inputStyle} />
-                      : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{displayData.shortDesc}</div>}
+                      : <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.6 }}>{displayData.shortDesc}</div>}
                   </FieldRow>
                 </SectionBlock>
 
@@ -388,7 +389,7 @@ export default function AdminCategories() {
                   <FieldRow label="라우트 경로" hint="'/'로 시작. 항목 상세 페이지 경로의 접두사로 사용">
                     {isEditing
                       ? <input value={displayData.path} onChange={e => setF("path", e.target.value)} placeholder="예: /n8n" style={{ ...inputStyle, fontFamily: "var(--font-mono)" }} />
-                      : <div style={{ fontSize: 13, color: "#334155", fontFamily: "var(--font-mono)" }}>{displayData.path}</div>}
+                      : <div style={{ fontSize: 13, color: COLOR.text2, fontFamily: "var(--font-mono)" }}>{displayData.path}</div>}
                   </FieldRow>
 
                   <FieldRow label="접속 URL" hint="외부 도구로 이동하는 실제 주소 (없으면 비워두세요)">
@@ -400,8 +401,8 @@ export default function AdminCategories() {
                           style={inputStyle}
                         />
                       : displayData.accessUrl
-                          ? <a href={displayData.accessUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.accessUrl}</a>
-                          : <span style={{ fontSize: 13, color: "#94A3B8" }}>미설정</span>}
+                          ? <a href={displayData.accessUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: COLOR.primary }}>{displayData.accessUrl}</a>
+                          : <span style={{ fontSize: 13, color: COLOR.text3 }}>미설정</span>}
                   </FieldRow>
                 </SectionBlock>
 
@@ -413,7 +414,7 @@ export default function AdminCategories() {
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <CategoryIcon icon={displayData.icon} color={displayData.color} bg={displayData.bg} size={28} />
-                        <span style={{ fontSize: 13, color: "#334155" }}>{iconLabelOf(displayData.icon)}</span>
+                        <span style={{ fontSize: 13, color: COLOR.text2 }}>{iconLabelOf(displayData.icon)}</span>
                       </div>
                     )}
                   </FieldRow>
@@ -433,12 +434,12 @@ export default function AdminCategories() {
                                 style={{
                                   display: "flex", alignItems: "center", gap: 6,
                                   padding: "5px 10px", borderRadius: 20, cursor: "pointer",
-                                  border: `1.5px solid ${isSel ? preset.color : "#E2E8F0"}`,
+                                  border: `1.5px solid ${isSel ? preset.color : COLOR.border}`,
                                   background: isSel ? preset.bg : "#fff",
                                 }}
                               >
                                 <span style={{ width: 12, height: 12, borderRadius: "50%", background: preset.color }} />
-                                <span style={{ fontSize: 11, fontWeight: 600, color: isSel ? preset.color : "#64748B" }}>{preset.label}</span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: isSel ? preset.color : COLOR.text2 }}>{preset.label}</span>
                               </button>
                             );
                           })}
@@ -447,14 +448,14 @@ export default function AdminCategories() {
                           <div>
                             <label style={labelStyle}>전경색 (color)</label>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.color, border: "1px solid #E2E8F0", flexShrink: 0 }} />
+                              <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.color, border: `1px solid ${COLOR.border}`, flexShrink: 0 }} />
                               <input value={displayData.color} onChange={e => setF("color", e.target.value)} placeholder="#EA580C" style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 12 }} />
                             </div>
                           </div>
                           <div>
                             <label style={labelStyle}>배경색 (bg)</label>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.bg, border: "1px solid #E2E8F0", flexShrink: 0 }} />
+                              <span style={{ width: 28, height: 28, borderRadius: 6, background: displayData.bg, border: `1px solid ${COLOR.border}`, flexShrink: 0 }} />
                               <input value={displayData.bg} onChange={e => setF("bg", e.target.value)} placeholder="#FFF7ED" style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 12 }} />
                             </div>
                           </div>
@@ -466,7 +467,7 @@ export default function AdminCategories() {
                           <span style={{ width: 10, height: 10, borderRadius: "50%", background: displayData.color }} />
                           {displayData.name}
                         </span>
-                        <span style={{ fontSize: 11, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{displayData.color} / {displayData.bg}</span>
+                        <span style={{ fontSize: 11, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{displayData.color} / {displayData.bg}</span>
                       </div>
                     )}
                   </FieldRow>
@@ -476,17 +477,17 @@ export default function AdminCategories() {
                 <SectionBlock title="노출 상태">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, marginBottom: 3 }}>
                         {displayData.active ? "활성 (노출 중)" : "비활성 (숨김)"}
                       </div>
-                      <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.5 }}>
                         비활성 도구는 등록·탐색 화면의 출처 선택지에서 숨겨집니다. 기존 등록 항목은 유지됩니다.
                       </div>
                     </div>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, flexShrink: 0,
-                      background: displayData.active ? "#D1FAE5" : "#F1F5F9",
-                      color: displayData.active ? "#065F46" : "#64748B",
+                      background: displayData.active ? "#D1FAE5" : COLOR.bgSubtle,
+                      color: displayData.active ? "#065F46" : COLOR.text2,
                     }}>
                       {displayData.active ? "ON" : "OFF"}
                     </span>

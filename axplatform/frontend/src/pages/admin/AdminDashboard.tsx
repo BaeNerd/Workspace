@@ -8,6 +8,7 @@ import { CATEGORIES } from "../../types/categoryTypes";
 import { useAuth } from "../../context/useAuth";
 import { getDashboardData, monthTotal, COMPANY_NAME } from "../../lib/dataSource";
 import type { SourceKey } from "../../lib/dataSource";
+import { COLOR } from "../../styles/tokens";
 
 // 출처 표시용 정의 — CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
@@ -24,7 +25,7 @@ const detailPathOf = (source: SourceKey, id: string) => {
 // 화면 고유 더미(승인 대기·최근 승인·게시 도구 수·후기 수)는 mocks/adminDashboardMockData로
 // 이관됨. 범위 집계는 dataSource.getDashboardData가 합성한다.
 
-const CARD_BORDER = "1.5px solid #E2E8F0";
+const CARD_BORDER = `1.5px solid ${COLOR.border}`;
 
 // 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로)
 const scopeCompanyNames = (codes: string[]): string =>
@@ -79,16 +80,16 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar pendingCount={userPendingCount} />
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{isCompanyAdmin ? "관계사 관리자" : "관리자"}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{isCompanyAdmin ? "관계사 관리자" : "관리자"}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>대시보드</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>대시보드</h1>
               {showScopeSelect ? (
                 <AdminScopeSelect value={scopeSel} onChange={setScopeSel} restrictTo={baseScope} />
               ) : !noScope && baseScope ? (
@@ -97,7 +98,7 @@ export default function AdminDashboard() {
                 </span>
               ) : null}
             </div>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 통합 현황</p>
+            <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 통합 현황</p>
           </div>
 
           {noScope && (
@@ -110,8 +111,8 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 24 }}>
             {KPIS.map((k, i) => (
               <div key={i} style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "18px 20px" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", marginBottom: 8 }}>{k.label}</div>
-                <div style={{ fontSize: 30, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.03em", marginBottom: 6 }}>{k.value}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text3, marginBottom: 8 }}>{k.label}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.03em", marginBottom: 6 }}>{k.value}</div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: k.subColor }}>{k.sub}</div>
               </div>
             ))}
@@ -120,27 +121,27 @@ export default function AdminDashboard() {
           {/* PENDING + RECENT */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>승인 대기 <span style={{ fontSize: 12, color: "#D97706", fontWeight: 700 }}>{pending.length}</span></div>
-                <span onClick={() => navigate("/admin/review")} style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>전체 보기 →</span>
+              <div style={{ padding: "14px 18px", borderBottom: `1px solid ${COLOR.bgSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>승인 대기 <span style={{ fontSize: 12, color: "#D97706", fontWeight: 700 }}>{pending.length}</span></div>
+                <span onClick={() => navigate("/admin/review")} style={{ fontSize: 12, color: COLOR.primary, fontWeight: 600, cursor: "pointer" }}>전체 보기 →</span>
               </div>
               {pending.length === 0 ? (
-                <div style={{ padding: "24px 18px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>승인 대기 건이 없습니다.</div>
+                <div style={{ padding: "24px 18px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>승인 대기 건이 없습니다.</div>
               ) : pending.map((p, i) => (
                 <div key={p.id} style={{
-                  padding: "12px 18px", borderBottom: i < pending.length - 1 ? "1px solid #F8FAFC" : "none",
+                  padding: "12px 18px", borderBottom: i < pending.length - 1 ? `1px solid ${COLOR.bgSubtle}` : "none",
                   display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: sourceColor(p.source), padding: "1px 6px", borderRadius: 20, flexShrink: 0 }}>{sourceLabel(p.source)}</span>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{p.dept} · {p.type}</div>
+                    <div style={{ fontSize: 11, color: COLOR.text3 }}>{p.dept} · {p.type}</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, color: "#94A3B8" }}>{p.submittedAt}</span>
-                    <button onClick={() => navigate("/admin/review")} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                    <span style={{ fontSize: 10, color: COLOR.text3 }}>{p.submittedAt}</span>
+                    <button onClick={() => navigate("/admin/review")} style={{ background: COLOR.primary, color: "#fff", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
                       검토
                     </button>
                   </div>
@@ -149,33 +150,33 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>최근 승인</div>
-                <span onClick={() => navigate("/admin/projects")} style={{ fontSize: 12, color: "#2563EB", fontWeight: 600, cursor: "pointer" }}>전체 보기 →</span>
+              <div style={{ padding: "14px 18px", borderBottom: `1px solid ${COLOR.bgSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>최근 승인</div>
+                <span onClick={() => navigate("/admin/projects")} style={{ fontSize: 12, color: COLOR.primary, fontWeight: 600, cursor: "pointer" }}>전체 보기 →</span>
               </div>
               {recentApproved.length === 0 ? (
-                <div style={{ padding: "24px 18px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>최근 승인 건이 없습니다.</div>
+                <div style={{ padding: "24px 18px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>최근 승인 건이 없습니다.</div>
               ) : recentApproved.map((p, i) => (
                 <div
                   key={p.id}
                   onClick={() => navigate(detailPathOf(p.source, p.id))}
                   style={{
-                    padding: "12px 18px", borderBottom: i < recentApproved.length - 1 ? "1px solid #F8FAFC" : "none",
+                    padding: "12px 18px", borderBottom: i < recentApproved.length - 1 ? `1px solid ${COLOR.bgSubtle}` : "none",
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8,
                     cursor: "pointer", transition: "background 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#F8FAFC")}
+                  onMouseEnter={e => (e.currentTarget.style.background = COLOR.bgSubtle)}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: sourceColor(p.source), padding: "1px 6px", borderRadius: 20, flexShrink: 0 }}>{sourceLabel(p.source)}</span>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{p.dept}</div>
+                    <div style={{ fontSize: 11, color: COLOR.text3 }}>{p.dept}</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, color: "#94A3B8" }}>{p.approvedAt}</span>
+                    <span style={{ fontSize: 10, color: COLOR.text3 }}>{p.approvedAt}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, background: "#D1FAE5", color: "#065F46", padding: "2px 8px", borderRadius: 20 }}>승인</span>
                   </div>
                 </div>
@@ -187,12 +188,12 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>월별 등록 추이 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>2025 · 카테고리별</span></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>월별 등록 추이 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>2025 · 카테고리별</span></div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {SOURCES.map(s => (
                     <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
-                      <span style={{ fontSize: 10, color: "#64748B" }}>{s.label}</span>
+                      <span style={{ fontSize: 10, color: COLOR.text2 }}>{s.label}</span>
                     </div>
                   ))}
                 </div>
@@ -203,15 +204,15 @@ export default function AdminDashboard() {
                   const h = Math.max((total / maxMonthly) * 96, 6);
                   return (
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#0F172A" }}>{total}</div>
-                      <div style={{ width: "100%", maxWidth: 40, height: h, borderRadius: "4px 4px 0 0", overflow: "hidden", display: "flex", flexDirection: "column-reverse", background: total === 0 ? "#F1F5F9" : "transparent" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.text }}>{total}</div>
+                      <div style={{ width: "100%", maxWidth: 40, height: h, borderRadius: "4px 4px 0 0", overflow: "hidden", display: "flex", flexDirection: "column-reverse", background: total === 0 ? COLOR.bgSubtle : "transparent" }}>
                         {total > 0 && SOURCES.map(s => {
                           const val = m[s.key];
                           if (!val) return null;
                           return <div key={s.key} title={`${s.label} ${val}건`} style={{ height: `${(val / total) * 100}%`, background: s.color }} />;
                         })}
                       </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 500 }}>{m.month}</div>
+                      <div style={{ fontSize: 10, color: COLOR.text3, fontWeight: 500 }}>{m.month}</div>
                     </div>
                   );
                 })}
@@ -219,8 +220,8 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>카테고리별 구성 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>누적 {totalRegistrations}건</span></div>
-              <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: "#F1F5F9" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>카테고리별 구성 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>누적 {totalRegistrations}건</span></div>
+              <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", height: 14, marginBottom: 16, background: COLOR.bgSubtle }}>
                 {SOURCES.map(s => sourceTotal[s.key] > 0 && <div key={s.key} title={`${s.label}: ${sourceTotal[s.key]}건`} style={{ flex: sourceTotal[s.key], background: s.color }} />)}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -229,9 +230,9 @@ export default function AdminDashboard() {
                   return (
                     <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ width: 10, height: 10, borderRadius: 2, background: s.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: "#475569", flex: 1 }}>{s.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{sourceTotal[s.key]}</span>
-                      <span style={{ fontSize: 11, color: "#94A3B8", width: 32, textAlign: "right" }}>{pct}%</span>
+                      <span style={{ fontSize: 12, color: COLOR.text2, flex: 1 }}>{s.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.text }}>{sourceTotal[s.key]}</span>
+                      <span style={{ fontSize: 11, color: COLOR.text3, width: 32, textAlign: "right" }}>{pct}%</span>
                     </div>
                   );
                 })}
@@ -241,17 +242,17 @@ export default function AdminDashboard() {
 
           {/* 비즈니스 도메인 분포 */}
           <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>비즈니스 도메인 분포 <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 500, marginLeft: 6 }}>AX 플랫폼 기준</span></div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>비즈니스 도메인 분포 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>AX 플랫폼 기준</span></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "9px 32px" }}>
               {domain.map((d, i) => {
                 const pct = Math.round((d.count / totalDomain) * 100);
                 return (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ fontSize: 11, color: "#475569", width: 72, flexShrink: 0, fontWeight: 500 }}>{d.label}</div>
-                    <div style={{ flex: 1, background: "#F1F5F9", borderRadius: 4, height: 8, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: "#2563EB", borderRadius: 4 }} />
+                    <div style={{ fontSize: 11, color: COLOR.text2, width: 72, flexShrink: 0, fontWeight: 500 }}>{d.label}</div>
+                    <div style={{ flex: 1, background: COLOR.bgSubtle, borderRadius: 4, height: 8, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: COLOR.primary, borderRadius: 4 }} />
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8", width: 28, textAlign: "right", flexShrink: 0 }}>{d.count}</div>
+                    <div style={{ fontSize: 11, color: COLOR.text3, width: 28, textAlign: "right", flexShrink: 0 }}>{d.count}</div>
                   </div>
                 );
               })}

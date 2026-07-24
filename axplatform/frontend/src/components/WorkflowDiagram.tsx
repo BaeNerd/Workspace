@@ -1,4 +1,5 @@
 import type { AssetItem } from "../types/categoryTypes";
+import { COLOR } from "../styles/tokens";
 
 export type WorkflowDef = NonNullable<AssetItem["workflowDef"]>;
 export type WFNode = WorkflowDef["nodes"][number];
@@ -291,19 +292,19 @@ export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
     <div style={{ marginBottom: 20 }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid #F1F5F9",
+        marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${COLOR.bgSubtle}`,
       }}>
-        <span style={{ fontSize: 12, color: "#64748B" }}>
-          노드 <strong style={{ color: "#0F172A" }}>{wf.nodes.length}개</strong>
-          {" · "}연결 <strong style={{ color: "#0F172A" }}>{wf.edges.length}개</strong>
+        <span style={{ fontSize: 12, color: COLOR.text2 }}>
+          노드 <strong style={{ color: COLOR.text }}>{wf.nodes.length}개</strong>
+          {" · "}연결 <strong style={{ color: COLOR.text }}>{wf.edges.length}개</strong>
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: STATUS_COLOR[wf.status] ?? "#94A3B8" }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: STATUS_COLOR[wf.status] ?? "#94A3B8", display: "inline-block" }} />
+        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: STATUS_COLOR[wf.status] ?? COLOR.text3 }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: STATUS_COLOR[wf.status] ?? COLOR.text3, display: "inline-block" }} />
           {wf.status}
         </span>
       </div>
       <div style={{
-        background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12,
+        background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 12,
         padding: "32px 28px", overflowX: "auto",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, minWidth: "max-content", margin: "0 auto" }}>
@@ -312,13 +313,13 @@ export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
             return (
               <div key={id} style={{ display: "flex", alignItems: "center" }}>
                 <div style={{
-                  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 12,
+                  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 12,
                   padding: "16px 14px", textAlign: "center",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                   minWidth: 110, display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                 }}>
                   <NodeIcon type={node.type} n8nType={node.n8nType} />
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#334155", lineHeight: 1.4, maxWidth: 90 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.text2, lineHeight: 1.4, maxWidth: 90 }}>
                     {node.label}
                   </div>
                 </div>
@@ -343,13 +344,13 @@ export function WorkflowDiagram({ wf }: { wf: WorkflowDef }) {
 
 const selectStyle: React.CSSProperties = {
   fontSize: 12, padding: "5px 8px", borderRadius: 6,
-  border: "1.5px solid #E2E8F0", background: "#fff", color: "#334155", outline: "none",
+  border: `1.5px solid ${COLOR.border}`, background: "#fff", color: COLOR.text2, outline: "none",
   cursor: "pointer",
 };
 
 const inputStyle: React.CSSProperties = {
   flex: 1, fontSize: 12, padding: "6px 10px", borderRadius: 6,
-  border: "1.5px solid #E2E8F0", background: "#fff", color: "#0F172A", outline: "none",
+  border: `1.5px solid ${COLOR.border}`, background: "#fff", color: COLOR.text, outline: "none",
 };
 
 export function WorkflowEditor({
@@ -384,7 +385,7 @@ export function WorkflowEditor({
     <div>
       {/* 상태 */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "#64748B", minWidth: 28 }}>상태</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: COLOR.text2, minWidth: 28 }}>상태</span>
         <select
           value={value.status}
           onChange={e => !disabled && onChange({ ...value, status: e.target.value as WorkflowInput["status"] })}
@@ -401,7 +402,7 @@ export function WorkflowEditor({
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-              background: "#2563EB", color: "#fff",
+              background: COLOR.primary, color: "#fff",
               fontSize: 11, fontWeight: 800,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>{i + 1}</div>
@@ -445,8 +446,8 @@ export function WorkflowEditor({
         <button
           onClick={addNode}
           style={{
-            fontSize: 12, fontWeight: 600, color: "#2563EB",
-            background: "#EFF6FF", border: "1px solid #BFDBFE",
+            fontSize: 12, fontWeight: 600, color: COLOR.primary,
+            background: COLOR.primaryWeak, border: "1px solid #BFDBFE",
             borderRadius: 6, padding: "5px 14px", cursor: "pointer", marginBottom: 16,
           }}
         >+ 노드 추가</button>
@@ -455,7 +456,7 @@ export function WorkflowEditor({
       {/* 실시간 미리보기 */}
       {preview && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
             미리보기
           </div>
           <WorkflowDiagram wf={preview} />

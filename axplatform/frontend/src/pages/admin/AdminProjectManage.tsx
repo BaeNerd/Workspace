@@ -8,6 +8,7 @@ import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 import { getManagedAssetItems } from "../../lib/dataSource";
+import { COLOR } from "../../styles/tokens";
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
@@ -99,8 +100,8 @@ const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }>
 );
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", border: "1.5px solid #E2E8F0", borderRadius: 7,
-  padding: "9px 12px", fontSize: 13, color: "#0F172A",
+  width: "100%", border: `1.5px solid ${COLOR.border}`, borderRadius: 7,
+  padding: "9px 12px", fontSize: 13, color: COLOR.text,
   background: "#fff", outline: "none", boxSizing: "border-box",
 };
 
@@ -110,14 +111,14 @@ const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer", app
 // ===== 재사용 서브컴포넌트 (모듈 레벨) =====
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: 14 }}>
-    <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>{label}</label>
+    <label style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 6 }}>{label}</label>
     {children}
   </div>
 );
 
 const SectionBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #F1F5F9" }}>{title}</div>
+  <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text, marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${COLOR.bgSubtle}` }}>{title}</div>
     {children}
   </div>
 );
@@ -129,9 +130,9 @@ const SingleSelectTag = ({ options, value, onChange, disabled }: { options: stri
       return (
         <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
           fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 20,
-          border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-          background: isSel ? "#EFF6FF" : "#fff",
-          color: isSel ? "#2563EB" : "#475569",
+          border: `1.5px solid ${isSel ? COLOR.primary : COLOR.border}`,
+          background: isSel ? COLOR.primaryWeak : "#fff",
+          color: isSel ? COLOR.primary : COLOR.text2,
           cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
           opacity: disabled ? 0.6 : 1,
         }}>{opt}</span>
@@ -148,16 +149,16 @@ const ImageStripView = ({ images }: { images: string[] }) => {
   const go = (d: number) => setIdx(() => (safe + d + images.length) % images.length);
   return (
     <div>
-      <div style={{ position: "relative", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, minHeight: 160 }}>
+      <div style={{ position: "relative", background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, minHeight: 160 }}>
         {images.length > 1 && (
-          <button type="button" onClick={() => go(-1)} aria-label="이전 사진" style={{ position: "absolute", left: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>‹</button>
+          <button type="button" onClick={() => go(-1)} aria-label="이전 사진" style={{ position: "absolute", left: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `1.5px solid ${COLOR.border}`, cursor: "pointer", fontSize: 15, color: COLOR.text2 }}>‹</button>
         )}
         <img src={images[safe]} alt={`첨부 사진 ${safe + 1}`} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 6 }} />
         {images.length > 1 && (
-          <button type="button" onClick={() => go(1)} aria-label="다음 사진" style={{ position: "absolute", right: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>›</button>
+          <button type="button" onClick={() => go(1)} aria-label="다음 사진" style={{ position: "absolute", right: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `1.5px solid ${COLOR.border}`, cursor: "pointer", fontSize: 15, color: COLOR.text2 }}>›</button>
         )}
       </div>
-      <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6, textAlign: "right" }}>{safe + 1} / {images.length}</div>
+      <div style={{ fontSize: 11, color: COLOR.text3, marginTop: 6, textAlign: "right" }}>{safe + 1} / {images.length}</div>
     </div>
   );
 };
@@ -175,11 +176,11 @@ const TimeSavedInput = ({ value, period, onValueChange, onPeriodChange, disabled
           {TIME_PERIODS.map(p => <option key={p} value={p}>{p}당</option>)}
         </select>
         <input type="number" min="0" step="0.5" value={value} onChange={e => onValueChange(e.target.value)} disabled={disabled} placeholder="예: 3" style={{ ...inputStyle, flex: 1 }} />
-        <span style={{ fontSize: 13, color: "#64748B", flexShrink: 0 }}>시간</span>
+        <span style={{ fontSize: 13, color: COLOR.text2, flexShrink: 0 }}>시간</span>
       </div>
       {annual
-        ? <div style={{ fontSize: 11, fontWeight: 600, color: "#2563EB", marginTop: 6 }}>{annual}</div>
-        : <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>주기와 수치를 입력하면 연간 환산값이 표시됩니다.</div>}
+        ? <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.primary, marginTop: 6 }}>{annual}</div>
+        : <div style={{ fontSize: 11, color: COLOR.text3, marginTop: 6 }}>주기와 수치를 입력하면 연간 환산값이 표시됩니다.</div>}
     </div>
   );
 };
@@ -318,7 +319,7 @@ export default function AdminProjectManage() {
   const displayImages = displayData?.images ?? [];
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar />
@@ -326,15 +327,15 @@ export default function AdminProjectManage() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 통합 목록 ===== */}
-          <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "14px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
+          <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>전체 항목 <span style={{ color: "#94A3B8", fontWeight: 500 }}>{items.length}</span></span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 항목 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{items.length}</span></span>
                 {isAdmin && (
                   <select
                     value=""
                     onChange={e => { if (e.target.value) startNew(e.target.value as CategoryId); }}
-                    style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}
+                    style={{ background: COLOR.primary, color: "#fff", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", appearance: "none" }}
                   >
                     <option value="" disabled>+ 직접 등록</option>
                     {CATEGORIES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -355,8 +356,8 @@ export default function AdminProjectManage() {
                   return (
                     <button key={opt.key} onClick={() => setSourceFilter(opt.key)} style={{
                       padding: "3px 10px", borderRadius: 20, border: "none", fontSize: 10, fontWeight: 700, cursor: "pointer",
-                      background: sourceFilter === opt.key ? "#0F172A" : "#F1F5F9",
-                      color: sourceFilter === opt.key ? "#fff" : "#64748B",
+                      background: sourceFilter === opt.key ? "#0F172A" : COLOR.bgSubtle,
+                      color: sourceFilter === opt.key ? "#fff" : COLOR.text2,
                       display: "flex", alignItems: "center", gap: 4,
                     }}>
                       {style && <span style={{ width: 6, height: 6, borderRadius: 1.5, background: sourceFilter === opt.key ? "#fff" : style.color, display: "inline-block" }} />}
@@ -369,7 +370,7 @@ export default function AdminProjectManage() {
 
             <div style={{ flex: 1, overflowY: "auto" }}>
               {filtered.length === 0 && (
-                <div style={{ padding: "40px 16px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>검색 결과가 없습니다.</div>
+                <div style={{ padding: "40px 16px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>검색 결과가 없습니다.</div>
               )}
               {filtered.map(item => {
                 const style = SOURCE_STYLE[item.kind];
@@ -378,17 +379,17 @@ export default function AdminProjectManage() {
                     key={item.id}
                     onClick={() => { setSelected(item.id); setEditMode(false); setIsNew(false); setEditData(null); }}
                     style={{
-                      padding: "12px 14px", borderBottom: "1px solid #F8FAFC", cursor: "pointer",
-                      background: selected === item.id && !isNew ? "#EFF6FF" : "#fff",
-                      borderLeft: `3px solid ${selected === item.id && !isNew ? "#2563EB" : "transparent"}`,
+                      padding: "12px 14px", borderBottom: `1px solid ${COLOR.bgSubtle}`, cursor: "pointer",
+                      background: selected === item.id && !isNew ? COLOR.primaryWeak : "#fff",
+                      borderLeft: `3px solid ${selected === item.id && !isNew ? COLOR.primary : "transparent"}`,
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 10, fontWeight: 700, background: style.bg, color: style.color, padding: "2px 7px", borderRadius: 10 }}>{style.label}</span>
-                      <span style={{ fontSize: 10, color: "#94A3B8", fontFamily: "var(--font-mono)" }}>{item.id}</span>
+                      <span style={{ fontSize: 10, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{item.id}</span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{item.dept} · {item.updatedAt}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+                    <div style={{ fontSize: 11, color: COLOR.text3 }}>{item.dept} · {item.updatedAt}</div>
                   </div>
                 );
               })}
@@ -398,7 +399,7 @@ export default function AdminProjectManage() {
           {/* ===== 우측: 상세/편집 패널 ===== */}
           <div style={{ flex: 1, minWidth: 0, padding: "24px 32px", overflowY: "auto" }}>
             {!displayData ? (
-              <div style={{ padding: 60, textAlign: "center", color: "#94A3B8", fontSize: 13 }}>좌측에서 항목을 선택하세요.</div>
+              <div style={{ padding: 60, textAlign: "center", color: COLOR.text3, fontSize: 13 }}>좌측에서 항목을 선택하세요.</div>
             ) : (
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
@@ -414,9 +415,9 @@ export default function AdminProjectManage() {
                       <span style={{ fontSize: 10, fontWeight: 700, background: SOURCE_STYLE[displayData.kind].bg, color: SOURCE_STYLE[displayData.kind].color, padding: "3px 9px", borderRadius: 20 }}>
                         {SOURCE_STYLE[displayData.kind].label}
                       </span>
-                      <span style={{ fontSize: 11, color: "#94A3B8" }}>{displayData.id}</span>
+                      <span style={{ fontSize: 11, color: COLOR.text3 }}>{displayData.id}</span>
                     </div>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em", margin: 0 }}>
+                    <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>
                       {isEditing ? (
                         <input value={displayData.title} onChange={e => setF("title", e.target.value)} placeholder="제목 입력" style={{ ...inputStyle, fontSize: 17, fontWeight: 800, padding: "6px 10px" }} />
                       ) : displayData.title}
@@ -425,13 +426,13 @@ export default function AdminProjectManage() {
                   <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
                     {!isEditing ? (
                       <>
-                        {isAdmin && <button onClick={startEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>수정</button>}
+                        {isAdmin && <button onClick={startEdit} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>수정</button>}
                         <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={cancelEdit} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}>취소</button>
-                        <button onClick={handleSave} style={{ background: "#2563EB", border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
+                        <button onClick={cancelEdit} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
+                        <button onClick={handleSave} style={{ background: COLOR.primary, border: "none", borderRadius: 7, padding: "8px 18px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>저장</button>
                       </>
                     )}
                   </div>
@@ -440,9 +441,9 @@ export default function AdminProjectManage() {
                 {deleteConfirm === displayData.id && (
                   <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 18px", marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>이 항목을 삭제하시겠습니까?</div>
-                    <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12 }}>삭제된 항목은 복구할 수 없습니다.</div>
+                    <div style={{ fontSize: 12, color: COLOR.text2, marginBottom: 12 }}>삭제된 항목은 복구할 수 없습니다.</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
                       <button onClick={() => handleDelete(displayData.id)} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>삭제 확인</button>
                     </div>
                   </div>
@@ -458,27 +459,27 @@ export default function AdminProjectManage() {
                   <FieldRow label="한 줄 요약">
                     {isEditing
                       ? <input value={displayData.summary} onChange={e => setF("summary", e.target.value)} style={inputStyle} />
-                      : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{displayData.summary}</div>}
+                      : <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.6 }}>{displayData.summary}</div>}
                   </FieldRow>
                   <FieldRow label="상세 설명">
                     {isEditing
                       ? <textarea value={displayData.description} onChange={e => setF("description", e.target.value)} style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.7 }} />
-                      : <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{displayData.description}</div>}
+                      : <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{displayData.description}</div>}
                   </FieldRow>
                   <FieldRow label="업무 도메인">
                     {isEditing
                       ? <SingleSelectTag options={[...BUSINESS_DOMAINS]} value={displayData.domain ?? ""} onChange={v => setF("domain", v)} />
-                      : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.domain || "—"}</span>}
+                      : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.domain || "—"}</span>}
                   </FieldRow>
                   <FieldRow label="등록 부서">
                     {isEditing
                       ? <input value={displayData.dept} onChange={e => setF("dept", e.target.value)} style={inputStyle} />
-                      : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.dept || "—"}</span>}
+                      : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.dept || "—"}</span>}
                   </FieldRow>
                   <FieldRow label="태그">
                     {isEditing
                       ? <input value={displayData.tags} onChange={e => setF("tags", e.target.value)} style={inputStyle} placeholder="쉼표로 구분하여 입력" />
-                      : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => <span key={i} style={{ fontSize: 12, background: "#F1F5F9", color: "#475569", padding: "3px 10px", borderRadius: 6 }}>{t}</span>)}</div>}
+                      : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{displayData.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => <span key={i} style={{ fontSize: 12, background: COLOR.bgSubtle, color: COLOR.text2, padding: "3px 10px", borderRadius: 6 }}>{t}</span>)}</div>}
                   </FieldRow>
                 </SectionBlock>
 
@@ -496,13 +497,13 @@ export default function AdminProjectManage() {
                     <FieldRow label="예상 절감 시간">
                       {isEditing
                         ? <TimeSavedInput value={timeSavedValue} period={timeSavedPeriod} onValueChange={setTimeSavedValue} onPeriodChange={setTimeSavedPeriod} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{timeSavedDisplay(displayData.expectedTimeSaved)}</span>}
+                        : <span style={{ fontSize: 13, color: COLOR.text2 }}>{timeSavedDisplay(displayData.expectedTimeSaved)}</span>}
                     </FieldRow>
                     {displayData.kind === "n8n" && (
                       <FieldRow label="구성 난이도">
                         {isEditing
                           ? <SingleSelectTag options={DIFFICULTY_LEVELS} value={displayData.difficulty ?? "보통"} onChange={v => setF("difficulty", v)} />
-                          : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.difficulty || "—"}</span>}
+                          : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.difficulty || "—"}</span>}
                       </FieldRow>
                     )}
                   </SectionBlock>
@@ -514,17 +515,17 @@ export default function AdminProjectManage() {
                     <FieldRow label="공유 프롬프트">
                       {isEditing
                         ? <textarea value={displayData.sharedPrompt ?? ""} onChange={e => setF("sharedPrompt", e.target.value)} style={{ ...inputStyle, minHeight: 110, resize: "vertical", lineHeight: 1.7, fontFamily: "var(--font-mono)" }} />
-                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 12px" }}>{displayData.sharedPrompt || "—"}</div>}
+                        : <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "10px 12px" }}>{displayData.sharedPrompt || "—"}</div>}
                     </FieldRow>
                     <FieldRow label="기반 모델">
                       {isEditing ? (
                         <>
                           <input value={displayData.basedModel ?? ""} onChange={e => setF("basedModel", e.target.value)} style={inputStyle} />
                           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
-                            {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => setF("basedModel", m)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
+                            {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => setF("basedModel", m)} style={{ fontSize: 11, color: COLOR.text2, background: COLOR.bgSubtle, padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
                           </div>
                         </>
-                      ) : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.basedModel || "—"}</span>}
+                      ) : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.basedModel || "—"}</span>}
                     </FieldRow>
                   </SectionBlock>
                 )}
@@ -540,25 +541,25 @@ export default function AdminProjectManage() {
                     <FieldRow label="강점 및 활용 방법">
                       {isEditing
                         ? <textarea value={displayData.strengthsDetail ?? ""} onChange={e => setF("strengthsDetail", e.target.value)} style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.7 }} />
-                        : <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7 }}>{displayData.strengthsDetail || "—"}</div>}
+                        : <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.7 }}>{displayData.strengthsDetail || "—"}</div>}
                     </FieldRow>
                     <FieldRow label="모델 접속 URL">
                       {isEditing
                         ? <input value={displayData.specificUrl ?? ""} onChange={e => setF("specificUrl", e.target.value)} placeholder="https://" style={inputStyle} />
-                        : displayData.specificUrl ? <a href={displayData.specificUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: "#2563EB" }}>{displayData.specificUrl}</a> : <span style={{ fontSize: 13, color: "#94A3B8" }}>—</span>}
+                        : displayData.specificUrl ? <a href={displayData.specificUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: COLOR.primary }}>{displayData.specificUrl}</a> : <span style={{ fontSize: 13, color: COLOR.text3 }}>—</span>}
                     </FieldRow>
                     <FieldRow label="세부 모델명">
-                      {isEditing ? <input value={displayData.modelName ?? ""} onChange={e => setF("modelName", e.target.value)} placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={inputStyle} /> : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.modelName || "—"}</span>}
+                      {isEditing ? <input value={displayData.modelName ?? ""} onChange={e => setF("modelName", e.target.value)} placeholder="예: Claude Opus 4.8, GPT-5.4 Mini" style={inputStyle} /> : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.modelName || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="처리 가능한 글 분량">
                       {isEditing
                         ? <SingleSelectTag options={CONTEXT_SIZE_OPTIONS} value={displayData.contextWindow ?? ""} onChange={v => setF("contextWindow", v)} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.contextWindow || "—"}</span>}
+                        : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.contextWindow || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="비용 등급">
                       {isEditing
                         ? <SingleSelectTag options={COST_TIERS} value={displayData.costTier ?? "보통"} onChange={v => setF("costTier", v)} />
-                        : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "#F1F5F9", color: "#475569" }}>{displayData.costTier || "—"}</span>}
+                        : <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: COLOR.bgSubtle, color: COLOR.text2 }}>{displayData.costTier || "—"}</span>}
                     </FieldRow>
                   </SectionBlock>
                 )}
@@ -569,17 +570,17 @@ export default function AdminProjectManage() {
                     <FieldRow label="모델 유형">
                       {isEditing
                         ? <SingleSelectTag options={ML_TYPE_OPTIONS} value={displayData.mlType ?? ""} onChange={v => setF("mlType", v)} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.mlType || "—"}</span>}
+                        : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.mlType || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="학습 데이터 개요">
                       {isEditing
                         ? <input value={displayData.trainingDataDesc ?? ""} onChange={e => setF("trainingDataDesc", e.target.value)} style={inputStyle} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.trainingDataDesc || "—"}</span>}
+                        : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.trainingDataDesc || "—"}</span>}
                     </FieldRow>
                     <FieldRow label="개발 도구">
                       {isEditing
                         ? <input value={displayData.devTool ?? ""} onChange={e => setF("devTool", e.target.value)} placeholder="예: PyTorch, TensorFlow" style={inputStyle} />
-                        : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.devTool || "—"}</span>}
+                        : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.devTool || "—"}</span>}
                     </FieldRow>
                   </SectionBlock>
                 )}
@@ -589,35 +590,35 @@ export default function AdminProjectManage() {
                 {/* ===== 공통: 등록 신청자 정보 ===== */}
                 <SectionBlock title="등록 신청자 정보">
                   {!isEditing && (
-                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "#64748B" }}>
+                    <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: COLOR.text2 }}>
                       퇴사·인사이동 등으로 신청자 계정 정보가 바뀐 경우 여기서 직접 수정하세요.
                     </div>
                   )}
                   <FieldRow label="신청자 이메일 (createdByEmail)">
                     {isEditing
                       ? <input value={displayData.createdByEmail} onChange={e => setF("createdByEmail", e.target.value)} style={inputStyle} placeholder="name@kolmar.co.kr" />
-                      : <span style={{ fontSize: 13, color: "#334155" }}>{displayData.createdByEmail || "—"}</span>}
+                      : <span style={{ fontSize: 13, color: COLOR.text2 }}>{displayData.createdByEmail || "—"}</span>}
                   </FieldRow>
                 </SectionBlock>
 
                 {/* ===== 공통: 담당자 ===== */}
                 <SectionBlock title="담당자">
                   {!isEditing && (
-                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "#64748B" }}>
+                    <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: COLOR.text2 }}>
                       퇴사·인사이동 등으로 담당자 정보가 바뀐 경우 여기서 직접 수정하세요.
                     </div>
                   )}
 
                   {displayData.contacts.map((c, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, marginBottom: 8 }}>
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: COLOR.bgSubtle, borderRadius: 8, marginBottom: 8 }}>
                       {!isEditing ? (
                         <>
                           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                             {c.name ? c.name[0] : "?"}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.name} <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 400 }}>· {c.dept}</span></div>
-                            <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{c.email}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text }}>{c.name} <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 400 }}>· {c.dept}</span></div>
+                            <div style={{ fontSize: 11, color: COLOR.text2, marginTop: 2 }}>{c.email}</div>
                           </div>
                           <span style={{ fontSize: 10, fontWeight: 700, background: "#0F172A", color: "#fff", padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{c.role}</span>
                         </>
@@ -631,7 +632,7 @@ export default function AdminProjectManage() {
                             <option value="공동담당자">공동담당자</option>
                           </select>
                           {displayData.contacts.length > 1 && (
-                            <button onClick={() => removeContact(i)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                            <button onClick={() => removeContact(i)} style={{ background: "none", border: "none", color: COLOR.text3, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
                           )}
                         </div>
                       )}
@@ -639,7 +640,7 @@ export default function AdminProjectManage() {
                   ))}
 
                   {isEditing && (
-                    <button onClick={addContact} style={{ background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>
+                    <button onClick={addContact} style={{ background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>
                       + 담당자 추가
                     </button>
                   )}

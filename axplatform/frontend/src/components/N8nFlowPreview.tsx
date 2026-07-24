@@ -1,5 +1,6 @@
 // N8nFlowPreview.tsx — n8n JSON에서 SVG 흐름 다이어그램 렌더링
 import { useState, useRef } from "react";
+import { COLOR } from "../styles/tokens";
 
 // n8n 노드 타입별 시각 정의 (12종)
 const N8N_NODE_VISUALS: Record<string, { bg: string; border: string; label: string; icon: string }> = {
@@ -113,7 +114,7 @@ export default function N8nFlowPreview({ json, compact }: { json: string; compac
 
   if (!parsed) {
     return (
-      <div style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "24px", textAlign: "center", fontSize: 13, color: "#94A3B8" }}>
+      <div style={{ background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "24px", textAlign: "center", fontSize: 13, color: COLOR.text3 }}>
         {parseError || "n8n JSON을 입력하면 흐름도가 표시됩니다."}
       </div>
     );
@@ -148,18 +149,18 @@ export default function N8nFlowPreview({ json, compact }: { json: string; compac
     <div>
       {/* 줌 컨트롤 */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>
+        <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 600 }}>
           {parsed.name && <>{parsed.name} · </>}{nodes.length}개 노드
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} style={{ width: 26, height: 26, borderRadius: 6, border: "1.5px solid #E2E8F0", background: "#fff", fontSize: 16, cursor: "pointer", color: "#475569" }}>−</button>
-          <button onClick={() => setZoom(1)} style={{ minWidth: 42, height: 26, borderRadius: 6, border: "1.5px solid #E2E8F0", background: "#fff", fontSize: 11, cursor: "pointer", color: "#475569", fontWeight: 600 }}>{Math.round(zoom * 100)}%</button>
-          <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} style={{ width: 26, height: 26, borderRadius: 6, border: "1.5px solid #E2E8F0", background: "#fff", fontSize: 16, cursor: "pointer", color: "#475569" }}>+</button>
+          <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} style={{ width: 26, height: 26, borderRadius: 6, border: `1.5px solid ${COLOR.border}`, background: "#fff", fontSize: 16, cursor: "pointer", color: COLOR.text2 }}>−</button>
+          <button onClick={() => setZoom(1)} style={{ minWidth: 42, height: 26, borderRadius: 6, border: `1.5px solid ${COLOR.border}`, background: "#fff", fontSize: 11, cursor: "pointer", color: COLOR.text2, fontWeight: 600 }}>{Math.round(zoom * 100)}%</button>
+          <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} style={{ width: 26, height: 26, borderRadius: 6, border: `1.5px solid ${COLOR.border}`, background: "#fff", fontSize: 16, cursor: "pointer", color: COLOR.text2 }}>+</button>
         </div>
       </div>
 
       {/* SVG 뷰포트 */}
-      <div style={{ border: "1.5px solid #E2E8F0", borderRadius: 10, overflow: "auto", background: "#F8FAFC", height, position: "relative" }}>
+      <div style={{ border: `1.5px solid ${COLOR.border}`, borderRadius: 10, overflow: "auto", background: COLOR.bgSubtle, height, position: "relative" }}>
         <svg
           ref={svgRef}
           width={svgW * zoom}
@@ -169,7 +170,7 @@ export default function N8nFlowPreview({ json, compact }: { json: string; compac
         >
           <defs>
             <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8" />
+              <path d="M0,0 L0,6 L8,3 z" fill={COLOR.text3} />
             </marker>
           </defs>
 
@@ -212,11 +213,11 @@ export default function N8nFlowPreview({ json, compact }: { json: string; compac
                   fill={v.bg} stroke={v.border} strokeWidth={1.5}
                 />
                 <text x={p.x + NODE_W / 2} y={p.y + 18} textAnchor="middle"
-                  fontSize={14} fill={isCode ? "#E5E7EB" : v.border} fontWeight={600}>
+                  fontSize={14} fill={isCode ? COLOR.border : v.border} fontWeight={600}>
                   {v.icon}
                 </text>
                 <text x={p.x + NODE_W / 2} y={p.y + 36} textAnchor="middle"
-                  fontSize={10} fill={isCode ? "#D1D5DB" : "#334155"} fontWeight={600}>
+                  fontSize={10} fill={isCode ? COLOR.border : COLOR.text2} fontWeight={600}>
                   {n.name.length > 14 ? n.name.slice(0, 13) + "…" : n.name}
                 </text>
               </g>

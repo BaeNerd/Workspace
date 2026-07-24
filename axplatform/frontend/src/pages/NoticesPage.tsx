@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR } from "../styles/tokens";
 import { NOTICE_KINDS } from "../types/noticeTypes";
 import type { NoticeKind } from "../types/noticeTypes";
 import { getNotices } from "../lib/dataSource";
@@ -15,8 +16,8 @@ import { getNotices } from "../lib/dataSource";
 // ============================================================
 
 const C = {
-  primary: "#2D73F4", text: "#1F2937", text2: "#4B5563", text3: "#9CA3AF",
-  border: "#E5E7EB", bgSubtle: "#F3F5F7", page: "#FAFBFF",
+  primary: COLOR.primary, text: COLOR.text, text2: COLOR.text2, text3: COLOR.text3,
+  border: COLOR.border, bgSubtle: COLOR.bgSubtle, page: COLOR.page,
 };
 
 const KIND_STYLE: Record<NoticeKind, { color: string; bg: string }> = {

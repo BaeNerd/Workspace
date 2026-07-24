@@ -6,6 +6,7 @@ import { useAuth } from "../context/useAuth";
 import { CATEGORIES, BUSINESS_DOMAINS } from "../types/categoryTypes";
 import type { AssetItem, CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR } from "../styles/tokens";
 import { useScraps } from "../hooks/useScraps";
 import { getAssetItems } from "../lib/dataSource";
 
@@ -51,20 +52,20 @@ const COST_TIER_BADGE_COLOR: Record<"낮음" | "보통" | "높음", { bg: string
   "높음": { bg: "#FFEDD5", color: "#9A3412" },
 };
 
-const HeartIcon = ({ color = "#94A3B8" }: { color?: string }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill={color === "#94A3B8" ? "none" : color} stroke={color} strokeWidth="2">
+const HeartIcon = ({ color = COLOR.text3 }: { color?: string }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill={color === COLOR.text3 ? "none" : color} stroke={color} strokeWidth="2">
     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
   </svg>
 );
 
-const EyeIcon = ({ color = "#94A3B8" }: { color?: string }) => (
+const EyeIcon = ({ color = COLOR.text3 }: { color?: string }) => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
   </svg>
 );
 
 const BookmarkIcon = ({ active }: { active: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill={active ? "#1D4ED8" : "none"} stroke={active ? "#1D4ED8" : "#94A3B8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={active ? COLOR.primary : "none"} stroke={active ? COLOR.primary : COLOR.text3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
   </svg>
 );
@@ -153,19 +154,19 @@ export default function ProjectListPage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text, display: "flex", flexDirection: "column" }}>
 
       <Navbar />
 
       {/* PAGE HEADER */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "20px 32px" }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "20px 32px" }}>
         <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
             AX Platform
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>
                 AX 플랫폼 탐색
               </h1>
               {isGroupViewer && (
@@ -183,15 +184,15 @@ export default function ProjectListPage() {
                 style={{
                   width: "100%", boxSizing: "border-box",
                   padding: "9px 40px 9px 14px",
-                  fontSize: 13, color: "#1A1F27",
-                  background: "#F4F6F9", border: "1.5px solid #EBEEF3",
+                  fontSize: 13, color: COLOR.text,
+                  background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`,
                   borderRadius: 8, outline: "none",
                 }}
-                onFocus={e => (e.target.style.borderColor = "#1C6BFF")}
-                onBlur={e => (e.target.style.borderColor = "#EBEEF3")}
+                onFocus={e => (e.target.style.borderColor = COLOR.primary)}
+                onBlur={e => (e.target.style.borderColor = COLOR.border)}
               />
               <svg style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}
-                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={COLOR.text3} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </div>
@@ -200,12 +201,12 @@ export default function ProjectListPage() {
       </div>
 
       {/* FILTER BAR */}
-      <div style={{ position: "sticky", top: 56, zIndex: 99, background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "10px 32px" }}>
+      <div style={{ position: "sticky", top: 56, zIndex: 99, background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "10px 32px" }}>
         <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
           {/* 1행: 플랫폼 + 도메인 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#F3F5F8", borderRadius: 10, padding: "4px 6px" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>카테고리</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: COLOR.bgSubtle, borderRadius: 10, padding: "4px 6px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3, padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>카테고리</span>
               {SOURCE_OPTIONS.map(opt => {
                 const sStyle = opt.key === "전체" ? null : SOURCE_STYLE[opt.key];
                 const isActive = source === opt.key;
@@ -213,12 +214,12 @@ export default function ProjectListPage() {
                   <div
                     key={opt.key}
                     onClick={() => setSource(opt.key)}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "#EBEEF3"; }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = COLOR.border; }}
                     onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     style={{
                       padding: "5px 10px", borderRadius: 7, cursor: "pointer",
                       fontSize: 12.5, fontWeight: isActive ? 700 : 400,
-                      color: isActive ? "#1C6BFF" : "#475569",
+                      color: isActive ? COLOR.primary : COLOR.text2,
                       background: isActive ? "#E8F0FE" : "transparent",
                       display: "flex", alignItems: "center", gap: 5,
                     }}
@@ -229,20 +230,20 @@ export default function ProjectListPage() {
                 );
               })}
             </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "#F3F5F8", borderRadius: 10, padding: "4px 6px" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>도메인</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 2, background: COLOR.bgSubtle, borderRadius: 10, padding: "4px 6px" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.text3, padding: "0 6px", letterSpacing: "0.07em", textTransform: "uppercase", flexShrink: 0 }}>도메인</span>
               {(["전체", ...BUSINESS_DOMAINS] as const).map(opt => {
                 const isActive = domainFilter === opt;
                 return (
                   <div
                     key={opt}
                     onClick={() => setDomainFilter(opt as BusinessDomain | "전체")}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "#EBEEF3"; }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = COLOR.border; }}
                     onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                     style={{
                       padding: "5px 10px", borderRadius: 7, cursor: "pointer",
                       fontSize: 12.5, fontWeight: isActive ? 700 : 400,
-                      color: isActive ? "#1C6BFF" : "#475569",
+                      color: isActive ? COLOR.primary : COLOR.text2,
                       background: isActive ? "#E8F0FE" : "transparent",
                     }}
                   >
@@ -262,12 +263,12 @@ export default function ProjectListPage() {
                     onClick={() => setSearch(search === tag ? "" : tag)}
                     style={{
                       padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                      borderTop: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                      borderRight: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                      borderBottom: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                      borderLeft: `1px solid ${search === tag ? "#1C6BFF" : "#EBEEF3"}`,
-                      background: search === tag ? "#E8F0FE" : "#F4F6F9",
-                      color: search === tag ? "#1C6BFF" : "#697386",
+                      borderTop: `1px solid ${search === tag ? COLOR.primary : COLOR.border}`,
+                      borderRight: `1px solid ${search === tag ? COLOR.primary : COLOR.border}`,
+                      borderBottom: `1px solid ${search === tag ? COLOR.primary : COLOR.border}`,
+                      borderLeft: `1px solid ${search === tag ? COLOR.primary : COLOR.border}`,
+                      background: search === tag ? "#E8F0FE" : COLOR.bgSubtle,
+                      color: search === tag ? COLOR.primary : COLOR.text2,
                       flexShrink: 0,
                     }}
                   >
@@ -284,15 +285,15 @@ export default function ProjectListPage() {
                 display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
                 padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer",
                 borderWidth: 1, borderStyle: "solid",
-                borderColor: scrapOnly ? "#1D4ED8" : "#EBEEF3",
-                background: scrapOnly ? "#EFF6FF" : "#F4F6F9",
-                color: scrapOnly ? "#1D4ED8" : "#697386",
+                borderColor: scrapOnly ? COLOR.primary : COLOR.border,
+                background: scrapOnly ? COLOR.primaryWeak : COLOR.bgSubtle,
+                color: scrapOnly ? COLOR.primary : COLOR.text2,
               }}
             >
               <BookmarkIcon active={scrapOnly} />
               스크랩 {scraps.length}
             </button>
-            <button onClick={resetFilters} style={{ fontSize: 11, color: "#94A3B8", cursor: "pointer", background: "none", border: "none", fontWeight: 500, padding: "4px 6px" }}>
+            <button onClick={resetFilters} style={{ fontSize: 11, color: COLOR.text3, cursor: "pointer", background: "none", border: "none", fontWeight: 500, padding: "4px 6px" }}>
               초기화
             </button>
           </div>
@@ -302,17 +303,17 @@ export default function ProjectListPage() {
       {/* BODY */}
       <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto", padding: "24px 32px", width: "100%", boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <span style={{ fontSize: 13, color: "#697386" }}>
-            <strong style={{ color: "#1A1F27" }}>{filtered.length}</strong>개 항목
+          <span style={{ fontSize: 13, color: COLOR.text2 }}>
+            <strong style={{ color: COLOR.text }}>{filtered.length}</strong>개 항목
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             {SORT_OPTIONS.map(opt => (
               <button key={opt} onClick={() => setSort(opt)} style={{
                 padding: "5px 12px", borderRadius: 6,
                 borderWidth: 1.5, borderStyle: "solid",
-                borderColor: sort === opt ? "#1C6BFF" : "#EBEEF3",
+                borderColor: sort === opt ? COLOR.primary : COLOR.border,
                 background: sort === opt ? "#E8F0FE" : "#fff",
-                color: sort === opt ? "#1C6BFF" : "#475569",
+                color: sort === opt ? COLOR.primary : COLOR.text2,
                 fontSize: 12, fontWeight: 600, cursor: "pointer",
               }}>
                 {opt}
@@ -322,7 +323,7 @@ export default function ProjectListPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8", fontSize: 14 }}>
+          <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3, fontSize: 14 }}>
             {scrapOnly && scraps.length === 0
               ? "아직 스크랩한 항목이 없습니다. 카드나 상세에서 북마크를 눌러 스크랩해 보세요."
               : "검색 결과가 없습니다."}
@@ -332,7 +333,7 @@ export default function ProjectListPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
               {filtered.slice(0, visibleCount).map((item, i) => {
               const sourceStyle = SOURCE_STYLE[item.categoryId];
-              const sideColor = hovered === i ? sourceStyle.color : "#EBEEF3";
+              const sideColor = hovered === i ? sourceStyle.color : COLOR.border;
               return (
                 <div
                   key={item.id}
@@ -366,14 +367,14 @@ export default function ProjectListPage() {
                       {item.domain && (
                         <span style={{
                           fontSize: 10, fontWeight: 600,
-                          background: "#F1F5F9", color: "#475569",
+                          background: COLOR.bgSubtle, color: COLOR.text2,
                           padding: "2px 8px", borderRadius: 20, flexShrink: 0,
                         }}>
                           {item.domain}
                         </span>
                       )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#94A3B8", flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: COLOR.text3, flexShrink: 0 }}>
                       {item.views != null && (
                         <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
                           <EyeIcon />
@@ -398,14 +399,14 @@ export default function ProjectListPage() {
                   </div>
 
                   <div style={{
-                    fontSize: 14, fontWeight: 700, color: "#1A1F27", marginBottom: 6, lineHeight: 1.4,
+                    fontSize: 14, fontWeight: 700, color: COLOR.text, marginBottom: 6, lineHeight: 1.4,
                     display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                   }}>
                     {item.title}
                   </div>
 
                   <div style={{
-                    fontSize: 12, color: "#697386", lineHeight: 1.5, marginBottom: 12,
+                    fontSize: 12, color: COLOR.text2, lineHeight: 1.5, marginBottom: 12,
                     display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                   }}>
                     {item.summary}
@@ -432,7 +433,7 @@ export default function ProjectListPage() {
                       {item.tags.slice(0, 3).map((t, ti) => (
                         <span key={ti} style={{
                           fontSize: 10, fontWeight: 600,
-                          background: "#F1F5F9", color: "#475569",
+                          background: COLOR.bgSubtle, color: COLOR.text2,
                           padding: "2px 7px", borderRadius: 4,
                         }}>
                           #{t}
@@ -449,7 +450,7 @@ export default function ProjectListPage() {
                       업데이트 {item.updatedAt}
                     </span>
                     <span style={{
-                      fontSize: 10, color: "#94A3B8", whiteSpace: "nowrap",
+                      fontSize: 10, color: COLOR.text3, whiteSpace: "nowrap",
                       overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110, textAlign: "right",
                     }}>
                       {item.dept}
@@ -465,12 +466,12 @@ export default function ProjectListPage() {
                 onClick={() => setVisibleCount(v => v + 24)}
                 style={{
                   background: "#fff",
-                  borderTop: "1.5px solid #EBEEF3",
-                  borderRight: "1.5px solid #EBEEF3",
-                  borderBottom: "1.5px solid #EBEEF3",
-                  borderLeft: "1.5px solid #EBEEF3",
+                  borderTop: `1.5px solid ${COLOR.border}`,
+                  borderRight: `1.5px solid ${COLOR.border}`,
+                  borderBottom: `1.5px solid ${COLOR.border}`,
+                  borderLeft: `1.5px solid ${COLOR.border}`,
                   borderRadius: 8, padding: "10px 28px",
-                  fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
+                  fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
                 }}
               >
                 더 보기 ({filtered.length - visibleCount}개 남음)

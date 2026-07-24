@@ -5,6 +5,7 @@ import { useAuth } from "../context/useAuth";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { SHARE_BANNER_HEIGHT } from "./SharePreviewBanner";
 import NotificationBell from "./NotificationBell";
+import { COLOR } from "../styles/tokens";
 
 const NAV_LINKS = [
   { label: "이용 가이드", path: "/guide" },
@@ -22,13 +23,13 @@ export default function Navbar() {
     <nav style={{
       position: "sticky", top: IS_SHARE_MODE ? SHARE_BANNER_HEIGHT : 0, zIndex: 100,
       background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)",
-      borderBottom: "1px solid #E2E8F0", padding: "0 32px", height: 56,
+      borderBottom: `1px solid ${COLOR.border}`, padding: "0 32px", height: 56,
       display: "flex", alignItems: "center", justifyContent: "space-between",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
-          <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: "-0.03em", color: "#0F172A" }}>KOLMAR</span>
-          <span style={{ fontWeight: 500, fontSize: 12, color: "#94A3B8" }}>AX Platform</span>
+          <span style={{ fontWeight: 900, fontSize: 16, letterSpacing: "-0.03em", color: COLOR.text }}>KOLMAR</span>
+          <span style={{ fontWeight: 500, fontSize: 12, color: COLOR.text3 }}>AX Platform</span>
         </div>
         <div style={{ display: "flex", gap: 36, alignItems: "center" }}>
           {NAV_LINKS.map(l => (
@@ -41,7 +42,7 @@ export default function Navbar() {
             }} style={{
               fontSize: 13, cursor: "pointer",
               fontWeight: location.pathname === l.path ? 600 : 500,
-              color: location.pathname === l.path ? "#2563EB" : "#475569",
+              color: location.pathname === l.path ? COLOR.primary : COLOR.text2,
             }}>
               {l.label}
             </span>
@@ -88,17 +89,17 @@ export default function Navbar() {
             {menuOpen && (
               <div style={{
                 position: "absolute", top: 42, right: 0, background: "#fff",
-                border: "1.5px solid #E2E8F0", borderRadius: 10, padding: 8,
+                border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: 8,
                 width: 200, boxShadow: "0 8px 24px rgba(0,0,0,0.08)", zIndex: 50,
               }}>
-                <div style={{ padding: "8px 10px", borderBottom: "1px solid #F1F5F9", marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{user.name}</div>
-                  <div style={{ fontSize: 11, color: "#94A3B8" }}>{user.title} · {user.dept}</div>
+                <div style={{ padding: "8px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}`, marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>{user.name}</div>
+                  <div style={{ fontSize: 11, color: COLOR.text3 }}>{user.title} · {user.dept}</div>
                 </div>
-                <div onClick={() => { setMenuOpen(false); navigate("/my-status"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#475569", cursor: "pointer", borderRadius: 6 }}>
+                <div onClick={() => { setMenuOpen(false); navigate("/my-status"); }} style={{ padding: "8px 10px", fontSize: 13, color: COLOR.text2, cursor: "pointer", borderRadius: 6 }}>
                   내 등록 현황
                 </div>
-                <div onClick={() => { setMenuOpen(false); navigate("/settings"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#475569", cursor: "pointer", borderRadius: 6 }}>
+                <div onClick={() => { setMenuOpen(false); navigate("/settings"); }} style={{ padding: "8px 10px", fontSize: 13, color: COLOR.text2, cursor: "pointer", borderRadius: 6 }}>
                   설정
                 </div>
                 {(isAdmin || isCompanyAdmin) && (
@@ -106,7 +107,7 @@ export default function Navbar() {
                     관리자 페이지
                   </div>
                 )}
-                <div onClick={() => { setMenuOpen(false); logout(); navigate("/"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#EF4444", cursor: "pointer", borderRadius: 6, borderTop: "1px solid #F1F5F9", marginTop: 4 }}>
+                <div onClick={() => { setMenuOpen(false); logout(); navigate("/"); }} style={{ padding: "8px 10px", fontSize: 13, color: "#EF4444", cursor: "pointer", borderRadius: 6, borderTop: `1px solid ${COLOR.bgSubtle}`, marginTop: 4 }}>
                   로그아웃
                 </div>
               </div>

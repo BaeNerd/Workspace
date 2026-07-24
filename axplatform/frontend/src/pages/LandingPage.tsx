@@ -7,6 +7,7 @@ import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS, detailPathForItemId }
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
 import { getAssetItems, getAssetItem, getNotices } from "../lib/dataSource";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR as C, cardBase as card, headingFont } from "../styles/tokens";
 import type { NoticeKind } from "../types/noticeTypes";
 import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
@@ -29,16 +30,7 @@ import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 //  - 목업 항목 ID·제목은 mocks SSOT(MOCK_ASSET_ITEMS, dataSource 경유)와 일치
 // ============================================================================
 
-// ── 디자인 토큰(globals.css의 CSS 변수를 리터럴로 정의) ──
-const C = {
-  primary: "#2D73F4", primaryHover: "#1E5FD8", primaryWeak: "#E7F0FF",
-  text: "#1F2937", text2: "#4B5563", text3: "#9CA3AF",
-  border: "#E5E7EB", bgSubtle: "#F3F5F7", page: "#FAFBFF",
-};
-// 원본 .whShadow-box 그림자
-const SHADOW = "2.5px 4.33px 29px 0px rgba(0,0,0,0.06)";
-const card: React.CSSProperties = { background: "#fff", borderRadius: 16, boxShadow: SHADOW };
-const headingFont = "var(--font-heading)";
+// ── 디자인 토큰은 styles/tokens.ts로 승격 (COLOR→C, cardBase→card, headingFont) ──
 
 // ── 카테고리별 미디어/씬 매핑 (구 6종 에셋 → 신 7종) ──
 // 원본 배너/아이콘 에셋은 구 id(ml·hkgpt·chatbot·n8n·power-automate·vibe-coding) 기준이라

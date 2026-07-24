@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { STAT_COMPANIES, COMPANY_NAME } from "../mocks/statsMockData";
+import { COLOR } from "../styles/tokens";
 
 // 조회 범위 선택 — 전체(합산) 또는 개별 관계자 드릴다운
 export type ScopeSelection = { kind: "all" } | { kind: "company"; code: string };
@@ -20,15 +21,15 @@ const CO_TONE = { dot: "#B4602E", bg: "#FBEEE4", fg: "#B4602E" };
 
 // 닫힌 드롭다운 트리거 기준 스타일 (규칙 3: inputStyle + cursor: pointer)
 const inputStyle: CSSProperties = {
-  boxSizing: "border-box", padding: "6px 10px", fontSize: 12, color: "#0F172A",
-  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8, outline: "none", fontFamily: "inherit",
+  boxSizing: "border-box", padding: "6px 10px", fontSize: 12, color: COLOR.text,
+  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 8, outline: "none", fontFamily: "inherit",
 };
 const triggerStyle: CSSProperties = {
   ...inputStyle, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8,
 };
 const panelStyle: CSSProperties = {
   position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, minWidth: 200,
-  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 8,
+  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 8,
   boxShadow: "0 8px 24px rgba(15,23,42,0.12)", padding: 6, maxHeight: 320, overflowY: "auto",
 };
 
@@ -66,12 +67,12 @@ export default function AdminScopeSelect({ value, onChange, restrictTo }: Props)
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
       <button type="button" onClick={() => setOpen(v => !v)} style={triggerStyle}>
-        <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>조회 범위:</span>
+        <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 600 }}>조회 범위:</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: tone.bg, color: tone.fg, padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: tone.dot, flexShrink: 0 }} />
           {currentLabel}
         </span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLOR.text3} strokeWidth="2.5" style={{ transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}>
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -87,12 +88,12 @@ export default function AdminScopeSelect({ value, onChange, restrictTo }: Props)
                 onClick={() => { onChange(o.sel); setOpen(false); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "7px 9px", borderRadius: 6,
-                  cursor: "pointer", background: on ? "#EFF6FF" : "transparent",
+                  cursor: "pointer", background: on ? COLOR.primaryWeak : "transparent",
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: optTone.dot, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: on ? 700 : 500, color: on ? "#2563EB" : "#334155" }}>{o.label}</span>
-                {on && <span style={{ fontSize: 12, fontWeight: 800, color: "#2563EB" }}>✓</span>}
+                <span style={{ flex: 1, fontSize: 12, fontWeight: on ? 700 : 500, color: on ? COLOR.primary : COLOR.text2 }}>{o.label}</span>
+                {on && <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.primary }}>✓</span>}
               </div>
             );
           })}

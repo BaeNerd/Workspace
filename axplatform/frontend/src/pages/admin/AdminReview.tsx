@@ -8,6 +8,7 @@ import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 import { getReviewQueue } from "../../lib/dataSource";
+import { COLOR } from "../../styles/tokens";
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
@@ -87,9 +88,9 @@ function SlotPill({ slots }: { slots: ApprovalSlots }) {
     );
   };
   return (
-    <span style={{ display: "inline-flex", borderRadius: 20, overflow: "hidden", border: "1px solid #E2E8F0" }}>
+    <span style={{ display: "inline-flex", borderRadius: 20, overflow: "hidden", border: `1px solid ${COLOR.border}` }}>
       {cell("company")}
-      <span style={{ width: 1, background: "#E2E8F0" }} />
+      <span style={{ width: 1, background: COLOR.border }} />
       {cell("global")}
     </span>
   );
@@ -102,19 +103,19 @@ function SlotCard({ slotKey, slot, canApprove, disabledReason, onApprove }: {
   return (
     <div style={{ flex: 1, minWidth: 0, background: "#fff", border: `1.5px solid ${slot.approved ? "#BBE5CB" : "#E2E8F0"}`, borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A" }}>{APPROVAL_SLOT_LABEL[slotKey]}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.text }}>{APPROVAL_SLOT_LABEL[slotKey]}</span>
         <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: slot.approved ? SLOT_APPROVED.bg : SLOT_PENDING.bg, color: slot.approved ? SLOT_APPROVED.fg : SLOT_PENDING.fg }}>
           {slot.approved ? "승인 완료" : "대기"}
         </span>
       </div>
       {slot.approved ? (
-        <div style={{ fontSize: 11, color: "#64748B" }}>{slot.by ?? "관리자"} · {slot.at ?? ""}</div>
+        <div style={{ fontSize: 11, color: COLOR.text2 }}>{slot.by ?? "관리자"} · {slot.at ?? ""}</div>
       ) : canApprove ? (
         <button onClick={onApprove} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 7, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
           이 슬롯 승인
         </button>
       ) : (
-        <div style={{ fontSize: 11, color: "#94A3B8", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 7, padding: "8px 10px", lineHeight: 1.5 }}>{disabledReason}</div>
+        <div style={{ fontSize: 11, color: COLOR.text3, background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 10px", lineHeight: 1.5 }}>{disabledReason}</div>
       )}
     </div>
   );
@@ -139,14 +140,14 @@ function SummaryStrip({ counts, partialCompanyOnly, partialGlobalOnly, active, o
         return (
           <button key={c.key} onClick={() => onSelect(c.key)} style={{
             textAlign: "left", padding: "7px 10px", borderRadius: 8, cursor: "pointer",
-            border: `1.5px solid ${on ? "#2563EB" : "#E2E8F0"}`, background: on ? "#EFF6FF" : "#fff",
+            border: `1.5px solid ${on ? COLOR.primary : COLOR.border}`, background: on ? COLOR.primaryWeak : "#fff",
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: on ? "#2563EB" : "#0F172A" }}>{counts[c.key]}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: on ? "#2563EB" : "#64748B" }}>{c.label}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: on ? COLOR.primary : COLOR.text }}>{counts[c.key]}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: on ? COLOR.primary : COLOR.text2 }}>{c.label}</span>
             </div>
             {c.key === "부분 승인" && counts["부분 승인"] > 0 && (
-              <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 1 }}>관계사만 {partialCompanyOnly} · 전사만 {partialGlobalOnly}</div>
+              <div style={{ fontSize: 9, color: COLOR.text3, marginTop: 1 }}>관계사만 {partialCompanyOnly} · 전사만 {partialGlobalOnly}</div>
             )}
           </button>
         );
@@ -196,8 +197,8 @@ const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string }>
 );
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 13, color: "#0F172A",
-  background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 7, outline: "none", fontFamily: "inherit",
+  width: "100%", boxSizing: "border-box", padding: "9px 12px", fontSize: 13, color: COLOR.text,
+  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, outline: "none", fontFamily: "inherit",
 };
 const selectArrow = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`;
 const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "none", backgroundImage: selectArrow, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center", paddingRight: 32, cursor: "pointer" };
@@ -205,14 +206,14 @@ const selectStyle: React.CSSProperties = { ...inputStyle, appearance: "none", ba
 // ===== 재사용 서브컴포넌트 (모듈 레벨) =====
 const FieldRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div style={{ marginBottom: 14 }}>
-    <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6 }}>{label}</label>
+    <label style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 6 }}>{label}</label>
     {children}
   </div>
 );
 
 const SectionBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid #F1F5F9" }}>{title}</div>
+  <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text, marginBottom: 14, paddingBottom: 10, borderBottom: `1px solid ${COLOR.bgSubtle}` }}>{title}</div>
     {children}
   </div>
 );
@@ -224,9 +225,9 @@ const SingleSelectTag = ({ options, value, onChange, disabled }: { options: stri
       return (
         <span key={opt} onClick={() => !disabled && onChange(opt)} style={{
           fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 20,
-          border: `1.5px solid ${isSel ? "#2563EB" : "#E2E8F0"}`,
-          background: isSel ? "#EFF6FF" : "#fff",
-          color: isSel ? "#2563EB" : "#475569",
+          border: `1.5px solid ${isSel ? COLOR.primary : COLOR.border}`,
+          background: isSel ? COLOR.primaryWeak : "#fff",
+          color: isSel ? COLOR.primary : COLOR.text2,
           cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
           opacity: disabled ? 0.6 : 1,
         }}>{opt}</span>
@@ -243,16 +244,16 @@ const ImageStripView = ({ images }: { images: string[] }) => {
   const go = (d: number) => setIdx(() => (safe + d + images.length) % images.length);
   return (
     <div>
-      <div style={{ position: "relative", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, minHeight: 160 }}>
+      <div style={{ position: "relative", background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, minHeight: 160 }}>
         {images.length > 1 && (
-          <button type="button" onClick={() => go(-1)} aria-label="이전 사진" style={{ position: "absolute", left: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>‹</button>
+          <button type="button" onClick={() => go(-1)} aria-label="이전 사진" style={{ position: "absolute", left: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `1.5px solid ${COLOR.border}`, cursor: "pointer", fontSize: 15, color: COLOR.text2 }}>‹</button>
         )}
         <img src={images[safe]} alt={`첨부 사진 ${safe + 1}`} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 6 }} />
         {images.length > 1 && (
-          <button type="button" onClick={() => go(1)} aria-label="다음 사진" style={{ position: "absolute", right: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: "1.5px solid #E2E8F0", cursor: "pointer", fontSize: 15, color: "#475569" }}>›</button>
+          <button type="button" onClick={() => go(1)} aria-label="다음 사진" style={{ position: "absolute", right: 10, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `1.5px solid ${COLOR.border}`, cursor: "pointer", fontSize: 15, color: COLOR.text2 }}>›</button>
         )}
       </div>
-      <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6, textAlign: "right" }}>{safe + 1} / {images.length}</div>
+      <div style={{ fontSize: 11, color: COLOR.text3, marginTop: 6, textAlign: "right" }}>{safe + 1} / {images.length}</div>
     </div>
   );
 };
@@ -273,9 +274,9 @@ const TimeSavedInput = ({
           {SAVED_PERIODS.map(p => (
             <span key={p} onClick={() => !disabled && onPeriodChange(p)} style={{
               fontSize: 12, fontWeight: 600, padding: "7px 13px", borderRadius: 7,
-              border: `1.5px solid ${period === p ? "#2563EB" : "#E2E8F0"}`,
-              background: period === p ? "#EFF6FF" : "#fff",
-              color: period === p ? "#2563EB" : "#475569",
+              border: `1.5px solid ${period === p ? COLOR.primary : COLOR.border}`,
+              background: period === p ? COLOR.primaryWeak : "#fff",
+              color: period === p ? COLOR.primary : COLOR.text2,
               cursor: disabled ? "not-allowed" : "pointer", userSelect: "none",
               opacity: disabled ? 0.6 : 1,
             }}>{p}</span>
@@ -290,7 +291,7 @@ const TimeSavedInput = ({
             onValueChange(n);
           }}
           placeholder="예: 3" style={{ ...inputStyle, maxWidth: 110, opacity: disabled ? 0.6 : 1 }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>시간</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: COLOR.text2, whiteSpace: "nowrap" }}>시간</span>
       </div>
       {hasValue && (
         <div style={{ marginTop: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: "9px 13px", fontSize: 12, color: "#065F46", lineHeight: 1.6 }}>
@@ -446,7 +447,7 @@ export default function AdminReview() {
   const kindLabel = merged ? (isModelKind ? "AI Model" : SOURCE_STYLE[merged.kind].label) : "";
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar pendingCount={userPendingCount} />
@@ -454,9 +455,9 @@ export default function AdminReview() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 통합 대기 목록 ===== */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: "1px solid #E2E8F0", background: "#fff", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>
+          <div style={{ width: 280, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "16px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 4 }}>
                 등록 신청 목록
               </div>
               {isCompanyAdmin && (
@@ -493,24 +494,24 @@ export default function AdminReview() {
                 return (
                   <div key={item.id} onClick={() => setSelected(item.id)} style={{
                     padding: "12px 14px", cursor: "pointer",
-                    background: isSelected ? "#EFF6FF" : "transparent",
-                    borderBottom: "1px solid #F8FAFC",
-                    borderLeft: isSelected ? "3px solid #2563EB" : "3px solid transparent",
+                    background: isSelected ? COLOR.primaryWeak : "transparent",
+                    borderBottom: `1px solid ${COLOR.bgSubtle}`,
+                    borderLeft: isSelected ? `3px solid ${COLOR.primary}` : "3px solid transparent",
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 9, fontWeight: 700, background: sourceStyle.bg, color: sourceStyle.color, padding: "1px 7px", borderRadius: 20 }}>{sourceStyle.label}</span>
                       <span style={{ fontSize: 9, fontWeight: 700, background: stBadge.bg, color: stBadge.fg, padding: "1px 7px", borderRadius: 20 }}>{stBadge.label}</span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 4, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.dept} · {item.submittedBy}</span>
+                      <span style={{ fontSize: 11, color: COLOR.text3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.dept} · {item.submittedBy}</span>
                       <SlotPill slots={item.approvalSlots} />
                     </div>
                   </div>
                 );
               })}
               {filteredList.length === 0 && (
-                <div style={{ padding: "30px 14px", textAlign: "center", fontSize: 12, color: "#94A3B8" }}>해당하는 신청 건이 없습니다.</div>
+                <div style={{ padding: "30px 14px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>해당하는 신청 건이 없습니다.</div>
               )}
             </div>
           </div>
@@ -518,7 +519,7 @@ export default function AdminReview() {
           {/* ===== 우측: 상세 검토 패널 ===== */}
           <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
             {!merged ? (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8" }}>검토할 항목을 선택하세요.</div>
+              <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3 }}>검토할 항목을 선택하세요.</div>
             ) : (
               <div style={{ maxWidth: 720 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -526,13 +527,13 @@ export default function AdminReview() {
                   {stageStyle && (
                     <span style={{ fontSize: 11, fontWeight: 700, background: stageStyle.bg, color: stageStyle.fg, padding: "3px 10px", borderRadius: 20 }}>{stageStyle.label}</span>
                   )}
-                  <span style={{ fontSize: 12, color: "#94A3B8" }}>{merged.id} · 신청 {merged.submittedAt} · {merged.submittedBy}</span>
+                  <span style={{ fontSize: 12, color: COLOR.text3 }}>{merged.id} · 신청 {merged.submittedAt} · {merged.submittedBy}</span>
                 </div>
 
                 {/* 승인 이력 */}
                 {merged.approvalHistory.length > 0 && (
-                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 8 }}>승인 이력</div>
+                  <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, marginBottom: 8 }}>승인 이력</div>
                     {merged.approvalHistory.map((h, i) => {
                       const isReject = h.action === "반려";
                       const hs = isReject ? { bg: "#FEE2E2", fg: "#991B1B" } : { bg: SLOT_APPROVED.bg, fg: SLOT_APPROVED.fg };
@@ -540,9 +541,9 @@ export default function AdminReview() {
                       return (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: i < merged.approvalHistory.length - 1 ? 6 : 0 }}>
                           <span style={{ background: hs.bg, color: hs.fg, fontWeight: 700, padding: "1px 8px", borderRadius: 12, fontSize: 11 }}>{label}</span>
-                          <span style={{ color: "#475569" }}>{h.by}</span>
+                          <span style={{ color: COLOR.text2 }}>{h.by}</span>
                           <span style={{ color: "#CBD5E1" }}>·</span>
-                          <span style={{ color: "#94A3B8" }}>{h.at}</span>
+                          <span style={{ color: COLOR.text3 }}>{h.at}</span>
                           {h.note && <span style={{ color: "#EF4444" }}>— {h.note}</span>}
                         </div>
                       );
@@ -622,7 +623,7 @@ export default function AdminReview() {
                       <input value={(edit as any).basedModel ?? (merged as ReviewAssetItem).basedModel ?? ""} onChange={e => (setEdit as any)("basedModel", e.target.value)} disabled={!canActOnCurrent} style={{ ...inputStyle, opacity: !canActOnCurrent ? 0.6 : 1 }} />
                       {canActOnCurrent && (
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
-                          {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => (setEdit as any)("basedModel", m)} style={{ fontSize: 11, color: "#64748B", background: "#F1F5F9", padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
+                          {ASSISTANT_MODEL_HINTS.map(m => <span key={m} onClick={() => (setEdit as any)("basedModel", m)} style={{ fontSize: 11, color: COLOR.text2, background: COLOR.bgSubtle, padding: "3px 9px", borderRadius: 14, cursor: "pointer" }}>+ {m}</span>)}
                         </div>
                       )}
                     </FieldRow>
@@ -673,7 +674,7 @@ export default function AdminReview() {
                 {/* ===== 공통: 담당자 ===== */}
                 <SectionBlock title="담당자">
                   {canActOnCurrent && (
-                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: "#64748B" }}>
+                    <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 11, color: COLOR.text2 }}>
                       퇴사·인사이동 등으로 담당자 정보가 바뀐 경우 여기서 직접 수정하세요.
                     </div>
                   )}
@@ -685,15 +686,15 @@ export default function AdminReview() {
                     };
                     const removeContact = () => (setEdit as any)("contacts", contacts.filter((_: Contact, ci: number) => ci !== i));
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, marginBottom: 8 }}>
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: COLOR.bgSubtle, borderRadius: 8, marginBottom: 8 }}>
                         {!canActOnCurrent ? (
                           <>
                             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                               {c.name ? c.name[0] : "?"}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.name} <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 400 }}>· {c.dept}</span></div>
-                              <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{c.email}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text }}>{c.name} <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 400 }}>· {c.dept}</span></div>
+                              <div style={{ fontSize: 11, color: COLOR.text2, marginTop: 2 }}>{c.email}</div>
                             </div>
                             <span style={{ fontSize: 10, fontWeight: 700, background: "#0F172A", color: "#fff", padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{c.role}</span>
                           </>
@@ -707,7 +708,7 @@ export default function AdminReview() {
                               <option value="공동담당자">공동담당자</option>
                             </select>
                             {contacts.length > 1 && (
-                              <button onClick={removeContact} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+                              <button onClick={removeContact} style={{ background: "none", border: "none", color: COLOR.text3, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
                             )}
                           </div>
                         )}
@@ -715,7 +716,7 @@ export default function AdminReview() {
                     );
                   })}
                   {canActOnCurrent && (
-                    <button onClick={() => (setEdit as any)("contacts", [...((edit as any).contacts ?? merged.contacts), { name: "", dept: "", role: "공동담당자", email: "" }])} style={{ background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>
+                    <button onClick={() => (setEdit as any)("contacts", [...((edit as any).contacts ?? merged.contacts), { name: "", dept: "", role: "공동담당자", email: "" }])} style={{ background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>
                       + 담당자 추가
                     </button>
                   )}
@@ -754,14 +755,14 @@ export default function AdminReview() {
                             <button onClick={handleReject} disabled={!rejectReason.trim()} style={{ background: rejectReason.trim() ? "#EF4444" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 6, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: rejectReason.trim() ? "pointer" : "not-allowed" }}>
                               반려 확정
                             </button>
-                            <button onClick={() => { setRejectOpen(false); setRejectReason(""); }} style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>
+                            <button onClick={() => { setRejectOpen(false); setRejectReason(""); }} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>
                               취소
                             </button>
                           </div>
                         </div>
                       )
                     ) : (
-                      <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: "12px 16px", fontSize: 12, color: "#64748B" }}>
+                      <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 12, color: COLOR.text2 }}>
                         이 항목에 대한 승인 권한이 없습니다.
                       </div>
                     )}

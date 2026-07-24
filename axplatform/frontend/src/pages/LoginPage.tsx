@@ -3,6 +3,7 @@ import type { CurrentUser } from "../context/AuthContext";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getManagedCompanies } from "../lib/dataSource";
+import { COLOR } from "../styles/tokens";
 
 // ============================================================
 // 데모 전용 계정 프리셋 (DEMO 전용)
@@ -114,15 +115,15 @@ export default function LoginPage() {
         {/* 로고 */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: "#1A1F27" }}>KOLMAR</span>
+            <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: "-0.03em", color: COLOR.text }}>KOLMAR</span>
           </div>
-          <div style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>AX Platform</div>
+          <div style={{ fontSize: 13, color: COLOR.text3, fontWeight: 500 }}>AX Platform</div>
         </div>
 
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#1A1F27", marginBottom: 8 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: COLOR.text, marginBottom: 8 }}>
           Kolmar AX Platform
         </h1>
-        <p style={{ fontSize: 13, color: "#697386", marginBottom: 32, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: COLOR.text2, marginBottom: 32, lineHeight: 1.6 }}>
           사내 계정으로 로그인하세요
         </p>
 
@@ -155,13 +156,13 @@ export default function LoginPage() {
           <button
             onClick={() => setDemoOpen(v => !v)}
             style={{
-              width: "100%", background: "#F4F6F9", border: "1.5px solid #EBEEF3", borderRadius: 8,
-              padding: "10px 0", fontSize: 12, fontWeight: 600, color: "#697386", cursor: "pointer",
+              width: "100%", background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`, borderRadius: 8,
+              padding: "10px 0", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
             데모 계정으로 로그인
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" style={{ transform: demoOpen ? "rotate(180deg)" : "none" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLOR.text3} strokeWidth="2.5" style={{ transform: demoOpen ? "rotate(180deg)" : "none" }}>
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
@@ -170,15 +171,15 @@ export default function LoginPage() {
             <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
               {DEMO_ACCOUNTS.map(acc => {
                 const isAdminAcc = acc.user.role === "admin";
-                const badgeColor = isAdminAcc ? "#1C6BFF" : "#94A3B8";
-                const badgeBg = isAdminAcc ? "#E8F0FE" : "#F1F5F9";
+                const badgeColor = isAdminAcc ? COLOR.primary : COLOR.text3;
+                const badgeBg = isAdminAcc ? "#E8F0FE" : COLOR.bgSubtle;
                 const badgeText = isAdminAcc ? "관리자" : "사용자";
                 return (
                   <button
                     key={acc.key}
                     onClick={() => handleDemoLogin(acc)}
                     style={{
-                      width: "100%", background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 8,
+                      width: "100%", background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 8,
                       padding: "10px 12px", cursor: "pointer", textAlign: "left",
                       display: "flex", alignItems: "center", gap: 10,
                     }}
@@ -188,8 +189,8 @@ export default function LoginPage() {
                       padding: "2px 8px", borderRadius: 20, flexShrink: 0,
                     }}>{badgeText}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#1A1F27", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.label}</span>
-                      <span style={{ display: "block", fontSize: 10.5, color: "#94A3B8", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.desc}</span>
+                      <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: COLOR.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.label}</span>
+                      <span style={{ display: "block", fontSize: 10.5, color: COLOR.text3, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.desc}</span>
                     </span>
                   </button>
                 );
@@ -201,10 +202,10 @@ export default function LoginPage() {
           )}
         </div>
 
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid #F1F5F9" }}>
-          <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.6 }}>
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: `1px solid ${COLOR.border}` }}>
+          <p style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.6 }}>
             로그인에 문제가 있으신가요?<br />
-            <a href="mailto:tech-hub@kolmar.co.kr" style={{ color: "#1C6BFF", fontWeight: 600, textDecoration: "none" }}>
+            <a href="mailto:tech-hub@kolmar.co.kr" style={{ color: COLOR.primary, fontWeight: 600, textDecoration: "none" }}>
               tech-hub@kolmar.co.kr
             </a>
             로 문의하세요

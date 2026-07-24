@@ -14,6 +14,7 @@ import Footer from "../components/Footer";
 import { CATEGORIES, BUSINESS_DOMAINS } from "../types/categoryTypes";
 import type { CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR } from "../styles/tokens";
 import { useInterests } from "../hooks/useInterests";
 
 // 다중 선택 칩 (선택/해제 토글)
@@ -27,9 +28,9 @@ function InterestChip({ label, active, color, onClick }: { label: string; active
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: "8px 16px", borderRadius: 9999, fontSize: 13, fontWeight: 600, cursor: "pointer",
         borderWidth: 1.5, borderStyle: "solid",
-        borderColor: active ? color : "#E2E8F0",
+        borderColor: active ? color : COLOR.border,
         background: active ? `${color}14` : "#fff",
-        color: active ? color : "#475569",
+        color: active ? color : COLOR.text2,
         transition: "all 0.15s",
       }}
     >
@@ -51,7 +52,7 @@ function InterestChip({ label, active, color, onClick }: { label: string; active
 }
 
 const sectionCard: React.CSSProperties = {
-  background: "#fff", border: "1px solid #EBEEF3", borderRadius: 14, padding: "24px 26px", marginBottom: 20,
+  background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 14, padding: "24px 26px", marginBottom: 20,
 };
 
 const domainColor: Record<BusinessDomain, string> = {
@@ -84,17 +85,17 @@ export default function SettingsPage() {
   const selectedCount = cats.length + doms.length;
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text, display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       {/* PAGE HEADER */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "20px 32px" }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "20px 32px" }}>
         <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>
             Settings
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.02em" }}>설정</h1>
-          <p style={{ fontSize: 13, color: "#697386", marginTop: 4 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>설정</h1>
+          <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>
             관심사를 설정하면 홈 화면에서 맞춤 추천을 받아볼 수 있어요.
           </p>
         </div>
@@ -106,10 +107,10 @@ export default function SettingsPage() {
         {/* ① 관심 카테고리 (7종) */}
         <div style={sectionCard}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#1A1F27" }}>관심 카테고리</span>
-            <span style={{ fontSize: 12, color: "#94A3B8" }}>복수 선택 가능</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: COLOR.text }}>관심 카테고리</span>
+            <span style={{ fontSize: 12, color: COLOR.text3 }}>복수 선택 가능</span>
           </div>
-          <p style={{ fontSize: 12.5, color: "#697386", margin: "0 0 16px" }}>
+          <p style={{ fontSize: 12.5, color: COLOR.text2, margin: "0 0 16px" }}>
             자주 찾는 AX 플랫폼 유형을 골라주세요.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -122,10 +123,10 @@ export default function SettingsPage() {
         {/* ② 관심 업무 도메인 (6종) */}
         <div style={sectionCard}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#1A1F27" }}>관심 업무 도메인</span>
-            <span style={{ fontSize: 12, color: "#94A3B8" }}>복수 선택 가능</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: COLOR.text }}>관심 업무 도메인</span>
+            <span style={{ fontSize: 12, color: COLOR.text3 }}>복수 선택 가능</span>
           </div>
-          <p style={{ fontSize: 12.5, color: "#697386", margin: "0 0 16px" }}>
+          <p style={{ fontSize: 12.5, color: COLOR.text2, margin: "0 0 16px" }}>
             담당하거나 관심 있는 업무 분야를 골라주세요.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -136,8 +137,8 @@ export default function SettingsPage() {
         </div>
 
         {/* 확장 안내 — 추후 개인 정보 항목 추가 예정 (코드 TODO는 파일 상단 참조) */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "#F1F5FF", border: "1px solid #DBEAFE", borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "#F1F5FF", border: `1px solid ${COLOR.primaryWeak}`, borderRadius: 12, padding: "14px 16px", marginBottom: 24 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLOR.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
           </svg>
           <span style={{ fontSize: 12.5, color: "#3B5AA6", lineHeight: 1.6 }}>
@@ -150,7 +151,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             style={{
-              background: "#1C6BFF", color: "#fff", border: "none", borderRadius: 8,
+              background: COLOR.primary, color: "#fff", border: "none", borderRadius: 8,
               padding: "11px 26px", fontSize: 14, fontWeight: 700, cursor: "pointer",
             }}
           >
@@ -166,7 +167,7 @@ export default function SettingsPage() {
           )}
           <button
             onClick={() => navigate("/")}
-            style={{ marginLeft: "auto", background: "transparent", color: "#64748B", border: "1px solid #E2E8F0", borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            style={{ marginLeft: "auto", background: "transparent", color: COLOR.text2, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
           >
             홈으로
           </button>

@@ -4,6 +4,7 @@ import AdminSidebar from "../../components/AdminSidebar";
 import { CATEGORIES } from "../../types/categoryTypes";
 import type { CategoryId } from "../../types/categoryTypes";
 import { getCategoryTaxonomy, getFreeTags } from "../../lib/dataSource";
+import { COLOR } from "../../styles/tokens";
 
 // ===== 타입 정의 =====
 // 분류체계·자유 태그 목업 데이터는 mocks/adminTaxonomyMockData로 이관됨. 타입은 소비처에 잔류.
@@ -62,8 +63,8 @@ const IMPORT_DEST_OPTIONS: Record<SourceKind, { key: string; label: string }[]> 
 
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box",
-  padding: "8px 12px", fontSize: 13, color: "#0F172A",
-  background: "#F8FAFC", border: "1.5px solid #E2E8F0",
+  padding: "8px 12px", fontSize: 13, color: COLOR.text,
+  background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`,
   borderRadius: 7, outline: "none", fontFamily: "inherit",
 };
 
@@ -94,26 +95,26 @@ const ItemRow = ({
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
-      background: isEditing ? "#EFF6FF" : isDeleteTarget ? "#FEF2F2" : "#fff",
-      borderRadius: 7, border: `1px solid ${isEditing ? "#BFDBFE" : isDeleteTarget ? "#FECACA" : "#F1F5F9"}`, marginBottom: 6,
+      background: isEditing ? COLOR.primaryWeak : isDeleteTarget ? "#FEF2F2" : "#fff",
+      borderRadius: 7, border: `1px solid ${isEditing ? "#BFDBFE" : isDeleteTarget ? "#FECACA" : COLOR.bgSubtle}`, marginBottom: 6,
     }}>
       <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#CBD5E1", flexShrink: 0 }} />
       {isEditing ? (
         <>
           <input value={editingItem.value} onChange={e => onEditValueChange(e.target.value)} style={{ ...inputStyle, flex: 1, padding: "5px 10px", fontSize: 13 }} autoFocus />
-          <button onClick={onEditSave} style={{ background: "#2563EB", color: "#fff", border: "none", borderRadius: 5, padding: "4px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>저장</button>
-          <button onClick={onEditCancel} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 5, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+          <button onClick={onEditSave} style={{ background: COLOR.primary, color: "#fff", border: "none", borderRadius: 5, padding: "4px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>저장</button>
+          <button onClick={onEditCancel} style={{ background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
         </>
       ) : isDeleteTarget ? (
         <>
           <span style={{ flex: 1, fontSize: 13, color: "#991B1B", fontWeight: 600 }}>"{label}" 삭제할까요?</span>
           <button onClick={() => onDeleteConfirm(keyName, idx)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 5, padding: "4px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>삭제</button>
-          <button onClick={onDeleteCancel} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 5, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
+          <button onClick={onDeleteCancel} style={{ background: "#fff", border: `1px solid ${COLOR.border}`, borderRadius: 5, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
         </>
       ) : (
         <>
-          <span style={{ flex: 1, fontSize: 13, color: "#334155" }}>{label}</span>
-          <button onClick={() => onStartEdit(keyName, idx, label)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>수정</button>
+          <span style={{ flex: 1, fontSize: 13, color: COLOR.text2 }}>{label}</span>
+          <button onClick={() => onStartEdit(keyName, idx, label)} style={{ background: "none", border: "none", color: COLOR.text3, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>수정</button>
           <button onClick={() => onStartDelete(keyName, idx)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>삭제</button>
         </>
       )}
@@ -198,16 +199,16 @@ export default function AdminTaxonomy() {
   const importTagData = importTag ? freeTags.find(t => t.tag === importTag) : null;
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F8FAFC", minHeight: "100vh", color: "#0F172A" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar />
         <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#2563EB", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.02em" }}>분류체계 관리</h1>
-              <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
+              <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>분류체계 관리</h1>
+              <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼 항목(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트)의 표준 분류를 관리합니다.</p>
             </div>
             {savedMsg && (
               <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#065F46" }}>
@@ -220,9 +221,9 @@ export default function AdminTaxonomy() {
           <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
             {CATEGORY_TABS.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-                padding: "8px 16px", borderRadius: 7, border: activeTab === t.id ? "none" : "1px solid #E2E8F0",
+                padding: "8px 16px", borderRadius: 7, border: activeTab === t.id ? "none" : `1px solid ${COLOR.border}`,
                 background: activeTab === t.id ? "#0F172A" : "transparent",
-                color: activeTab === t.id ? "#fff" : "#475569",
+                color: activeTab === t.id ? "#fff" : COLOR.text2,
                 fontSize: 12, fontWeight: 600, cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 5,
               }}>
@@ -230,11 +231,11 @@ export default function AdminTaxonomy() {
                 {t.label}
               </button>
             ))}
-            <span style={{ width: 1, height: 18, background: "#E2E8F0", margin: "0 4px" }} />
+            <span style={{ width: 1, height: 18, background: COLOR.border, margin: "0 4px" }} />
             <button onClick={() => setActiveTab("freeTags")} style={{
-              padding: "8px 16px", borderRadius: 7, border: activeTab === "freeTags" ? "none" : "1px solid #E2E8F0",
+              padding: "8px 16px", borderRadius: 7, border: activeTab === "freeTags" ? "none" : `1px solid ${COLOR.border}`,
               background: activeTab === "freeTags" ? "#0F172A" : "transparent",
-              color: activeTab === "freeTags" ? "#fff" : "#475569",
+              color: activeTab === "freeTags" ? "#fff" : COLOR.text2,
               fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>
               자유 태그
@@ -248,13 +249,13 @@ export default function AdminTaxonomy() {
             <div>
               {/* 분류 항목 목록 */}
               {activeTab !== "freeTags" && cat && (
-                <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-                  <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9" }}>
+                <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 22px" }}>
+                  <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{cat.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.text }}>{cat.label}</div>
                       <span style={{ fontSize: 10, fontWeight: 700, background: "#F3E8FF", color: "#7E22CE", padding: "2px 8px", borderRadius: 20 }}>AX 플랫폼 항목 전용</span>
                     </div>
-                    <div style={{ fontSize: 12, color: "#64748B" }}>{cat.desc}</div>
+                    <div style={{ fontSize: 12, color: COLOR.text2 }}>{cat.desc}</div>
                   </div>
                   {cat.items?.map((item, idx) => (
                     <ItemRow
@@ -271,11 +272,11 @@ export default function AdminTaxonomy() {
 
               {/* 자유 태그 누적 목록 */}
               {activeTab === "freeTags" && (
-                <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "20px 22px" }}>
-                  <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 22px" }}>
+                  <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${COLOR.bgSubtle}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>자유 태그 누적 목록</div>
-                      <div style={{ fontSize: 12, color: "#64748B" }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.text, marginBottom: 4 }}>자유 태그 누적 목록</div>
+                      <div style={{ fontSize: 12, color: COLOR.text2 }}>사용자가 AX 플랫폼 항목 등록 시 제안한 비표준 태그입니다. 7개 유형(n8n · PA · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록에서 수집됩니다.</div>
                     </div>
                     {selectedFreeTags.length > 0 && (
                       <button onClick={() => handleFreeTagDelete(selectedFreeTags)} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>선택 삭제 ({selectedFreeTags.length})</button>
@@ -290,8 +291,8 @@ export default function AdminTaxonomy() {
                       return (
                         <button key={key} onClick={() => setFreeTagSourceFilter(key as "전체" | SourceKind)} style={{
                           padding: "4px 11px", borderRadius: 20, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                          background: freeTagSourceFilter === key ? "#0F172A" : "#F1F5F9",
-                          color: freeTagSourceFilter === key ? "#fff" : "#64748B",
+                          background: freeTagSourceFilter === key ? "#0F172A" : COLOR.bgSubtle,
+                          color: freeTagSourceFilter === key ? "#fff" : COLOR.text2,
                           display: "flex", alignItems: "center", gap: 5,
                         }}>
                           {style && <span style={{ width: 6, height: 6, borderRadius: 1.5, background: freeTagSourceFilter === key ? "#fff" : style.color, display: "inline-block" }} />}
@@ -306,22 +307,22 @@ export default function AdminTaxonomy() {
                       const style = SOURCE_STYLE[t.sourceKind];
                       const canPromote = IMPORT_DEST_OPTIONS[t.sourceKind]?.length > 0;
                       return (
-                        <div key={i} style={{ borderRadius: 8, border: `1px solid ${selectedFreeTags.includes(t.tag) ? "#BFDBFE" : "#F1F5F9"}`, background: selectedFreeTags.includes(t.tag) ? "#EFF6FF" : "#fff" }}>
+                        <div key={i} style={{ borderRadius: 8, border: `1px solid ${selectedFreeTags.includes(t.tag) ? "#BFDBFE" : COLOR.bgSubtle}`, background: selectedFreeTags.includes(t.tag) ? COLOR.primaryWeak : "#fff" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
                             <input type="checkbox" checked={selectedFreeTags.includes(t.tag)} onChange={() => toggleFreeTag(t.tag)} style={{ cursor: "pointer", flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                                 <span style={{ fontSize: 10, fontWeight: 700, background: style.bg, color: style.color, padding: "1px 7px", borderRadius: 20, flexShrink: 0 }}>{style.label}</span>
-                                <span style={{ fontSize: 13, color: "#334155", fontWeight: 600 }}>#{t.tag}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, background: "#F1F5F9", color: "#475569", padding: "1px 7px", borderRadius: 20 }}>사용 {t.count}건</span>
+                                <span style={{ fontSize: 13, color: COLOR.text2, fontWeight: 600 }}>#{t.tag}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, background: COLOR.bgSubtle, color: COLOR.text2, padding: "1px 7px", borderRadius: 20 }}>사용 {t.count}건</span>
                               </div>
-                              <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.6 }}>
-                                제안자: <strong style={{ color: "#64748B" }}>{t.proposedBy}</strong> ({t.dept}) · 사용 항목: {freeTagContext(t)}
+                              <div style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.6 }}>
+                                제안자: <strong style={{ color: COLOR.text2 }}>{t.proposedBy}</strong> ({t.dept}) · 사용 항목: {freeTagContext(t)}
                               </div>
                             </div>
                             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                               {canPromote && (
-                                <button onClick={() => openImportPanel(t.tag)} style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 700, color: "#2563EB", cursor: "pointer" }}>표준화</button>
+                                <button onClick={() => openImportPanel(t.tag)} style={{ background: COLOR.primaryWeak, border: "1px solid #BFDBFE", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 700, color: COLOR.primary, cursor: "pointer" }}>표준화</button>
                               )}
                               <button onClick={() => handleFreeTagDelete([t.tag])} style={{ background: "none", border: "1px solid #FECACA", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
                             </div>
@@ -329,7 +330,7 @@ export default function AdminTaxonomy() {
                         </div>
                       );
                     })}
-                    {filteredFreeTags.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: "#94A3B8", fontSize: 13 }}>누적된 자유 태그가 없습니다.</div>}
+                    {filteredFreeTags.length === 0 && <div style={{ textAlign: "center", padding: "32px 0", color: COLOR.text3, fontSize: 13 }}>누적된 자유 태그가 없습니다.</div>}
                   </div>
                 </div>
               )}
@@ -338,30 +339,30 @@ export default function AdminTaxonomy() {
             {/* 우측 패널 */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {activeTab !== "freeTags" && (
-                <div style={{ background: "#fff", border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "18px 18px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>항목 추가</div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 5 }}>항목명</label>
+                <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "18px 18px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 14 }}>항목 추가</div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 5 }}>항목명</label>
                   <input value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAdd()} placeholder="새 항목 입력 후 Enter 또는 추가" style={inputStyle} />
-                  <button onClick={handleAdd} style={{ width: "100%", marginTop: 10, background: "#2563EB", color: "#fff", border: "none", borderRadius: 7, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>추가</button>
+                  <button onClick={handleAdd} style={{ width: "100%", marginTop: 10, background: COLOR.primary, color: "#fff", border: "none", borderRadius: 7, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>추가</button>
                 </div>
               )}
 
               {importTag && importTagData && (
-                <div style={{ background: "#EFF6FF", border: "1.5px solid #BFDBFE", borderRadius: 10, padding: "18px 18px" }}>
+                <div style={{ background: COLOR.primaryWeak, border: "1.5px solid #BFDBFE", borderRadius: 10, padding: "18px 18px" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1E40AF", marginBottom: 4 }}>표준화 편입</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, background: SOURCE_STYLE[importTagData.sourceKind].bg, color: SOURCE_STYLE[importTagData.sourceKind].color, padding: "1px 7px", borderRadius: 20 }}>
                       {SOURCE_STYLE[importTagData.sourceKind].label} 출처
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: "#3B82F6", marginBottom: 14 }}><strong>#{importTag}</strong> 를 어느 분류에 편입할지 선택하세요.</div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 5 }}>편입 분류</label>
+                  <div style={{ fontSize: 12, color: COLOR.primary, marginBottom: 14 }}><strong>#{importTag}</strong> 를 어느 분류에 편입할지 선택하세요.</div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, display: "block", marginBottom: 5 }}>편입 분류</label>
                   <select value={importDest.key} onChange={e => setImportDest({ key: e.target.value })} style={{ ...selectStyle, marginBottom: 8 }}>
                     {IMPORT_DEST_OPTIONS[importTagData.sourceKind].map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
                   </select>
                   <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                    <button onClick={() => setImportTag(null)} style={{ flex: 1, background: "#fff", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 600, color: "#64748B", cursor: "pointer" }}>취소</button>
-                    <button onClick={() => handleImport(importTag)} style={{ flex: 1, background: "#2563EB", border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>편입 확정</button>
+                    <button onClick={() => setImportTag(null)} style={{ flex: 1, background: "#fff", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
+                    <button onClick={() => handleImport(importTag)} style={{ flex: 1, background: COLOR.primary, border: "none", borderRadius: 6, padding: "7px 0", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>편입 확정</button>
                   </div>
                 </div>
               )}

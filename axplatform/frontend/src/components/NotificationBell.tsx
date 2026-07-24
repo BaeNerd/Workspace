@@ -7,8 +7,9 @@ import { useNotifications } from "../hooks/useNotifications";
 import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
 import type { AxNotification } from "../types/notificationTypes";
 import { detailPathForItemId } from "../types/categoryTypes";
+import { COLOR } from "../styles/tokens";
 
-const BellIcon = ({ color = "#475569" }: { color?: string }) => (
+const BellIcon = ({ color = COLOR.text2 }: { color?: string }) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 01-3.46 0" />
@@ -70,11 +71,11 @@ export default function NotificationBell() {
       {open && (
         <div style={{
           position: "absolute", top: 42, right: 0, width: 340, background: "#fff",
-          border: "1.5px solid #E2E8F0", borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+          border: `1.5px solid ${COLOR.border}`, borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
           zIndex: 200, overflow: "hidden",
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #F1F5F9" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>
               알림 {unreadCount > 0 && <span style={{ color: "#EF4444" }}>{unreadCount}</span>}
             </span>
             <button
@@ -83,7 +84,7 @@ export default function NotificationBell() {
               disabled={unreadCount === 0}
               style={{
                 background: "none", border: "none", fontSize: 12, fontWeight: 600,
-                color: unreadCount === 0 ? "#CBD5E1" : "#2563EB",
+                color: unreadCount === 0 ? "#CBD5E1" : COLOR.primary,
                 cursor: unreadCount === 0 ? "default" : "pointer", padding: 0,
               }}
             >
@@ -92,7 +93,7 @@ export default function NotificationBell() {
           </div>
 
           {recent.length === 0 ? (
-            <div style={{ padding: "32px 14px", textAlign: "center", fontSize: 13, color: "#94A3B8" }}>
+            <div style={{ padding: "32px 14px", textAlign: "center", fontSize: 13, color: COLOR.text3 }}>
               새 알림이 없습니다.
             </div>
           ) : (
@@ -105,10 +106,10 @@ export default function NotificationBell() {
                     onClick={() => onItemClick(n)}
                     style={{
                       display: "flex", flexDirection: "column", gap: 4, padding: "11px 14px",
-                      borderBottom: "1px solid #F5F7FA", cursor: "pointer",
+                      borderBottom: `1px solid ${COLOR.bgSubtle}`, cursor: "pointer",
                       background: n.read ? "#fff" : "#F5F9FF",
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")}
+                    onMouseEnter={e => (e.currentTarget.style.background = COLOR.bgSubtle)}
                     onMouseLeave={e => (e.currentTarget.style.background = n.read ? "#fff" : "#F5F9FF")}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -116,10 +117,10 @@ export default function NotificationBell() {
                       <span style={{ fontSize: 10, fontWeight: 700, background: ks.bg, color: ks.fg, padding: "2px 7px", borderRadius: 20 }}>
                         {ks.label}
                       </span>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: "#94A3B8", flexShrink: 0 }}>{n.date}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: COLOR.text3, flexShrink: 0 }}>{n.date}</span>
                     </div>
                     <span style={{
-                      fontSize: 12.5, fontWeight: n.read ? 500 : 700, color: "#1A1F27", lineHeight: 1.45,
+                      fontSize: 12.5, fontWeight: n.read ? 500 : 700, color: COLOR.text, lineHeight: 1.45,
                       display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
                     }}>
                       {n.title}

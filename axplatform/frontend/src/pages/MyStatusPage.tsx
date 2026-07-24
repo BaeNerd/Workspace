@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { CATEGORIES, APPROVAL_SLOT_LABEL, deriveStage } from "../types/categoryTypes";
 import type { CategoryId, ApprovalStage, ApprovalSlots, ApprovalSlotKey } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
+import { COLOR } from "../styles/tokens";
 import { getMyApplications, getMyReviews } from "../lib/dataSource";
 
 // 운영 상태(PlatformItemStatus)는 폐기. 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)만 유지.
@@ -70,7 +71,7 @@ function ParallelApprovalIndicator({ slots, stage }: { slots: ApprovalSlots; sta
     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
   });
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: "1px solid #F1F5F9", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLOR.border}`, flexWrap: "wrap" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <div style={node(true)}><span style={{ fontSize: 10, color: "#fff", fontWeight: 700 }}>✓</span></div>
         <span style={{ fontSize: 11, fontWeight: 600, color: "#475569", whiteSpace: "nowrap" }}>신청 완료</span>
@@ -114,8 +115,8 @@ function KindSummaryChips({ item }: { item: MyItem }) {
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
       {chips.map((c, i) => (
-        <span key={i} style={{ fontSize: 10, background: "#F1F5F9", color: "#475569", padding: "2px 8px", borderRadius: 4 }}>
-          <span style={{ color: "#94A3B8" }}>{c.label} · </span>{c.value}
+        <span key={i} style={{ fontSize: 10, background: COLOR.bgSubtle, color: COLOR.text2, padding: "2px 8px", borderRadius: 4 }}>
+          <span style={{ color: COLOR.text3 }}>{c.label} · </span>{c.value}
         </span>
       ))}
     </div>
@@ -160,13 +161,13 @@ export default function MyStatusPage() {
   };
 
   return (
-    <div style={{ fontFamily: "var(--font-ui)", background: "#F4F6F9", minHeight: "100vh", color: "#1A1F27", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text, display: "flex", flexDirection: "column" }}>
       <Navbar />
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #EBEEF3", padding: "20px 32px" }}>
+      <div style={{ background: "#fff", borderBottom: `1px solid ${COLOR.border}`, padding: "20px 32px" }}>
         <div style={{ maxWidth: CONTENT_MAX_WIDTH, margin: "0 auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#1C6BFF", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>나의 등록</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1A1F27", letterSpacing: "-0.02em" }}>내 등록 현황</h1>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>나의 등록</div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>내 등록 현황</h1>
         </div>
       </div>
 
@@ -177,14 +178,14 @@ export default function MyStatusPage() {
           {STAT_TABS.map(s => (
             <div key={s.key} onClick={() => setFilter(s.key)} style={{
               background: filter === s.key ? s.color : "#fff",
-              border: `1.5px solid ${filter === s.key ? s.color : "#EBEEF3"}`,
+              border: `1.5px solid ${filter === s.key ? s.color : COLOR.border}`,
               borderRadius: 10, padding: "14px 16px",
               cursor: "pointer", boxShadow: filter === s.key ? "0 4px 12px rgba(0,0,0,0.1)" : "none",
             }}>
               <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", color: filter === s.key ? "#fff" : s.color }}>
                 {counts[s.key as keyof typeof counts] ?? 0}
               </div>
-              <div style={{ fontSize: 11, marginTop: 3, fontWeight: 600, color: filter === s.key ? "rgba(255,255,255,0.8)" : "#697386" }}>
+              <div style={{ fontSize: 11, marginTop: 3, fontWeight: 600, color: filter === s.key ? "rgba(255,255,255,0.8)" : COLOR.text2 }}>
                 {s.label}
               </div>
             </div>
@@ -194,7 +195,7 @@ export default function MyStatusPage() {
         {/* ===== 신청 목록 ===== */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {visible.length === 0 && (
-            <div style={{ textAlign: "center", padding: "48px 0", color: "#94A3B8", fontSize: 14 }}>
+            <div style={{ textAlign: "center", padding: "48px 0", color: COLOR.text3, fontSize: 14 }}>
               해당 단계의 신청 내역이 없습니다.
             </div>
           )}
@@ -211,7 +212,7 @@ export default function MyStatusPage() {
             return (
               <div key={item.id} style={{
                 background: "#fff", borderRadius: 10,
-                border: `1.5px solid ${isRejected ? "#FECACA" : "#EBEEF3"}`,
+                border: `1.5px solid ${isRejected ? "#FECACA" : COLOR.border}`,
                 overflow: "hidden",
               }}>
                 <div style={{ padding: "18px 22px" }}>
@@ -221,13 +222,13 @@ export default function MyStatusPage() {
                       onClick={() => isPublished && navigate(categoryPathOf(item.kind, item.id))}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "#94A3B8" }}>{item.id}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: COLOR.text3 }}>{item.id}</span>
                         {categoryMeta && (
                           <span style={{ fontSize: 10, fontWeight: 700, background: categoryMeta.bg, color: categoryMeta.color, padding: "2px 8px", borderRadius: 20 }}>{categoryMeta.name}</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1F27", marginBottom: 4 }}>{item.title}</div>
-                      <div style={{ fontSize: 12, color: "#697386" }}>{item.summary}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: COLOR.text, marginBottom: 4 }}>{item.title}</div>
+                      <div style={{ fontSize: 12, color: COLOR.text2 }}>{item.summary}</div>
                       <KindSummaryChips item={item} />
                     </div>
 
@@ -254,16 +255,16 @@ export default function MyStatusPage() {
 
                   <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
                     <button onClick={() => { setExpanded(isExpanded ? null : item.id); setResubmit(null); setDeleteConfirm(null); }} style={{
-                      background: "#F4F6F9", border: "1.5px solid #EBEEF3", borderRadius: 6,
-                      padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer",
+                      background: COLOR.bgSubtle, border: `1.5px solid ${COLOR.border}`, borderRadius: 6,
+                      padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
                     }}>
                       {isExpanded ? "접기" : "내용 확인"}
                     </button>
 
                     {isPending && (
                       <button onClick={() => setDeleteConfirm(isDeleteConfirm ? null : item.id)} style={{
-                        background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 6,
-                        padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#697386", cursor: "pointer",
+                        background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6,
+                        padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
                       }}>
                         신청 취소
                       </button>
@@ -272,7 +273,7 @@ export default function MyStatusPage() {
                     {isRejected && (
                       <>
                         <button onClick={() => { setResubmit(isResubmit ? null : item.id); setDeleteConfirm(null); }} style={{
-                          background: "#1C6BFF", border: "none", borderRadius: 6,
+                          background: COLOR.primary, border: "none", borderRadius: 6,
                           padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer",
                         }}>
                           수정 후 재제출
@@ -289,30 +290,30 @@ export default function MyStatusPage() {
                 </div>
 
                 {isExpanded && (
-                  <div style={{ borderTop: "1px solid #F1F5F9", padding: "16px 22px", background: "#FAFAFA" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#697386", marginBottom: 10 }}>등록 내용 요약</div>
+                  <div style={{ borderTop: `1px solid ${COLOR.bgSubtle}`, padding: "16px 22px", background: "#FAFAFA" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.text2, marginBottom: 10 }}>등록 내용 요약</div>
                     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px 16px", fontSize: 12 }}>
-                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>카테고리</span>
-                      <span style={{ color: "#334155" }}>{categoryMeta?.name ?? item.kind}</span>
-                      <span style={{ color: "#94A3B8", fontWeight: 600 }}>항목 ID</span>
-                      <span style={{ color: "#334155", fontFamily: "var(--font-mono)" }}>{item.id}</span>
+                      <span style={{ color: COLOR.text3, fontWeight: 600 }}>카테고리</span>
+                      <span style={{ color: COLOR.text2 }}>{categoryMeta?.name ?? item.kind}</span>
+                      <span style={{ color: COLOR.text3, fontWeight: 600 }}>항목 ID</span>
+                      <span style={{ color: COLOR.text2, fontFamily: "var(--font-mono)" }}>{item.id}</span>
                       {item.kind === "n8n" && item.difficulty && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>구성 난이도</span><span style={{ color: "#334155" }}>{item.difficulty}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>구성 난이도</span><span style={{ color: COLOR.text2 }}>{item.difficulty}</span></>
                       )}
                       {(item.kind === "n8n" || item.kind === "pa") && item.expectedTimeSaved && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>예상 절감 시간</span><span style={{ color: "#334155" }}>{item.expectedTimeSaved}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>예상 절감 시간</span><span style={{ color: COLOR.text2 }}>{item.expectedTimeSaved}</span></>
                       )}
                       {item.kind === "assistant" && item.basedModel && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>기반 모델</span><span style={{ color: "#334155" }}>{item.basedModel}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>기반 모델</span><span style={{ color: COLOR.text2 }}>{item.basedModel}</span></>
                       )}
                       {item.kind === "ai-orchestration" && item.agentAvailability && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>가용 여부</span><span style={{ color: "#334155" }}>{item.agentAvailability}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>가용 여부</span><span style={{ color: COLOR.text2 }}>{item.agentAvailability}</span></>
                       )}
                       {item.kind === "ai-orchestration" && item.costTier && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>비용 등급</span><span style={{ color: "#334155" }}>{item.costTier}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>비용 등급</span><span style={{ color: COLOR.text2 }}>{item.costTier}</span></>
                       )}
                       {item.kind === "ml" && item.mlType && (
-                        <><span style={{ color: "#94A3B8", fontWeight: 600 }}>모델 유형</span><span style={{ color: "#334155" }}>{item.mlType}</span></>
+                        <><span style={{ color: COLOR.text3, fontWeight: 600 }}>모델 유형</span><span style={{ color: COLOR.text2 }}>{item.mlType}</span></>
                       )}
                     </div>
                   </div>
@@ -322,7 +323,7 @@ export default function MyStatusPage() {
                   <div style={{ borderTop: "1px solid #FECACA", padding: "14px 22px", background: "#FEF2F2" }}>
                     <div style={{ fontSize: 12, color: "#991B1B", marginBottom: 10 }}>이 신청 건을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#697386", cursor: "pointer" }}>취소</button>
+                      <button onClick={() => setDeleteConfirm(null)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>취소</button>
                       <button onClick={() => { setDeleted(p => [...p, item.id]); setDeleteConfirm(null); }} style={{ background: "#EF4444", border: "none", borderRadius: 6, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#fff", cursor: "pointer" }}>삭제 확인</button>
                     </div>
                   </div>
@@ -334,23 +335,23 @@ export default function MyStatusPage() {
 
         {/* ===== 내가 남긴 후기 ===== */}
         <div style={{ marginTop: 40 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#1A1F27", marginBottom: 16, letterSpacing: "-0.01em" }}>내가 남긴 후기</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: COLOR.text, marginBottom: 16, letterSpacing: "-0.01em" }}>내가 남긴 후기</div>
           {getMyReviews().length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px 0", color: "#94A3B8", fontSize: 13 }}>아직 남긴 후기가 없습니다.</div>
+            <div style={{ textAlign: "center", padding: "32px 0", color: COLOR.text3, fontSize: 13 }}>아직 남긴 후기가 없습니다.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {getMyReviews().map(r => {
                 const category = CATEGORIES.find(p => p.id === r.itemKind);
                 return (
-                  <div key={r.id} style={{ background: "#fff", border: "1.5px solid #EBEEF3", borderRadius: 10, padding: "16px 20px" }}>
+                  <div key={r.id} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       {category && (
                         <span style={{ fontSize: 10, fontWeight: 700, background: category.bg, color: category.color, padding: "2px 7px", borderRadius: 20 }}>{category.name}</span>
                       )}
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1F27" }}>{r.itemTitle}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>{r.itemTitle}</span>
                     </div>
-                    <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, marginBottom: 10 }}>{r.text}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "#94A3B8" }}>
+                    <div style={{ fontSize: 13, color: COLOR.text2, lineHeight: 1.7, marginBottom: 10 }}>{r.text}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: COLOR.text3 }}>
                       <span>{r.createdAt}</span>
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" /><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></svg>

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import { COLOR } from "../styles/tokens";
 
 // companyAdmin(관계사 관리자) 접근 허용 여부를 각 항목에 표시
 const ADMIN_NAV = [
@@ -26,11 +27,11 @@ export default function AdminSidebar({ pendingCount = 0 }: Props) {
   return (
     <aside style={{
       width: 200, flexShrink: 0,
-      background: "#fff", borderRight: "1px solid #E2E8F0",
+      background: "#fff", borderRight: `1px solid ${COLOR.border}`,
       padding: "20px 12px", position: "sticky", top: 56,
       height: "calc(100vh - 56px)", overflowY: "auto",
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, padding: "0 8px" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.text3, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, padding: "0 8px" }}>
         {isCompanyAdmin ? "관계사 관리자 메뉴" : "관리자 메뉴"}
       </div>
       {navItems.map(n => {
@@ -42,8 +43,8 @@ export default function AdminSidebar({ pendingCount = 0 }: Props) {
             style={{
               padding: "8px 10px", borderRadius: 7, cursor: "pointer", marginBottom: 2,
               fontSize: 13, fontWeight: isActive ? 700 : 500,
-              color: isActive ? "#2563EB" : "#475569",
-              background: isActive ? "#EFF6FF" : "transparent",
+              color: isActive ? COLOR.primary : COLOR.text2,
+              background: isActive ? COLOR.primaryWeak : "transparent",
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}
           >
