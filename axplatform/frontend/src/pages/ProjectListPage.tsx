@@ -8,24 +8,14 @@ import type { AssetItem, CategoryId, BusinessDomain } from "../types/categoryTyp
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
 import { useScraps } from "../hooks/useScraps";
-import { getAssetItems } from "../lib/dataSource";
+import CardIdTag from "../components/CardIdTag";
+import { getAssetItems, getOrgCompanies } from "../lib/dataSource";
 
 
-const COMPANIES = [
-  { code: "KMH", name: "콜마홀딩스", visible: true },
-  { code: "KKM", name: "한국콜마", visible: true },
-  { code: "KBH", name: "콜마비앤에이치", visible: true },
-  { code: "HC", name: "콜마생활건강", visible: true },
-  { code: "KMG", name: "콜마글로벌", visible: true },
-  { code: "KMSK", name: "콜마스크", visible: true },
-  { code: "KMW", name: "무석콜마", visible: true },
-  { code: "KMB", name: "북경콜마", visible: true },
-  { code: "KUS", name: "미국콜마", visible: true },
-  { code: "KBT", name: "콜마바이오텍", visible: true },
-  { code: "KAF", name: "근오농림", visible: false },
-  { code: "NAB", name: "넥스트앤바이오", visible: false },
-  { code: "HNG", name: "에치엔지", visible: false },
-];
+// 노출 관계사 코드 집합 — 조직 SSOT(getOrgCompanies) 파생.
+// (구 내장 COMPANIES 리터럴 제거: 미사용 name·중복 visible 정의를 SSOT 단일화. 미등록 코드는
+//  비노출로 간주 — 구 `.find(...)?.visible` 미스매치 시 undefined→비노출과 소비 결과 동일.)
+const VISIBLE_COMPANY_CODES = new Set(getOrgCompanies().filter(c => c.visible).map(c => c.code));
 
 
 
@@ -128,7 +118,7 @@ export default function ProjectListPage() {
       // 비노출 관계사에만 속한 항목은 그룹 전체보기 권한자가 아니면 접근 불가 (표시 축 아닌 접근 규칙)
       const itemCompanies = item.company ?? [];
       const isCompanyWide = itemCompanies.length === 0;
-      const hasNonVisible = itemCompanies.some(code => !COMPANIES.find(c => c.code === code)?.visible);
+      const hasNonVisible = itemCompanies.some(code => !VISIBLE_COMPANY_CODES.has(code));
       if (!isCompanyWide && hasNonVisible && !isGroupViewer) return false;
 
       if (domainFilter !== "전체" && item.domain !== domainFilter) return false;
@@ -449,11 +439,15 @@ export default function ProjectListPage() {
                     <span style={{ fontSize: 10, color: "#CBD5E1", flexShrink: 0 }}>
                       업데이트 {item.updatedAt}
                     </span>
-                    <span style={{
-                      fontSize: 10, color: COLOR.text3, whiteSpace: "nowrap",
-                      overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110, textAlign: "right",
-                    }}>
-                      {item.dept}
+                    {/* 항목 ID — 등록 부서 왼쪽 고정(0.3·USR-03). 공용 CardIdTag 단일 컴포넌트. */}
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <CardIdTag id={item.id} />
+                      <span style={{
+                        fontSize: 10, color: COLOR.text3, whiteSpace: "nowrap",
+                        overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110, textAlign: "right",
+                      }}>
+                        {item.dept}
+                      </span>
                     </span>
                   </div>
                 </div>

@@ -7,8 +7,19 @@ import type { CategoryId, BusinessDomain } from "../../types/categoryTypes";
 import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
-import { getManagedAssetItems } from "../../lib/dataSource";
+import { getManagedAssetItems, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+
+// 등록 관계사 배지 (관리자 화면 전용 — 표시명은 조직 SSOT 파생, 신규 리터럴 금지).
+// 사용자 화면에는 어떤 관계사 배지도 두지 않는다(0.5).
+const OwnerCompanyBadge = ({ code }: { code?: string }) => {
+  if (!code) return null;
+  return (
+    <span title="등록 관계사" style={{ fontSize: 10, fontWeight: 700, background: COLOR.bgSubtle, color: COLOR.text2, border: `1px solid ${COLOR.border}`, padding: "1px 8px", borderRadius: 20, whiteSpace: "nowrap" }}>
+      {orgCompanyName(code)}
+    </span>
+  );
+};
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
@@ -79,6 +90,8 @@ export type ManagedAssetItem = {
   images?: string[];
   domain?: BusinessDomain;
   company: string[];
+  // 등록 주체 관계사 코드 — "등록 관계사" 배지용(노출 범위 company와 별개 축, ADM-02).
+  ownerCompany?: string;
   companyScope: "unset" | "company-wide" | "specific";
   // n8n / pa 전용
   expectedTimeSaved?: string; difficulty?: string;
@@ -386,6 +399,7 @@ export default function AdminProjectManage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 10, fontWeight: 700, background: style.bg, color: style.color, padding: "2px 7px", borderRadius: 10 }}>{style.label}</span>
+                      <OwnerCompanyBadge code={item.ownerCompany} />
                       <span style={{ fontSize: 10, color: COLOR.text3, fontFamily: "var(--font-mono)" }}>{item.id}</span>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.text, marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
@@ -415,6 +429,7 @@ export default function AdminProjectManage() {
                       <span style={{ fontSize: 10, fontWeight: 700, background: SOURCE_STYLE[displayData.kind].bg, color: SOURCE_STYLE[displayData.kind].color, padding: "3px 9px", borderRadius: 20 }}>
                         {SOURCE_STYLE[displayData.kind].label}
                       </span>
+                      <OwnerCompanyBadge code={displayData.ownerCompany} />
                       <span style={{ fontSize: 11, color: COLOR.text3 }}>{displayData.id}</span>
                     </div>
                     <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>

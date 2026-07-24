@@ -13,6 +13,7 @@ import { TEAMS_CHANNEL_URL } from "../config/operations";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { useShareNotice } from "../context/ShareNoticeContext";
 import { useScraps } from "../hooks/useScraps";
+import CardIdTag from "../components/CardIdTag";
 import { useInterests } from "../hooks/useInterests";
 import { useNotifications } from "../hooks/useNotifications";
 import { NOTIFICATION_KIND_STYLE } from "../types/notificationTypes";
@@ -754,6 +755,8 @@ function ItemCard({ item, onNavigate }: { item: LItem; onNavigate: (p: string) =
       </p>
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.text3, minWidth: 0, overflow: "hidden" }}>
+          {/* 항목 ID — 등록 부서 왼쪽 고정(0.3·USR-03). 공용 CardIdTag 단일 컴포넌트. */}
+          <CardIdTag id={item.id} />
           <UserIco size={12} color={C.text3} /> <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.dept}</span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, fontSize: 12, color: C.text3 }}>

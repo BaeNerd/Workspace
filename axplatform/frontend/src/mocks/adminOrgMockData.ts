@@ -46,6 +46,14 @@ export const INITIAL_COMPANIES: Company[] = [
   { code: "KBT", name: "콜마바이오텍", visible: true },
 ];
 
+// 관계사 코드 → 표시명 (조직 SSOT INITIAL_COMPANIES 파생 — 신규 매핑 리터럴 금지).
+// 관리자 화면 "등록 관계사" 배지·Navbar 본인 소속 표기의 단일 표시명 소스. 미등록 코드는 코드 폴백.
+const COMPANY_NAME_BY_CODE: Record<string, string> = Object.fromEntries(
+  INITIAL_COMPANIES.map(c => [c.code, c.name])
+);
+export const orgCompanyName = (code: string | undefined | null): string =>
+  code ? (COMPANY_NAME_BY_CODE[code] ?? code) : "";
+
 // TODO: 실제 연동 시 GET /api/v1/admin/departments 응답으로 교체
 export const INITIAL_DEPTS: Dept[] = [
   { id: 1, name: "메이크업연구소", parent: "연구개발본부", company: "KKM", projectCount: 8, source: "manual" },

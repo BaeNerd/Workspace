@@ -16,6 +16,7 @@ import N8nFlowPreview from "../components/N8nFlowPreview";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
 import { useScraps } from "../hooks/useScraps";
+import CardIdTag from "../components/CardIdTag";
 import { getAssetItem, getReviewsByItem, getPostsByItem, getFallbackN8nWorkflowJson } from "../lib/dataSource";
 
 
@@ -257,6 +258,14 @@ export default function AssetItemDetailPage() {
               }}>
                 담당자 연락
               </button>
+              {/* 수정 요청 진입 — 게시된 항목의 정보 정정을 담당자/관리자에게 요청(USR-06, /edit-request/:id) */}
+              <button onClick={() => navigate(`/edit-request/${item.id}`)} style={{
+                background: "#fff", color: COLOR.text2,
+                border: `1.5px solid ${COLOR.border}`, borderRadius: 7,
+                padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}>
+                수정 요청
+              </button>
               {item.categoryId === "ai-orchestration" && item.specificUrl && (
                 <button onClick={() => window.open(item.specificUrl, "_blank")} style={{
                   background: category.color, color: "#fff",
@@ -269,7 +278,9 @@ export default function AssetItemDetailPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 20, fontSize: 12, color: COLOR.text3, paddingBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 12, color: COLOR.text3, paddingBottom: 16, flexWrap: "wrap" }}>
+            {/* 항목 ID — 등록 부서 왼쪽 고정(0.3·USR-04). 공용 CardIdTag 단일 컴포넌트. */}
+            <CardIdTag id={item.id} />
             <span>등록 부서 {item.dept}</span>
             <span>·</span>
             <span>최종 수정 {item.updatedAt}</span>

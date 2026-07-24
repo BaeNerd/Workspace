@@ -6,6 +6,7 @@ import { CATEGORIES, APPROVAL_SLOT_LABEL, deriveStage } from "../types/categoryT
 import type { CategoryId, ApprovalStage, ApprovalSlots, ApprovalSlotKey } from "../types/categoryTypes";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
+import CardIdTag from "../components/CardIdTag";
 import { getMyApplications, getMyReviews } from "../lib/dataSource";
 
 // 운영 상태(PlatformItemStatus)는 폐기. 승인 수명주기(승인 대기/부분 승인/게시됨/반려/중지)만 유지.
@@ -222,7 +223,8 @@ export default function MyStatusPage() {
                       onClick={() => isPublished && navigate(categoryPathOf(item.kind, item.id))}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: COLOR.text3 }}>{item.id}</span>
+                        {/* 항목 ID — 메타 줄 선두(dept 미표기 줄, 0.3·USR-07). 공용 CardIdTag 단일 컴포넌트. */}
+                        <CardIdTag id={item.id} />
                         {categoryMeta && (
                           <span style={{ fontSize: 10, fontWeight: 700, background: categoryMeta.bg, color: categoryMeta.color, padding: "2px 8px", borderRadius: 20 }}>{categoryMeta.name}</span>
                         )}
@@ -267,6 +269,16 @@ export default function MyStatusPage() {
                         padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
                       }}>
                         신청 취소
+                      </button>
+                    )}
+
+                    {/* 게시된 항목의 정보 정정 요청 진입(USR-06, /edit-request/:id) */}
+                    {isPublished && (
+                      <button onClick={() => navigate(`/edit-request/${item.id}`)} style={{
+                        background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6,
+                        padding: "6px 14px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer",
+                      }}>
+                        수정 요청
                       </button>
                     )}
 

@@ -5,6 +5,7 @@ import { useAuth } from "../context/useAuth";
 import { IS_SHARE_MODE } from "../config/shareMode";
 import { SHARE_BANNER_HEIGHT } from "./SharePreviewBanner";
 import NotificationBell from "./NotificationBell";
+import { orgCompanyName } from "../lib/dataSource";
 import { COLOR } from "../styles/tokens";
 
 const NAV_LINKS = [
@@ -16,7 +17,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, isAdmin, isCompanyAdmin } = useAuth();
+  const { user, logout, isAdmin, isCompanyAdmin, managedCompanies } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -95,6 +96,15 @@ export default function Navbar() {
                 <div style={{ padding: "8px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}`, marginBottom: 6 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>{user.name}</div>
                   <div style={{ fontSize: 11, color: COLOR.text3 }}>{user.title} · {user.dept}</div>
+                  {/* 본인 소속 관계사 표시명 (표시명 우선·코드 폴백). companyAdmin은 담당 관계사 병기. */}
+                  {user.company && (
+                    <div style={{ fontSize: 11, color: COLOR.text2, marginTop: 3 }}>
+                      소속 {orgCompanyName(user.company)}
+                      {isCompanyAdmin && managedCompanies.length > 0 && (
+                        <span style={{ color: COLOR.text3 }}> · 담당 {managedCompanies.map(orgCompanyName).join("·")}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div onClick={() => { setMenuOpen(false); navigate("/my-status"); }} style={{ padding: "8px 10px", fontSize: 13, color: COLOR.text2, cursor: "pointer", borderRadius: 6 }}>
                   내 등록 현황

@@ -7,8 +7,19 @@ import type { CategoryId, ApprovalStage, ApprovalSlot, ApprovalSlots, ApprovalSl
 import { WorkflowDiagram, toWorkflowDef } from "../../components/WorkflowDiagram";
 import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
-import { getReviewQueue } from "../../lib/dataSource";
+import { getReviewQueue, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+
+// 등록 관계사 배지 (관리자 화면 전용 — 표시명은 조직 SSOT 파생, 신규 리터럴 금지).
+// ownerCompany = 신청 등록 주체 소속 관계사(노출 범위 company와 별개 축). 사용자 화면 노출 금지(0.5).
+const OwnerCompanyBadge = ({ code }: { code?: string }) => {
+  if (!code) return null;
+  return (
+    <span title="등록 관계사" style={{ fontSize: 9, fontWeight: 700, background: COLOR.bgSubtle, color: COLOR.text2, border: `1px solid ${COLOR.border}`, padding: "1px 7px", borderRadius: 20, whiteSpace: "nowrap" }}>
+      {orgCompanyName(code)}
+    </span>
+  );
+};
 
 
 const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"];
@@ -96,10 +107,13 @@ function SlotPill({ slots }: { slots: ApprovalSlots }) {
   );
 }
 
-// 상세 패널 슬롯 카드 — 명칭 / 상태 / 처리자·일시 / 승인 버튼
-function SlotCard({ slotKey, slot, canApprove, disabledReason, onApprove }: {
-  slotKey: ApprovalSlotKey; slot: ApprovalSlot; canApprove: boolean; disabledReason: string; onApprove: () => void;
+// 상세 패널 슬롯 카드 — 명칭 / 상태 / 처리자·일시 / 승인 버튼 / (게시 전) 승인 취소
+// 승인 취소: 본인 권한 슬롯이 이미 승인된 상태(=부분 승인, 게시 전)에서만 노출. confirm 1단계 → 대기 복귀.
+// 게시 완료 건은 상위 !isTerminal 가드로 슬롯 영역 자체가 비노출(정정은 "중지" 경로).
+function SlotCard({ slotKey, slot, canApprove, canCancel, disabledReason, onApprove, onCancel }: {
+  slotKey: ApprovalSlotKey; slot: ApprovalSlot; canApprove: boolean; canCancel: boolean; disabledReason: string; onApprove: () => void; onCancel: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   return (
     <div style={{ flex: 1, minWidth: 0, background: "#fff", border: `1.5px solid ${slot.approved ? "#BBE5CB" : "#E2E8F0"}`, borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -109,7 +123,24 @@ function SlotCard({ slotKey, slot, canApprove, disabledReason, onApprove }: {
         </span>
       </div>
       {slot.approved ? (
-        <div style={{ fontSize: 11, color: COLOR.text2 }}>{slot.by ?? "관리자"} · {slot.at ?? ""}</div>
+        <>
+          <div style={{ fontSize: 11, color: COLOR.text2 }}>{slot.by ?? "관리자"} · {slot.at ?? ""}</div>
+          {canCancel && (
+            confirming ? (
+              <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+                <span style={{ fontSize: 11, color: COLOR.text2, lineHeight: 1.5 }}>이 승인을 취소하고 대기로 되돌립니다.</span>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => { onCancel(); setConfirming(false); }} style={{ background: "#EF4444", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>취소 확정</button>
+                  <button onClick={() => setConfirming(false)} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>유지</button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setConfirming(true)} style={{ alignSelf: "flex-start", background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>
+                승인 취소
+              </button>
+            )
+          )}
+        </>
       ) : canApprove ? (
         <button onClick={onApprove} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 7, padding: "9px 0", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
           이 슬롯 승인
@@ -179,7 +210,10 @@ type ReviewAssetItem = {
   modelName?: string; contextWindow?: string; costTier?: string;
   // ml
   mlType?: string; trainingDataDesc?: string; devTool?: string;
-  // 승인 축 (권한 가드용 — 유지)
+  // 판정 축(ADM-02): 신청 등록 주체의 소속 관계사 코드 — companyAdmin 가시성·관계사 슬롯 자격 판정.
+  // 항목의 노출 범위(company)와 별개 축 — 관계사 슬롯은 신청자 소속 관계사 관리자의 몫이라는 원칙.
+  ownerCompany: string;
+  // 노출 범위 (권한 가드용 — 유지)
   company: string[];
   companyScope: "unset" | "company-wide" | "specific";
   contacts: Contact[];
@@ -314,12 +348,23 @@ export default function AdminReview() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  const activeItem = items.find(i => i.id === selected) ?? null;
-  const edit = edits[selected] ?? {};
+  // 판정 축(ADM-02): 신청 등록 주체(ownerCompany)가 본인 담당 관계사인가.
+  // 관계사 슬롯은 신청자 소속 관계사 관리자의 몫 — 가시성·관계사 슬롯 자격 공통 기준(노출 범위 company와 무관).
+  const ownsByOwnerCompany = (i: ReviewItem) => managedCompanies.includes(i.ownerCompany);
+  // 현재 사용자에게 보이는 항목 집합 — admin: 전체 / companyAdmin: 등록 주체가 담당 관계사인 건만.
+  const visibleToUser = (i: ReviewItem): boolean =>
+    isAdmin ? true : isCompanyAdmin ? ownsByOwnerCompany(i) : false;
+  const baseItems = items.filter(visibleToUser);
+
+  // 선택 항목이 가시 집합을 벗어나면(로그인 계정 변경·초기 기본 선택 등) 첫 가시 건을 유효 선택으로 사용 —
+  // 숨김 건 상세 노출 방지. state(selected) 대신 파생 activeId를 모든 참조의 키로 사용한다.
+  const activeItem = baseItems.find(i => i.id === selected) ?? baseItems[0] ?? null;
+  const activeId = activeItem?.id ?? "";
+  const edit = edits[activeId] ?? {};
   const merged = activeItem ? ({ ...activeItem, ...edit } as ReviewItem) : null;
 
   const setEdit = <K extends keyof ReviewItem>(k: K, v: ReviewItem[K]) =>
-    setEdits(p => ({ ...p, [selected]: { ...(p[selected] || {}), [k]: v } }));
+    setEdits(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), [k]: v } }));
 
   const baseTimeSaved = merged ? deserializeTimeSaved((merged as ReviewAssetItem).expectedTimeSaved) : { value: "" as number | "", period: "주" as SavedPeriod };
   const currentTimeSavedValue = ((edit as any).timeSavedValue !== undefined ? (edit as any).timeSavedValue : baseTimeSaved.value) as number | "";
@@ -337,18 +382,9 @@ export default function AdminReview() {
   // ===== 병렬 슬롯 승인 헬퍼 (승인 모델·권한 가드 — 변경 금지) =====
   const stageOf = (i: ReviewItem) => deriveStage(i.approvalSlots, i.rejected, i.suspended);
   const isTerminalStage = (s: ApprovalStage) => s === "게시됨" || s === "반려" || s === "중지";
-  // 담당 범위 일치 (전사 공용(company 비어있음)은 관계사 관리자 권한 대상이 아님)
-  const companyScopeMatch = (i: ReviewItem) => i.company.length > 0 && i.company.some(c => managedCompanies.includes(c));
-  const canActCompanySlot = (i: ReviewItem) => isAdmin || (isCompanyAdmin && companyScopeMatch(i));
+  // 관계사 슬롯 자격 = 가시성과 동일 축(ownerCompany). 전사 슬롯은 admin 전용.
+  const canActCompanySlot = (i: ReviewItem) => isAdmin || (isCompanyAdmin && ownsByOwnerCompany(i));
   const canActGlobalSlot = (_i: ReviewItem) => isAdmin;
-
-  // 현재 사용자에게 보이는 항목 집합 (companyAdmin은 담당 범위 + 전사 공용)
-  const visibleToUser = (i: ReviewItem): boolean => {
-    if (isAdmin) return true;
-    if (isCompanyAdmin) return i.company.length === 0 || companyScopeMatch(i);
-    return false;
-  };
-  const baseItems = items.filter(visibleToUser);
 
   const nextSelectableAfter = (excludeId: string) => {
     const remaining = baseItems.filter(i => i.id !== excludeId && !isTerminalStage(stageOf(i)));
@@ -366,7 +402,7 @@ export default function AdminReview() {
     // TODO: 백엔드 연동 시 알림 발송(kind: slotKey === "company" ? "관계사승인" : "전사승인").
     //       두 슬롯이 모두 승인되어 게시되는 경우(willComplete) 전사승인 2/2(게시) 문구로 발송.
     setItems(p => p.map(i => {
-      if (i.id !== selected) return i;
+      if (i.id !== activeId) return i;
       const { timeSavedValue, timeSavedPeriod, ...cleanEdit } = edit as any;
       void timeSavedValue; void timeSavedPeriod;
       const nextSlots: ApprovalSlots = { ...i.approvalSlots, [slotKey]: { approved: true, by, at } };
@@ -377,7 +413,26 @@ export default function AdminReview() {
       } as ReviewItem;
     }));
     // 두 번째 슬롯까지 승인되어 게시되면 다음 미처리 항목으로 이동
-    if (willComplete) nextSelectableAfter(selected);
+    if (willComplete) nextSelectableAfter(activeId);
+  };
+
+  // 슬롯 승인 취소 (게시 전 한정 — 부분 승인 상태의 본인 권한 슬롯). 슬롯 대기 복귀 → deriveStage 재판정.
+  // 게시 완료(2/2·종결) 건은 슬롯 영역 비노출이라 여기 도달하지 않는다(정정은 "중지" 경로).
+  const cancelSlot = (slotKey: ApprovalSlotKey) => {
+    if (!activeItem || !merged) return;
+    if (!merged.approvalSlots[slotKey].approved) return;
+    const at = "2026.07.10";
+    const by = user?.name ?? "관리자";
+    // TODO: 백엔드 연동 시 승인 취소 이력 기록 + 신청자 알림(슬롯 승인 철회) 발송.
+    setItems(p => p.map(i => {
+      if (i.id !== activeId) return i;
+      const nextSlots: ApprovalSlots = { ...i.approvalSlots, [slotKey]: { approved: false } };
+      return {
+        ...i,
+        approvalSlots: nextSlots,
+        approvalHistory: [...(i.approvalHistory ?? []), { slot: slotKey, action: "취소", at, by } as ApprovalRecord],
+      } as ReviewItem;
+    }));
   };
 
   const handleReject = () => {
@@ -390,7 +445,7 @@ export default function AdminReview() {
       by: user?.name ?? "관리자",
       note: rejectReason,
     };
-    setItems(p => p.map(i => i.id === selected ? ({
+    setItems(p => p.map(i => i.id === activeId ? ({
       ...i,
       rejected: true,
       approvalHistory: [...(i.approvalHistory ?? []), record],
@@ -398,7 +453,7 @@ export default function AdminReview() {
     } as ReviewItem) : i));
     setRejectOpen(false);
     setRejectReason("");
-    nextSelectableAfter(selected);
+    nextSelectableAfter(activeId);
   };
 
   // 요약 스트립 카운트 (사용자 가시 집합 기준)
@@ -416,7 +471,7 @@ export default function AdminReview() {
   const userPendingCount = items.filter(i => {
     if (isTerminalStage(stageOf(i))) return false;
     if (isAdmin) return true;
-    if (isCompanyAdmin) return companyScopeMatch(i) && !i.approvalSlots.company.approved;
+    if (isCompanyAdmin) return ownsByOwnerCompany(i) && !i.approvalSlots.company.approved;
     return false;
   }).length;
 
@@ -488,7 +543,7 @@ export default function AdminReview() {
               {filteredList.map(item => {
                 const st = stageOf(item);
                 const isDone = isTerminalStage(st);
-                const isSelected = selected === item.id;
+                const isSelected = activeId === item.id;
                 const sourceStyle = SOURCE_STYLE[item.kind];
                 const stBadge = APPROVAL_STAGE_STYLE[st];
                 return (
@@ -501,6 +556,7 @@ export default function AdminReview() {
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 9, fontWeight: 700, background: sourceStyle.bg, color: sourceStyle.color, padding: "1px 7px", borderRadius: 20 }}>{sourceStyle.label}</span>
                       <span style={{ fontSize: 9, fontWeight: 700, background: stBadge.bg, color: stBadge.fg, padding: "1px 7px", borderRadius: 20 }}>{stBadge.label}</span>
+                      <OwnerCompanyBadge code={item.ownerCompany} />
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 4, opacity: isDone ? 0.5 : 1 }}>{item.title}</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -511,7 +567,9 @@ export default function AdminReview() {
                 );
               })}
               {filteredList.length === 0 && (
-                <div style={{ padding: "30px 14px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>해당하는 신청 건이 없습니다.</div>
+                <div style={{ padding: "30px 14px", textAlign: "center", fontSize: 12, color: COLOR.text3 }}>
+                  {isCompanyAdmin ? "담당 관계사의 승인 대기 신청이 없습니다." : "해당하는 신청 건이 없습니다."}
+                </div>
               )}
             </div>
           </div>
@@ -527,6 +585,7 @@ export default function AdminReview() {
                   {stageStyle && (
                     <span style={{ fontSize: 11, fontWeight: 700, background: stageStyle.bg, color: stageStyle.fg, padding: "3px 10px", borderRadius: 20 }}>{stageStyle.label}</span>
                   )}
+                  <OwnerCompanyBadge code={merged.ownerCompany} />
                   <span style={{ fontSize: 12, color: COLOR.text3 }}>{merged.id} · 신청 {merged.submittedAt} · {merged.submittedBy}</span>
                 </div>
 
@@ -535,8 +594,9 @@ export default function AdminReview() {
                   <div style={{ background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2, marginBottom: 8 }}>승인 이력</div>
                     {merged.approvalHistory.map((h, i) => {
-                      const isReject = h.action === "반려";
-                      const hs = isReject ? { bg: "#FEE2E2", fg: "#991B1B" } : { bg: SLOT_APPROVED.bg, fg: SLOT_APPROVED.fg };
+                      const hs = h.action === "반려" ? { bg: "#FEE2E2", fg: "#991B1B" }
+                        : h.action === "취소" ? { bg: SLOT_PENDING.bg, fg: SLOT_PENDING.fg }
+                        : { bg: SLOT_APPROVED.bg, fg: SLOT_APPROVED.fg };
                       const label = `${h.slot ? APPROVAL_SLOT_LABEL[h.slot] + " " : ""}${h.action}`;
                       return (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: i < merged.approvalHistory.length - 1 ? 6 : 0 }}>
@@ -730,15 +790,19 @@ export default function AdminReview() {
                         slotKey="company"
                         slot={merged.approvalSlots.company}
                         canApprove={canActCompanySlot(merged)}
-                        disabledReason={merged.company.length === 0 ? "전사 공용 항목은 전사 관리자만 승인할 수 있습니다." : "담당 관계사 범위가 아닙니다."}
+                        canCancel={canActCompanySlot(merged)}
+                        disabledReason="신청 등록 주체가 담당 관계사가 아닙니다."
                         onApprove={() => approveSlot("company")}
+                        onCancel={() => cancelSlot("company")}
                       />
                       <SlotCard
                         slotKey="global"
                         slot={merged.approvalSlots.global}
                         canApprove={canActGlobalSlot(merged)}
+                        canCancel={canActGlobalSlot(merged)}
                         disabledReason="전사 관리자만 승인할 수 있습니다."
                         onApprove={() => approveSlot("global")}
+                        onCancel={() => cancelSlot("global")}
                       />
                     </div>
 

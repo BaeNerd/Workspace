@@ -136,6 +136,14 @@ export type AssetItem = {
   // 소속/대상 관계사 (복수 선택, 관계사 코드 배열). 비워두거나 생략하면 전사 공용.
   company?: string[];
 
+  // 등록 주체(신청자)의 소속 관계사 코드 — 노출 범위(company)와 별개 축(ADM-02).
+  // 관리자 화면(검토 큐·게시 항목 관리)의 "등록 관계사" 배지·companyAdmin 판정용.
+  // 사용자 화면에는 노출하지 않는다(0.5). company 보유 항목은 그 첫 요소와 정합.
+  ownerCompany?: string;
+
+  // 등록(최초 신청) 일자. "YYYY.MM.DD". 항상 updatedAt 이하. 통계·정렬 파생 축.
+  createdAt?: string;
+
   // n8n 워크플로우 시각화 정의
   workflowDef?: {
     status: "Stable" | "Active" | "Error";
@@ -269,9 +277,10 @@ export const LEGACY_APPROVAL_MAP: Record<string, { slots: ApprovalSlots; rejecte
   "중지":    { slots: { company: { approved: false }, global: { approved: false } }, rejected: false, suspended: true },
 };
 
+// action 3종(approve/reject/cancel). "취소"는 게시 전 슬롯 승인 철회(ADM-02).
 export type ApprovalRecord = {
   slot?: ApprovalSlotKey;
-  action: "승인" | "반려";
+  action: "승인" | "반려" | "취소";
   at: string;
   by: string;
   note?: string;

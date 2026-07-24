@@ -158,13 +158,16 @@ export type ApprovalRecord = {
 
 - **`SummaryStrip`** — 상단 요약 스트립(2×2 필터 겸용 칩). `ReviewFilterKey = "전체" | "승인 대기" | "부분 승인" | "처리완료"`. 각 칩은 `baseItems` 기준 카운트를 보이고 클릭 시 `filter`를 전환. `부분 승인` 칩은 count > 0일 때 `관계사만 N · 전사만 N` 서브라인 표시.
 - **`SlotPill`** — 목록 행의 2분할 진행 필(왼쪽 관계사 / 오른쪽 전사). 슬롯이 승인되면 해당 반쪽이 초록 + `✓`.
-- **`SlotCard`** — 상세 패널의 슬롯별 병렬 카드 2장(`display: flex`). 각 카드는 `APPROVAL_SLOT_LABEL` + 상태 배지(승인 완료/대기) + `이 슬롯 승인` 버튼 또는 비활성 사유(`disabledReason`)를 렌더.
+- **`SlotCard`** — 상세 패널의 슬롯별 병렬 카드 2장(`display: flex`). 각 카드는 `APPROVAL_SLOT_LABEL` + 상태 배지(승인 완료/대기) + `이 슬롯 승인` 버튼 또는 비활성 사유(`disabledReason`)를 렌더. **승인된 슬롯 + 본인 권한 + 게시 전(부분 승인)** 이면 `승인 취소` 버튼(confirm 1단계 → 슬롯 대기 복귀)을 추가로 렌더한다.
+- **`OwnerCompanyBadge`**(모듈 레벨) — 목록 행·상세 메타의 **등록 관계사 배지**. `ownerCompany` 표시명(`orgCompanyName`, 조직 SSOT 파생)을 TONE 토큰 칩으로 렌더. 관리자 화면 전용(사용자 화면 노출 금지, 0.5). AdminProjectManage에도 동명 컴포넌트로 동일 배치.
+- **승인 취소(`cancelSlot`)** — 게시 전(부분 승인) 한정. 자격 predicate는 승인과 동일(`canActCompanySlot`/`canActGlobalSlot`). 슬롯을 `{approved:false}`로 되돌리고 `deriveStage` 재판정(부분 승인 → 승인 대기), `approvalHistory`에 `action: "취소"` 기록. 게시 완료(2/2·종결) 건은 슬롯 영역(`!isTerminal`) 자체가 비노출이라 도달 불가(정정은 "중지" 경로). `ApprovalRecord.action`은 3종(`승인`/`반려`/`취소`).
+- **가시성 필터(판정 축 = `ownerCompany`)** — companyAdmin은 신청 등록 주체(`ownerCompany`)가 본인 `managedCompanies`에 포함된 건만 본다(노출 범위 `company`가 아니라 등록 주체가 판정 축 — 관계사 슬롯은 신청자 소속 관계사 관리자의 몫). admin은 전체. `visibleToUser`가 산출하는 `baseItems`에 요약 스트립·목록·카운트가 모두 정합. 빈 상태 문구도 companyAdmin이면 "담당 관계사의 승인 대기 신청이 없습니다".
 - **슬롯 행동 자격**:
-  - `canActCompanySlot(i) = isAdmin || (isCompanyAdmin && companyScopeMatch(i))`
+  - `ownsByOwnerCompany(i) = managedCompanies.includes(i.ownerCompany)`
+  - `canActCompanySlot(i) = isAdmin || (isCompanyAdmin && ownsByOwnerCompany(i))`
   - `canActGlobalSlot(i) = isAdmin`
-  - `companyScopeMatch(i) = i.company.length > 0 && i.company.some(c => managedCompanies.includes(c))`
-  - 관계사 지정 편집 UI는 폐기 — 신규·데모 항목은 전사 공용(`company: []`, `companyScope: "company-wide"`)이라 company 슬롯도 admin이 처리. (`companyScope === "unset"` 방어 가드는 코드에 잔존.)
-- **`pendingCount` (사이드바)** — 사용자가 처리 가능한 **미승인 슬롯 잔여 항목 수**. admin: 미종결(`게시됨/반려/중지` 아님) 전체. companyAdmin: `companyScopeMatch(i) && !i.approvalSlots.company.approved`. 전체 `items` 기준(요약 스트립 카운트는 사용자 가시 `baseItems` 기준).
+  - 가시성과 관계사 슬롯 자격이 같은 축(`ownerCompany`) — companyAdmin에게 보이는 건은 관계사 슬롯 승인 가능, 전사 슬롯은 비활성. 노출 범위 편집 UI는 폐기(`companyScope === "unset"` 방어 가드는 코드에 잔존).
+- **`pendingCount` (사이드바)** — 사용자가 처리 가능한 **미승인 슬롯 잔여 항목 수**. admin: 미종결(`게시됨/반려/중지` 아님) 전체. companyAdmin: `ownsByOwnerCompany(i) && !i.approvalSlots.company.approved`. 전체 `items` 기준(요약 스트립 카운트는 사용자 가시 `baseItems` 기준).
 - **일괄 게시 버튼 없음** — 액션은 슬롯별 `이 슬롯 승인` 2개와 `반려`뿐. 배너 안내: "두 승인이 모두 완료되면 게시됩니다."
 - **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ImageStripView`. (상태·관계사 편집 UI 제거로 `ChipEditor`·`CompanyMultiSelect`·상태 셀렉터 삭제.)
 
@@ -466,7 +469,7 @@ AX 플랫폼 탐색. 상단 **sticky 2행 필터 바**(좌측 사이드바 아�
 - **정렬**: `SORT_OPTIONS` = 최신순/인기순/이름순.
 - **URL 파라미터**: `?q=`(검색) · `?platform=` · `?domain=`만 읽는다. 상태 파라미터는 읽지 않는다. `location.state._resetAt`로 필터 리셋.
 - **주요 state**: `search`, `source`, `sort`, `domainFilter`, `visibleCount`(24씩 더 보기), `hovered`. (`usage`·`company`·`sidebarOpen` state 없음.)
-- **`company` 필드 용도**: 표시 필터가 아니라 **비노출 관계사 접근 게이팅**에만 사용 — 비그룹뷰어에게 비노출 관계사(`visible: false`) 항목을 숨기는 `filtered` 메모 조건.
+- **`company` 필드 용도**: 표시 필터가 아니라 **비노출 관계사 접근 게이팅**에만 사용 — 비그룹뷰어에게 비노출 관계사(`visible: false`) 항목을 숨기는 `filtered` 메모 조건. 노출 여부 판정은 조직 SSOT 파생 `VISIBLE_COMPANY_CODES = new Set(getOrgCompanies().filter(c=>c.visible).map(c=>c.code))`로 한다(구 내장 `COMPANIES` 리터럴 제거 — `.code/.visible` 소비 결과 동일).
 - **내부 컴포넌트**(모듈 레벨): `HeartIcon` 하나뿐.
 
 #### `AssetItemDetailPage.tsx` — `/n8n/:itemId` 외 6개 경로
@@ -520,7 +523,7 @@ KPI 5개 (`repeat(5, 1fr)`): `전체 등록물` / `승인 대기`(부분 승인 
 AX 항목 병렬 2슬롯 승인 검토. `SummaryStrip`(필터) · `SlotPill`(목록) · `SlotCard`(상세 병렬 카드) · `pendingCount` 산출. (상세는 위 [승인 흐름 → AdminReview 슬롯 UI] 참조.)
 
 - **간소화 검토 필드**: 공통(이미지 캐러셀 표시·제목·요약·상세·도메인·태그·담당자) + 유형별(n8n 다이어그램·예상 효과·난이도 / pa 예상 효과 / assistant 공유 프롬프트·기반 모델 / ai-orch 가용 여부·강점·모델 접속 URL·세부 모델명·글 분량·비용 등급 / ml 모델 유형·학습 데이터·개발 도구 / vibe·etc 공통만). **상태·관계사 지정·삭제된 유형별 필드 검토 UI 없음.**
-- **승인 권한 가드는 현행 슬롯 모델 그대로 유지** — `company`/`companyScope`는 슬롯 자격 판정 데이터로만 존치(편집 UI 제거).
+- **승인 권한 가드는 현행 슬롯 모델 그대로 유지** — 병렬 2슬롯·전사 슬롯 admin 전용은 불변. companyAdmin 가시성·관계사 슬롯 자격은 신청 등록 주체 `ownerCompany` 기준으로 판정(`company`/`companyScope`는 노출 범위 데이터로 존치, 편집 UI 제거).
 - **내부 컴포넌트**(모듈 레벨): `SlotPill`, `SlotCard`, `SummaryStrip`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `TimeSavedInput`, `ImageStripView`.
 
 #### `AdminProjectManage.tsx` — `/admin/projects` (admin + companyAdmin)
@@ -577,7 +580,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 
 | 파일 | 역할 |
 |------|------|
-| `Navbar.tsx` | 일반 사용자용 상단 고정 네비게이션. 관리자 진입은 `isAdmin \|\| isCompanyAdmin`. 역할 배지 2종. 아바타 드롭다운에 "설정"(`/settings`) 항목. `NotificationBell`(로그인·비공유 모드). 공유 모드에선 SSO 버튼 숨김 + 배너 높이 오프셋. |
+| `Navbar.tsx` | 일반 사용자용 상단 고정 네비게이션. 관리자 진입은 `isAdmin \|\| isCompanyAdmin`. 역할 배지 2종. 아바타 드롭다운에 "설정"(`/settings`) 항목 + **본인 소속 관계사 표시명 1줄**(`orgCompanyName`, companyAdmin은 담당 병기 — 표시명 우선·코드 폴백). `NotificationBell`(로그인·비공유 모드). 공유 모드에선 SSO 버튼 숨김 + 배너 높이 오프셋. |
 | `AdminNavbar.tsx` | 관리자 페이지 상단 네비게이션. `NotificationBell` 포함. |
 | `NotificationBell.tsx` | 공용 알림 벨. 미읽음 뱃지 + 드롭다운(최근 5건·전체 읽음·항목 이동). `useNotifications` 소스. Navbar·AdminNavbar 공유. |
 | `AdminSidebar.tsx` | 관리자 좌측 사이드바. 역할별 메뉴 노출(companyAdmin 4개, 라벨 "관계사 관리자 메뉴"). `pendingCount` 뱃지. |
@@ -588,6 +591,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 | `ProtectedRoute.tsx` | 라우트 가드. `requireAdmin` + `allowCompanyAdmin`. |
 | `N8nFlowPreview.tsx` | SVG 기반 n8n 워크플로우 시각화. |
 | `WorkflowDiagram.tsx` | 워크플로우 다이어그램 시각화. |
+| `CardIdTag.tsx` | **항목 ID(0.3 체계) 공용 표시 태그**. 사용자 화면 카드·상세 공용(목록·랜딩·상세 헤더·내 현황). 등록 부서 왼쪽 고정(없으면 메타 줄 선두). TONE 토큰만·신규 hex 금지·선택 가능 텍스트. 단일 정의 — 지점별 개별 스타일 금지. |
 | `ScrollToTop.tsx` | 라우트 변경 시 스크롤 최상단 이동. |
 
 ### ProtectedRoute 구현
@@ -656,7 +660,7 @@ AuthProvider
 | `DeletionRecord` | CompanyAdmin 삭제 이력 |
 | `AssetReview` | `{ id, itemId, itemTitle, itemKind, author, dept, text, createdAt, likes }` |
 | `EditorsPick` | 금주의 발견 `{ itemId, reason, pickedAt, pickedBy }` |
-| `AssetItem` | AX 항목 공용 타입. `company?: string[]`, `expectedTimeSaved?`, `domain?`, `usageMode?`, 카테고리별 전용 필드 포함 |
+| `AssetItem` | AX 항목 공용 타입. `company?: string[]`, `ownerCompany?`(등록 주체 관계사 — 노출 범위와 별개 축, 관리자 배지·판정용), `createdAt?`("YYYY.MM.DD", ≤ `updatedAt`), `expectedTimeSaved?`, `domain?`, `usageMode?`, 카테고리별 전용 필드 포함 |
 | `CATEGORY_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키, ICON_PRESETS 기존 6종과 동일 path) |
 
 ### 항목 ID 체계 (`ID_PREFIX` / `makeItemId`)
@@ -785,7 +789,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `mocks/myStatusMockData.ts` | `INITIAL_ITEMS`(6)·`MOCK_MY_REVIEWS`(2) | MyStatusPage (`getMyApplications`·`getMyReviews`) |
 | `mocks/adminDashboardMockData.ts` | `PENDING_ALL`(5)·`RECENT_APPROVED_ALL`(4)·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`·`slots`·`PendingItem`·`ApprovedItem` | AdminDashboard (`getDashboardData`) |
 | `mocks/adminUsersMockData.ts` | `INITIAL_ADMINS`(2)·`INITIAL_GROUP_VIEWERS`(2)·`REGISTRANTS`(4)·`LOGS`(7)·`SELECTABLE_COMPANIES`(12)·`MOCK_SSO_USERS`(4) | AdminUsers (`getAdmins`·`getGroupViewers`·`getRegistrants`·`getAuditLogs`·`getSelectableCompanies`·`getSsoUsers`) |
-| `mocks/adminOrgMockData.ts` | `INITIAL_COMPANIES`(28)·`INITIAL_DEPTS`(15)·`ASSET_ITEM_REFS`(12)·`TEAMS_SYNC_SOURCE`(3) | AdminOrg (`getOrgCompanies`·`getOrgDepts`·`getAssetItemRefs`·`getTeamsSyncSource`) |
+| `mocks/adminOrgMockData.ts` | `INITIAL_COMPANIES`(29)·`INITIAL_DEPTS`(15)·`ASSET_ITEM_REFS`(12)·`TEAMS_SYNC_SOURCE`(3)·`orgCompanyName`(코드→표시명, SSOT 파생) | AdminOrg (`getOrgCompanies`·`getOrgDepts`·`getAssetItemRefs`·`getTeamsSyncSource`) · 관리자 배지·Navbar 소속(`orgCompanyName` 재-export) |
 | `mocks/adminTaxonomyMockData.ts` | `INITIAL_CATEGORY_TAXONOMY`·`INITIAL_FREE_TAGS`(7) | AdminTaxonomy (`getCategoryTaxonomy`·`getFreeTags`) |
 
 - **⚠️ 감사 로그 소급 수정 금지**: `adminUsersMockData.LOGS`는 과거 표기(`AGENT-2025-007`·`HKGPT-2025-018`·`N8N-2025-031` 등)를 **바이트 동일**하게 보존한다.

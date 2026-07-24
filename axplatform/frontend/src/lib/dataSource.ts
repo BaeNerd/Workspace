@@ -161,6 +161,9 @@ function toManagedAssetItem(item: AssetItem): ManagedAssetItem {
     images: item.images,
     domain: item.domain,
     company,
+    // 등록 주체 관계사 — 관리 화면 "등록 관계사" 배지용(노출 범위 company와 별개 축, ADM-02).
+    // SSOT ownerCompany 우선, 미보유 시 company 첫 요소로 폴백.
+    ownerCompany: item.ownerCompany ?? company[0],
     companyScope: company.length > 0 ? "specific" : "company-wide",
     // n8n / pa
     expectedTimeSaved: item.expectedTimeSaved,
@@ -261,6 +264,8 @@ export function getOrgDepts() {
 export function getAssetItemRefs() {
   return ASSET_ITEM_REFS;
 }
+// 관계사 코드 → 표시명(조직 SSOT 파생). 관리자 배지·Navbar 소속 표기 공용. 로직 복제 금지.
+export { orgCompanyName } from "../mocks/adminOrgMockData";
 // Teams 동기화 미리보기 원천. TODO: 실제 연동 시 GET /api/v1/admin/teams/org-preview
 export function getTeamsSyncSource() {
   return TEAMS_SYNC_SOURCE;

@@ -26,6 +26,9 @@ const legacy = (stage: string): { approvalSlots: ApprovalSlots; rejected: boolea
   };
 };
 
+// ownerCompany = 신청 등록 주체의 소속 관계사 — companyAdmin 검토 가시성·관계사 슬롯 자격 판정 축(ADM-02).
+// 데모 분포(가시성 대비 시연): KKM×2(N8N·AST) / KBH×1(PA) / HC×1(AIO) / HKN×1(ML) / YWK×1(ETC).
+//   admin 6건 전체 · 최관리(KKM) 2건 · 정담당(KBH·HC) 2건 — 계정별로 일부만 보이고 일부는 숨겨진다.
 // TODO: 실제 연동 시 GET /api/v1/admin/review-queue 응답으로 교체
 export const INITIAL_ITEMS: ReviewItem[] = [
   {
@@ -44,7 +47,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
       { label: "불일치 항목 확인", type: "condition" },
       { label: "Teams 알림 발송", type: "output" },
     ]},
-    company: [], companyScope: "company-wide",
+    ownerCompany: "KKM", company: [], companyScope: "company-wide",
     contacts: [{ name: "박성훈", dept: "구매팀", role: "주담당자", email: "sunghoon.park@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -56,7 +59,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
     dept: "구매팀", submittedBy: "최유진", submittedAt: "2026.06.25",
     expectedTimeSaved: "주 3시간",
     itemTags: "결재, 구매자동화", domain: "재무",
-    company: [], companyScope: "company-wide",
+    ownerCompany: "KBH", company: [], companyScope: "company-wide",
     contacts: [{ name: "최유진", dept: "구매팀", role: "주담당자", email: "yujin.choi@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -69,7 +72,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
     sharedPrompt: "당신은 해외법인 계약서를 검토하는 법무 담당자입니다. 업로드된 영문 계약서에서 위험 조항을 찾아 한국어로 요약해 주세요.",
     basedModel: "Claude Opus 4.8",
     itemTags: "계약서, 법무, 해외법인", domain: "IT",
-    company: [], companyScope: "company-wide",
+    ownerCompany: "KKM", company: [], companyScope: "company-wide",
     contacts: [{ name: "강현우", dept: "법무팀", role: "주담당자", email: "hyunwoo.kang@kolmar.co.kr" }],
     ...legacy("2차대기"), approvalHistory: [
       { slot: "company", action: "승인", at: "2026.06.24", by: "최관리 (관계사관리자)" },
@@ -86,7 +89,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
     modelName: "GPT-4o", contextWindow: "문서 여러 장 (수십 페이지)", costTier: "보통",
     specificUrl: "https://ai-gateway.kolmar.co.kr/models/gpt-4o",
     itemTags: "범용, 업무보조",
-    company: [], companyScope: "company-wide",
+    ownerCompany: "HC", company: [], companyScope: "company-wide",
     contacts: [{ name: "정태영", dept: "IT개발팀", role: "주담당자", email: "taeyoung.jung@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -98,7 +101,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
     dept: "IT개발팀", submittedBy: "오승현", submittedAt: "2026.06.26",
     mlType: "이미지 인식", trainingDataDesc: "내부 품질 검사 이미지 1만장", devTool: "PyTorch",
     itemTags: "품질관리, 이미지분류", domain: "생산",
-    company: [], companyScope: "company-wide",
+    ownerCompany: "HKN", company: [], companyScope: "company-wide",
     contacts: [{ name: "오승현", dept: "IT개발팀", role: "주담당자", email: "seunghyun.oh@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
@@ -109,7 +112,7 @@ export const INITIAL_ITEMS: ReviewItem[] = [
     description: "사내 구성원이 AI 동향을 쉽게 접할 수 있도록 매주 주요 뉴스와 활용 사례를 정리해 공유하는 소규모 프로젝트입니다.",
     dept: "DX추진팀", submittedBy: "한지민", submittedAt: "2026.06.28",
     itemTags: "뉴스레터, AI트렌드", domain: "IT",
-    company: [], companyScope: "company-wide",
+    ownerCompany: "YWK", company: [], companyScope: "company-wide",
     contacts: [{ name: "한지민", dept: "DX추진팀", role: "주담당자", email: "jimin.han@kolmar.co.kr" }],
     ...legacy("1차대기"), approvalHistory: [],
   },
