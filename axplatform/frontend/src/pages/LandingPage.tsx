@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/useAuth";
 import { CATEGORIES, CATEGORY_ICON_PATH, BUSINESS_DOMAINS, detailPathForItemId } from "../types/categoryTypes";
 import type { CategoryId, Category, BusinessDomain } from "../types/categoryTypes";
-import { getAssetItems, getAssetItem, getNotices } from "../lib/dataSource";
+import { getAssetItems, getAssetItem, getNotices, getMonthlyNewCount } from "../lib/dataSource";
 import { CONTENT_MAX_WIDTH } from "../styles/layout";
 import { COLOR as C, cardBase as card, headingFont } from "../styles/tokens";
 import type { NoticeKind } from "../types/noticeTypes";
@@ -65,7 +65,9 @@ const CATEGORY_COUNTS: Record<CategoryId, number> = CATEGORIES.reduce((acc, c) =
   return acc;
 }, {} as Record<CategoryId, number>);
 const TOTAL_COUNT = getAssetItems().length;
-const MONTHLY_NEW = 18; // TODO: 실제 연동 시 통계 API 값으로 교체(현재는 데모 정적값)
+// 이번 달 신규 — 자산 SSOT createdAt 당월 실측(전사). 통계·대시보드의 "이번 달 신규"와 동일 소스.
+// TODO: 실제 연동 시 GET /api/v1/stats/new-this-month 응답으로 교체
+const MONTHLY_NEW = getMonthlyNewCount();
 
 // 카테고리 스타일 인덱스
 const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; icon: Category["icon"] }> =

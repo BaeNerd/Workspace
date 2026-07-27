@@ -10,7 +10,6 @@
 //
 // ⚠️ TODO: 실제 연동 시 이 모듈을 폐기하고 GET/PUT /api/v1/admin/company-admins 및
 //          GET /api/v1/auth/me 응답으로 교체.
-// (statsMockData.ts와 무관한 별도 신규 모듈)
 // ============================================================
 
 export type CompanyAdminUser = { email: string; name: string; dept?: string; managedCompanies: string[] };

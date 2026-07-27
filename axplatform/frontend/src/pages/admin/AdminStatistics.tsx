@@ -5,7 +5,7 @@ import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { useAuth } from "../../context/useAuth";
 import { CATEGORIES } from "../../types/categoryTypes";
-import { getStatsByScope, monthTotal, COMPANY_NAME } from "../../lib/dataSource";
+import { getStatsByScope, monthTotal, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
 import type { MonthPoint, SourceKey } from "../../lib/dataSource";
 
@@ -19,10 +19,9 @@ const SOURCES: { key: SourceKey; label: string; color: string }[] =
   CATEGORIES.map(p => ({ key: p.id, label: p.name, color: p.color }));
 
 // ============================================================
-// 화면 고유 통계 더미(부서·난이도·비용·ML유형·키워드·절감시간·후기 TOP5)와
-// 범위 집계 헬퍼는 mocks/statsMockData에 있다. 소비 시점 합성은
-// dataSource.getStatsByScope가 담당한다. 아래 *_META는 표시(라벨·색상) 전용
-// 프레젠테이션 메타로 화면에 둔다.
+// 통계 수치는 자산 SSOT·후기에서 파생된다(lib/statsDerive). 소비 시점 범위 집계는
+// dataSource.getStatsByScope가 공급하며, 아래 *_META는 표시(라벨·색상) 전용
+// 프레젠테이션 메타로 화면에 둔다(파생 결과의 인덱스 축과 1:1 대응).
 // ============================================================
 
 // n8n 워크플로우 기준 (난이도 축은 n8n 전용)
@@ -43,35 +42,13 @@ const ML_TYPE_META = [
   { label: "분류/회귀", color: "#059669" },
 ];
 
-// 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로) — AdminDashboard와 동일 방식
+// 담당 관계사 배지 텍스트 (코드 → 표시명, 조직 SSOT orgCompanyName 파생) — AdminDashboard와 동일 방식
 const scopeCompanyNames = (codes: string[]): string =>
-  codes.map(c => COMPANY_NAME[c] ?? c).join(" · ");
+  codes.map(c => orgCompanyName(c)).join(" · ");
 
-const PICK_YEARS = [2025];
+// 데이터가 걸친 연도(2025~2026). 월 지정 선택기 노출 범위.
+const PICK_YEARS = [2025, 2026];
 const PICK_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-const PERIOD_MULTIPLIER: Record<string, number> = {
-  "일": 365, "하루": 365, "주": 52, "주일": 52, "월": 12, "개월": 12, "년": 1, "연": 1,
-};
-
-function parseTimeSaved(raw: string | undefined | null): number | null {
-  if (!raw) return null;
-  const text = raw.trim();
-  if (!text) return null;
-  const hourMatch = text.match(/(일|하루|주일|주|월|개월|년|연)\s*(\d+(?:\.\d+)?)\s*시간/);
-  const minMatch = text.match(/(일|하루|주일|주|월|개월|년|연)\s*(\d+(?:\.\d+)?)\s*분/);
-  if (hourMatch) {
-    const mult = PERIOD_MULTIPLIER[hourMatch[1]];
-    const value = parseFloat(hourMatch[2]);
-    if (mult && !isNaN(value)) return value * mult;
-  }
-  if (minMatch) {
-    const mult = PERIOD_MULTIPLIER[minMatch[1]];
-    const value = parseFloat(minMatch[2]);
-    if (mult && !isNaN(value)) return (value / 60) * mult;
-  }
-  return null;
-}
 
 const selectStyle: React.CSSProperties = {
   padding: "6px 10px", fontSize: 12, fontWeight: 600, color: COLOR.text, background: "#fff",
@@ -111,19 +88,15 @@ export default function AdminStatistics() {
     const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
     const s = getStatsByScope(currentScope);
 
-    // 표시 전용 META 병합·시간 파싱은 화면 프레젠테이션에서 처리 (데이터·집계는 dataSource가 공급).
+    // 표시 전용 META(라벨·색상) 병합만 화면에서 처리 — 데이터·집계·시간 파싱은 dataSource(statsDerive)가 공급.
     const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: s.difficultyCounts[i] }));
     const cost = COST_META.map((c, i) => ({ ...c, count: s.costCounts[i] }));
     const mlType = ML_TYPE_META.map((t, i) => ({ ...t, count: s.mlTypeCounts[i] }));
 
-    const parsed = s.timeSamples.map(parseTimeSaved);
-    const totalAnnualHoursSaved = parsed.reduce<number>((sum, v) => sum + (v ?? 0), 0);
-    const unestimableCount = parsed.filter(v => v === null).length;
-    const estimableCount = parsed.length - unestimableCount;
-
     return { companies: s.companies, monthSeries: s.monthSeries, sourceTotal: s.sourceTotal, domain: s.domain,
-      difficulty, cost, mlType, dept: s.dept, keyword: s.keyword,
-      topReviews: s.topReviews, totalAnnualHoursSaved, unestimableCount, estimableCount };
+      difficulty, cost, mlType, dept: s.dept, deptCount: s.deptCount, tagFreq: s.tagFreq,
+      topReviews: s.topReviews, newThisMonth: s.newThisMonth,
+      totalAnnualHoursSaved: s.timeSaved.annualTotal, estimableCount: s.timeSaved.estimable, unestimableCount: s.timeSaved.unestimable };
   }, [scopeKey]);
 
   const MONTH_SERIES = agg.monthSeries;
@@ -143,11 +116,11 @@ export default function AdminStatistics() {
   const totalCost = agg.cost.reduce((s, d) => s + d.count, 0) || 1;
   const totalMlType = agg.mlType.reduce((s, d) => s + d.count, 0) || 1;
   const maxDept = Math.max(...agg.dept.map(d => d.count), 1);
-  const maxKeyword = Math.max(...agg.keyword.map(k => k.count), 1);
+  const maxTag = Math.max(...agg.tagFreq.map(k => k.count), 1);
 
   const monthly: MonthPoint[] = periodMode === "month"
     ? [MONTH_SERIES.find(s => s.key === `${pickYear}-${pad2(pickMonth)}`)
-        ?? { key: `${pickYear}-${pad2(pickMonth)}`, m: `${pickMonth}월`, month: `${pickMonth}월`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 }]
+        ?? { key: `${pickYear}-${pad2(pickMonth)}`, m: `${String(pickYear).slice(2)}.${pad2(pickMonth)}`, month: `${String(pickYear).slice(2)}.${pad2(pickMonth)}`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 }]
     : PRESET_MONTHS[period];
 
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
@@ -222,8 +195,8 @@ export default function AdminStatistics() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
             {[
               { label: "전체 등록물", value: totalRegistrations, sub: "전체 유형 합산", color: "#0F172A" },
-              { label: "이번 달 신규", value: monthTotal(MONTH_SERIES[MONTH_SERIES.length - 1]), sub: "전체 유형 합산", color: "#2563EB" },
-              { label: "참여 부서", value: agg.dept.length, sub: "집계된 부서 수", color: "#059669" },
+              { label: "이번 달 신규", value: agg.newThisMonth, sub: "당월 createdAt 기준", color: "#2563EB" },
+              { label: "참여 부서", value: agg.deptCount, sub: "집계된 부서 수", color: "#059669" },
               { label: "참여 관계사", value: agg.companies.length, sub: "전체 관계사", color: "#7C3AED" },
             ].map((k, i) => (
               <div key={i} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "16px 20px" }}>
@@ -483,15 +456,15 @@ export default function AdminStatistics() {
             );
           })()}
 
-          {/* 탐색 키워드 빈도 */}
+          {/* 태그 빈도 */}
           <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 24px" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>탐색 키워드 빈도 <span style={{ fontSize: 11, color: COLOR.text2, fontWeight: 500, marginLeft: 8 }}>사용자가 검색한 상위 키워드</span></div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>태그 빈도 <span style={{ fontSize: 11, color: COLOR.text2, fontWeight: 500, marginLeft: 8 }}>카드에 부착된 상위 태그</span></div>
             <div style={{ display: "flex", gap: 10, alignItems: "flex-end", height: 100 }}>
-              {agg.keyword.map((k, i) => (
+              {agg.tagFreq.map((k, i) => (
                 <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.text2 }}>{k.count}</div>
-                  <div style={{ width: "100%", borderRadius: "4px 4px 0 0", background: `hsl(${220 + i * 12}, 70%, ${55 + i * 3}%)`, height: `${(k.count / maxKeyword) * 76}px` }} />
-                  <div style={{ fontSize: 10, color: COLOR.text3, fontWeight: 600, textAlign: "center" }}>{k.keyword}</div>
+                  <div style={{ width: "100%", borderRadius: "4px 4px 0 0", background: `hsl(${220 + i * 12}, 70%, ${55 + i * 3}%)`, height: `${(k.count / maxTag) * 76}px` }} />
+                  <div style={{ fontSize: 10, color: COLOR.text3, fontWeight: 600, textAlign: "center" }}>{k.tag}</div>
                 </div>
               ))}
             </div>

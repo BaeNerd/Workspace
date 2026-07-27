@@ -337,7 +337,8 @@ axplatform/
         ├── App.tsx           # IS_SHARE_MODE 분기 라우트 + AuthProvider
         ├── lib/
         │   ├── api.ts        # 백엔드 연동 대비 스텁 (현재 미사용)
-        │   └── dataSource.ts # 데이터 접근 계층(동기, DEMO) — 페이지·훅↔mocks 유일 경유 지점
+        │   ├── dataSource.ts # 데이터 접근 계층(동기, DEMO) — 페이지·훅↔mocks 유일 경유 지점
+        │   └── statsDerive.ts # 통계 파생 계층(순수 함수) — 자산 SSOT·후기에서 통계 수치 계산(합성 테이블 없음)
         ├── config/
         │   ├── shareMode.ts  # IS_SHARE_MODE 단일 참조점
         │   └── operations.ts # TEAMS_CHANNEL_URL 단일 상수 (운영 설정 참조점)
@@ -359,11 +360,9 @@ axplatform/
         │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백, 카드 관리 파생 원천) — M1
         │   ├── adminReviewMockData.ts  # 검토 대기 큐(INITIAL_ITEMS)
         │   ├── myStatusMockData.ts     # 내 신청(INITIAL_ITEMS)·내 후기(MOCK_MY_REVIEWS)
-        │   ├── adminDashboardMockData.ts # 대시보드 화면 고유(승인 대기·최근 승인·게시 도구 수·후기 수)
         │   ├── adminUsersMockData.ts   # 사용자·권한·활동 로그(⚠️ 감사 로그 소급 수정 금지)
         │   ├── adminOrgMockData.ts     # 조직(관계사·부서·자산 관계사 투영·Teams 동기화 원천)
         │   ├── adminTaxonomyMockData.ts # 분류체계·자유 태그
-        │   ├── statsMockData.ts        # 통계 공용 더미 + AdminStatistics 화면 고유 통계(M2 합류)
         │   ├── companyAdminMockData.ts # 관계사 관리자 지정 공용 목업
         │   ├── noticeMockData.ts       # 공지·업데이트 소식 단일 소스(SSOT)
         │   └── notificationMockData.ts # 알림 단일 소스(SSOT)
@@ -560,7 +559,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 통계 대시보드. 조회 범위 선택기 노출(pendingCount 없음).
 
 - 상단 카드 4개(전체 등록물/이번 달 신규/**참여 부서**/참여 관계사), 기간 프리셋 + 월 지정. (운영 상태 폐기로 `활성 항목` 카드 및 `항목 상태 4그룹` 차트 제거.)
-- 등록 추이(7유형 스택) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Model]/ML 유형) · **후기 많은 항목 TOP 5** · 탐색 키워드 빈도. 출처 색상은 `CATEGORIES`에서 파생.
+- 등록 추이(7유형 스택, `createdAt` 파생) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`statsDerive.parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Model]/ML 유형) · **후기 많은 카드 TOP 5** · **태그 빈도**(SSOT `tags` 집계 — 舊 "탐색 키워드 빈도" 교체, 실검색어 측정은 서버 몫·부록 B). 모든 수치는 자산 SSOT·후기 파생(`dataSource.getStatsByScope`), 출처 색상은 `CATEGORIES` 파생.
 
 #### `AdminCategories.tsx` — `/admin/platforms` (admin)
 
@@ -692,8 +691,9 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 ```
 입력: 수치 + 주기(일/주/월/년) → 직렬화: "<주기> N시간" 표준 문자열 (예: "주 3시간")
-연간 환산: AdminStatistics.parseTimeSaved() — PERIOD_MULTIPLIER(일 365 / 주 52 / 월 12 / 년 1),
-          분 단위는 60으로 나눔. 파싱 불가 값은 null(추정 불가 항목).
+연간 환산: statsDerive.parseTimeSaved() — PERIOD_MULTIPLIER(일 365 / 주 52 / 월 12 / 년 1),
+          분 단위는 60으로 나눔. 파싱 불가 값은 null(추정 불가 항목). 집계 대상은
+          expectedTimeSaved 보유 카드(n8n·PA, 18건). 파서는 화면→파생 계층으로 이동(로직 무변경).
 ```
 
 ---
@@ -702,8 +702,8 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 > 목업 → 실서버 전환의 **유일한 교체 지점**. 동기 시그니처(DEMO) — 비동기 전환·로딩 상태 도입은 실제 연동 시로 유보.
 
-- **철칙: 페이지·훅은 `mocks/*`를 직접 import하지 않는다.** 조회 진입점은 오직 `lib/dataSource`를 경유한다. (예외: `components/AdminScopeSelect`가 통계 기준 상수 `STAT_COMPANIES`/`COMPANY_NAME`를 mocks에서 직접 참조 — 컴포넌트 레이어는 규칙 범위 밖. 개인화 훅 3종 중 `useNotifications`만 목업 참조를 갖고, 이를 dataSource로 배선함.)
-- 백엔드 연동 시 `mocks` 배열을 삭제하고 각 함수 본문만 실제 API 호출로 교체한다. 집계 헬퍼는 mocks에 단일 정의를 두고 dataSource가 위임/재-export(로직 복제 금지).
+- **철칙: 페이지·훅은 `mocks/*`를 직접 import하지 않는다.** 조회 진입점은 오직 `lib/dataSource`를 경유한다. `components/AdminScopeSelect`도 통계 기준 상수(`STAT_COMPANIES`)·표시명(`orgCompanyName`)을 `lib/dataSource` 재-export로 참조한다(舊 `mocks/statsMockData` 직접 참조 폐기). 개인화 훅 3종 중 `useNotifications`만 목업 참조를 갖고, 이를 dataSource로 배선함.
+- 백엔드 연동 시 `mocks` 배열을 삭제하고 각 함수 본문만 실제 API 호출로 교체한다. 통계 집계는 `lib/statsDerive`의 순수 함수(자산 SSOT·후기 파생)를 dataSource가 조합/재-export(로직 복제 금지 — 합성 관계사 테이블 폐기).
 
 ### 함수 카탈로그
 
@@ -711,14 +711,15 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 |--------|------|-----------|
 | 자산(M1) | `getAssetItems` · `getAssetItem(id)` · `getReviewsByItem(id)` · `getPostsByItem(id)` · `getFallbackN8nWorkflowJson` | 자산 목록·단건·후기·게시글·n8n 폴백 JSON |
 | 검토/신청 | `getReviewQueue` · `getMyApplications` · `getMyReviews` | 검토 대기 큐 · 내 신청 · 내 후기 |
-| 대시보드 | `getDashboardData(scope)` | 범위 합성: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount}` |
-| 통계 | `getStatsByScope(scope)` | 범위 합성: `{companies, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, keyword, timeSamples, topReviews}` (META 병합·시간 파싱은 화면 프레젠테이션) |
+| 대시보드 | `getDashboardData(scope)` | 자산 SSOT·검토 큐·후기 파생: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth}`. 승인 대기=검토 큐, 최근 승인=게시 카탈로그 최신순, 게시된 도구·누적 후기=`ownerCompany` 파생 |
+| 통계 | `getStatsByScope(scope)` | 자산 SSOT·후기 파생: `{companies, companyTotals, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, deptCount, tagFreq, timeSaved{annualTotal,estimable,unestimable,held}, topReviews, newThisMonth}` (표시 META 병합만 화면 프레젠테이션) |
+| 랜딩/공용 | `getMonthlyNewCount(scope?)` | 이번 달 신규(전사 기준, `createdAt` 당월 실측) — 랜딩·통계 공용 |
 | 관리 | `getManagedAssetItems` · `getAdmins` · `getGroupViewers` · `getRegistrants` · `getAuditLogs` · `getSsoUsers` · `getSelectableCompanies` | 게시 항목·전사 관리자·그룹 뷰어·등록자·활동 로그·SSO 검색·관계사 선택지 |
 | 관계사 관리자 | `getCompanyAdmins` · `getManagedCompanies(email)` | 관계사 관리자 목록 · 이메일→담당 관계사(auth/me 모사) |
 | 조직 | `getOrgCompanies` · `getOrgDepts` · `getAssetItemRefs` · `getTeamsSyncSource` | 관계사·부서·자산 관계사 투영·Teams 동기화 원천 |
 | 분류체계 | `getCategoryTaxonomy` · `getFreeTags` | 분류체계 · 자유 태그 |
 | 소식/알림 | `getNotices(kind)` · `getAdminNotices` · `sortNotices`(재-export) · `getNotifications` | 공개 소식 · 관리자 전체 소식 · 정렬 헬퍼 · 알림(벨·훅·패널) |
-| 통계 위임 | `monthTotal` · `COMPANY_NAME`(값 재-export) / `SourceKey` · `StatCompany` · `MonthPoint` · `CompanyAdminUser`(타입 재-export) | mocks 단일 정의 위임 — 화면 프레젠테이션 계산용 |
+| 통계 위임 | `monthTotal` · `STAT_COMPANIES`(값 재-export, `lib/statsDerive`) · `orgCompanyName`(값 재-export, 조직 SSOT) / `SourceKey` · `MonthPoint` · `TopReview` · `CompanyAdminUser`(타입 재-export) | 파생 계층·조직 SSOT 단일 정의 위임 — 화면 프레젠테이션 계산용 |
 
 - 타입 흐름: 각 mocks 모듈은 소비처(페이지)의 도메인 타입을 `import type`로만 참조하고(런타임 간선 없음), dataSource는 mocks 배열을 값으로 반환한다. 런타임 그래프는 `page → dataSource → mocks`로 수렴(역방향은 타입 전용, 소거됨).
 
@@ -726,23 +727,21 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 ## 공용 Mock 모듈
 
-### `mocks/statsMockData.ts`
+### `lib/statsDerive.ts` (舊 `mocks/statsMockData.ts`·`mocks/adminDashboardMockData.ts` 대체)
 
-> AdminStatistics / AdminDashboard 공유 더미. **DEMO 전용 — 백엔드 연동 시 폐기.**
-> **[M2]** 과거 AdminStatistics 화면에 있던 화면 고유 통계(부서·난이도·비용·ML유형·키워드·절감시간·후기 TOP5)와 그 범위 집계 헬퍼(`aggregateIndexed`·`aggregateDept`·`aggregateKeyword`·`aggregateTimeSaved`, `DEPT_BY_COMPANY`·`DIFFICULTY_BY_COMPANY`·`COST_BY_COMPANY`·`ML_TYPE_BY_COMPANY`·`KEYWORD_BY_COMPANY`·`TIME_SAVED_BY_COMPANY`·`TOP5_REVIEWS_ALL`·`TopReview`)를 이 통계 SSOT에 합류시켰다. 소비 화면은 `dataSource.getStatsByScope(scope)`가 합성해 공급한다. (구 "화면 고유 데이터는 각 화면 파일에 둔다" 방침은 M2에서 폐기.)
+> **[FIX-3]** 합성 관계사 더미(50 vs 120 불일치의 원인)를 **전량 폐기**하고, 통계·대시보드 수치를 자산 SSOT(`MOCK_ASSET_ITEMS`)·후기(`MOCK_REVIEWS_BY_ITEM`)에서 계산하는 **순수 파생 함수 계층**으로 대체했다. 삭제 대상: `mocks/statsMockData.ts`(전체 — `MONTH_SERIES_BY_COMPANY`·`SOURCE_TOTAL_BY_COMPANY`·`DOMAIN_BY_COMPANY`·`DEPT/DIFFICULTY/COST/ML_TYPE/KEYWORD/TIME_SAVED_BY_COMPANY`·`TOP5_REVIEWS_ALL`·`aggregate*`), `mocks/adminDashboardMockData.ts`(전체 — `PENDING_ALL`·`RECENT_APPROVED_ALL`·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`). 소비 화면은 `dataSource.getStatsByScope`·`getDashboardData` 경유. 범위(scope)는 `ownerCompany` 기준(=서버 `?company=` 계약).
 
 | 항목 | 설명 |
 |---|---|
-| `SourceKey` | `CategoryId` — **7종**(etc 포함). 운영 상태 필드 없음 |
-| `MonthPoint` | 월별 포인트. **7개** 유형 필드(`etc`는 더미 0·중립) |
-| `STAT_COMPANIES` / `StatCompany` | 더미 기준 관계사 코드 배열 (`KKM`…`KBT` 7종) |
-| `COMPANY_NAME` | 관계사 코드 → 표시명 매핑 |
-| `MONTH_SERIES_BY_COMPANY` / `SOURCE_TOTAL_BY_COMPANY` / `DOMAIN_BY_COMPANY` | 관계사별 원본 시계열·합계·도메인 분포 |
-| `scopedCompanies(scope)` | `null` → 전체, 배열 → 해당 관계사만 |
-| `aggregateMonthly` / `aggregateSourceTotal` / `aggregateDomain` | 범위 내 관계사 합산 |
-| `monthTotal(m)` | 월 포인트의 출처 합계 |
+| `SourceKey` / `MonthPoint` / `StatCompany` | 통계 타입 — `SourceKey`=`CategoryId`(7종), `MonthPoint`(7유형 스택, key=`YYYY-MM`·라벨 `YY.MM`), `StatCompany`(STAT_COMPANIES 원소) |
+| `STAT_COMPANIES` | 통계 표시 대상 관계사(표시 순서). 실측상 자산 `ownerCompany` 등장 집합과 일치, 표시명은 `orgCompanyName`(조직 SSOT) |
+| `scopedCompanies` / `monthTotal` / `parseTimeSaved` | 범위 내 등장 관계사 · 월 합계(7유형, etc 포함) · 절감시간 파서(화면→이관, 로직 무변경) |
+| `deriveSourceTotal` / `deriveMonthly` / `deriveDomain` / `deriveDept` / `deriveDeptCount` | 카테고리별 등록·월별 추이(createdAt)·도메인(6종)·부서 상위 8·참여 부서 수 |
+| `deriveDifficulty` / `deriveCost` / `deriveMlType` | 난이도(n8n)·비용 등급(AI Model)·ML 유형 — 표시 축 인덱스 사상 |
+| `deriveCompanyTotals` / `deriveNewThisMonth` / `deriveTimeSaved` / `deriveTagFrequency` / `deriveTopReviews` | 관계사 합계(ownerCompany)·당월 신규·절감 효과(연간 환산·집계 가능/추정 불가)·태그 빈도(SSOT tags)·후기 TOP5(후기 누적) |
 
-타입 import 주의: `SourceKey`, `MonthPoint`, `StatCompany`는 `import type` 분리 필수.
+- 함수별 `// TODO: 실제 연동 시 GET /api/v1/stats/... 응답으로 교체` 주석이 곧 서버 stats 계약 초안.
+- 타입 import 주의: `SourceKey`, `MonthPoint` 등은 `import type` 분리 필수. 순수 함수라 mocks·dataSource 역참조 없음(순환 없음).
 
 ### `mocks/companyAdminMockData.ts`
 
@@ -788,7 +787,6 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 |---|---|---|
 | `mocks/adminReviewMockData.ts` | `INITIAL_ITEMS`(6) | AdminReview (`getReviewQueue`) |
 | `mocks/myStatusMockData.ts` | `INITIAL_ITEMS`(6)·`MOCK_MY_REVIEWS`(2) | MyStatusPage (`getMyApplications`·`getMyReviews`) |
-| `mocks/adminDashboardMockData.ts` | `PENDING_ALL`(5)·`RECENT_APPROVED_ALL`(4)·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`·`slots`·`PendingItem`·`ApprovedItem` | AdminDashboard (`getDashboardData`) |
 | `mocks/adminUsersMockData.ts` | `INITIAL_ADMINS`(2)·`INITIAL_GROUP_VIEWERS`(2)·`REGISTRANTS`(4)·`LOGS`(7)·`SELECTABLE_COMPANIES`(12)·`MOCK_SSO_USERS`(4) | AdminUsers (`getAdmins`·`getGroupViewers`·`getRegistrants`·`getAuditLogs`·`getSelectableCompanies`·`getSsoUsers`) |
 | `mocks/adminOrgMockData.ts` | `INITIAL_COMPANIES`(29)·`INITIAL_DEPTS`(15)·`ASSET_ITEM_REFS`(12)·`TEAMS_SYNC_SOURCE`(3)·`orgCompanyName`(코드→표시명, SSOT 파생) | AdminOrg (`getOrgCompanies`·`getOrgDepts`·`getAssetItemRefs`·`getTeamsSyncSource`) · 관리자 배지·Navbar 소속(`orgCompanyName` 재-export) |
 | `mocks/adminTaxonomyMockData.ts` | `INITIAL_CATEGORY_TAXONOMY`·`INITIAL_FREE_TAGS`(7) | AdminTaxonomy (`getCategoryTaxonomy`·`getFreeTags`) |

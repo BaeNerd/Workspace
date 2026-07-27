@@ -6,7 +6,7 @@ import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
 import { CATEGORIES } from "../../types/categoryTypes";
 import { useAuth } from "../../context/useAuth";
-import { getDashboardData, monthTotal, COMPANY_NAME } from "../../lib/dataSource";
+import { getDashboardData, monthTotal, orgCompanyName } from "../../lib/dataSource";
 import type { SourceKey } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
 
@@ -22,14 +22,14 @@ const detailPathOf = (source: SourceKey, id: string) => {
   return `${category.path}/${id}`;
 };
 
-// 화면 고유 더미(승인 대기·최근 승인·게시 도구 수·후기 수)는 mocks/adminDashboardMockData에 있다.
-// 범위 집계는 dataSource.getDashboardData가 합성한다.
+// 대시보드 수치는 자산 SSOT·검토 큐·후기에서 파생된다. 범위 집계·큐 파생은 dataSource.getDashboardData가 담당한다.
+// (승인 대기 = 검토 큐 미종결분 / 최근 승인 = 게시 카탈로그 최신순 / 게시된 도구·누적 후기 = ownerCompany 파생)
 
 const CARD_BORDER = `1.5px solid ${COLOR.border}`;
 
-// 담당 관계사 배지 텍스트 (코드 → 표시명, 매핑 없으면 코드 그대로)
+// 담당 관계사 배지 텍스트 (코드 → 표시명, 조직 SSOT orgCompanyName 파생)
 const scopeCompanyNames = (codes: string[]): string =>
-  codes.map(c => COMPANY_NAME[c] ?? c).join(" · ");
+  codes.map(c => orgCompanyName(c)).join(" · ");
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   const totalRegistrations =
     sourceTotal.n8n + sourceTotal.pa + sourceTotal.assistant +
     sourceTotal["ai-orchestration"] + sourceTotal.ml + sourceTotal.vibe + sourceTotal.etc;
-  const thisMonthTotal = monthTotal(monthly[monthly.length - 1]);
+  const thisMonthTotal = agg.newThisMonth;
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
   const totalDomain = domain.reduce((s, x) => s + x.count, 0) || 1;
 
@@ -188,7 +188,7 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>월별 등록 추이 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>2025 · 카테고리별</span></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>월별 등록 추이 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>2025–2026 · 카테고리별</span></div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {SOURCES.map(s => (
                     <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
-import { STAT_COMPANIES, COMPANY_NAME } from "../mocks/statsMockData";
+import { STAT_COMPANIES, orgCompanyName } from "../lib/dataSource";
 import { COLOR } from "../styles/tokens";
 
 // 조회 범위 선택 — 전체(합산) 또는 개별 관계자 드릴다운
@@ -13,7 +13,7 @@ type Props = {
   restrictTo: string[] | null;
 };
 
-const companyLabel = (code: string) => COMPANY_NAME[code] ?? code;
+const companyLabel = (code: string) => orgCompanyName(code);
 
 // 범위 배지 색 체계: 전체=파랑, 개별 관계사=파스텔 오렌지
 const ALL_TONE = { dot: "#2563C9", bg: "#E8F0FE", fg: "#2563C9" };

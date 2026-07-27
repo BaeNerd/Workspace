@@ -14,10 +14,12 @@
 //               · getSsoUsers · getSelectableCompanies · getCompanyAdmins
 //               · getManagedCompanies
 //   [소식/알림] getNotices · getAdminNotices · sortNotices · getNotifications
-//   [통계 위임] monthTotal · COMPANY_NAME (mocks 헬퍼 재-export, 로직 복제 없음)
+//   [통계 위임] getStatsByScope · getDashboardData (lib/statsDerive 파생) · monthTotal ·
+//               STAT_COMPANIES 재-export · orgCompanyName(조직 SSOT 재-export)
 // ============================================================
 
-import type { AssetItem, AssetReview, Post } from "../types/categoryTypes";
+import type { AssetItem, AssetReview, Post, ApprovalSlots } from "../types/categoryTypes";
+import { CATEGORIES, deriveStage } from "../types/categoryTypes";
 import type { ManagedAssetItem } from "../pages/admin/AdminProjectManage";
 import { fromWorkflowDef } from "../components/WorkflowDiagram";
 import {
@@ -29,14 +31,12 @@ import {
 import { INITIAL_ITEMS as REVIEW_QUEUE } from "../mocks/adminReviewMockData";
 import { INITIAL_ITEMS as MY_APPLICATIONS, MOCK_MY_REVIEWS } from "../mocks/myStatusMockData";
 import {
-  PENDING_ALL, RECENT_APPROVED_ALL, ACTIVE_TOOLS_BY_COMPANY, REVIEW_COUNT_BY_COMPANY,
-} from "../mocks/adminDashboardMockData";
-import {
-  scopedCompanies, aggregateSourceTotal, aggregateMonthly, aggregateDomain,
-  aggregateIndexed, aggregateDept, aggregateKeyword, aggregateTimeSaved,
-  DIFFICULTY_BY_COMPANY, COST_BY_COMPANY, ML_TYPE_BY_COMPANY, TOP5_REVIEWS_ALL,
-  STAT_COMPANIES,
-} from "../mocks/statsMockData";
+  scopedCompanies,
+  deriveSourceTotal, deriveMonthly, deriveDomain, deriveDept, deriveDeptCount,
+  deriveDifficulty, deriveCost, deriveMlType, deriveCompanyTotals, deriveNewThisMonth,
+  deriveTimeSaved, deriveTagFrequency, deriveTopReviews,
+} from "./statsDerive";
+import type { SourceKey } from "./statsDerive";
 import {
   INITIAL_ADMINS, INITIAL_GROUP_VIEWERS, REGISTRANTS, LOGS, MOCK_SSO_USERS, SELECTABLE_COMPANIES,
 } from "../mocks/adminUsersMockData";
@@ -100,44 +100,79 @@ export function getMyReviews() {
 
 // ===== 관리자 대시보드 =====
 
-// AdminDashboard 범위별 대시보드 데이터 합성. scope=null → 전사, 배열 → 해당 관계사.
-// TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?scope=:codes
+// AdminDashboard 범위별 대시보드 데이터 (자산 SSOT·검토 큐·후기에서 파생). scope=null → 전사, 배열 → 해당 관계사(ownerCompany).
+// TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?company=:codes
+export type DashboardPending = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: string; approvalSlots: ApprovalSlots };
+export type DashboardApproved = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey };
 export function getDashboardData(scope: string[] | null) {
-  const companies = scopedCompanies(scope);
-  const sourceTotal = aggregateSourceTotal(companies);
-  const monthly = aggregateMonthly(companies);
-  const domain = aggregateDomain(companies);
-  const pending = PENDING_ALL.filter(p => companies.includes(p.company));
-  const recentApproved = RECENT_APPROVED_ALL.filter(p => companies.includes(p.company));
-  const activeTools = companies.reduce((s, co) => s + (ACTIVE_TOOLS_BY_COMPANY[co] ?? 0), 0);
-  const reviewTotal = companies.reduce((s, co) => s + (REVIEW_COUNT_BY_COMPANY[co] ?? 0), 0);
-  // 대기 = 미게시·미반려 중 미승인 슬롯이 남은 항목. 부분 승인 = 한 슬롯만 완료.
+  const assets = MOCK_ASSET_ITEMS;
+  const inScope = (co: string | undefined) => scope === null || (co != null && scope.includes(co));
+  const scopedAssets = scope === null ? assets : assets.filter(i => inScope(i.ownerCompany));
+
+  const sourceTotal = deriveSourceTotal(assets, scope);
+  const monthly = deriveMonthly(assets, scope);
+  const domain = deriveDomain(assets, scope);
+
+  // 승인 대기 = 검토 큐 중 미종결(승인 대기·부분 승인) 항목을 등록 관계사(ownerCompany) 범위로 필터. 부분 승인 = 슬롯 하나만 완료.
+  const catName = (k: SourceKey) => CATEGORIES.find(c => c.id === k)?.name ?? k;
+  const pending: DashboardPending[] = REVIEW_QUEUE
+    .filter(q => {
+      const stage = deriveStage(q.approvalSlots, q.rejected, q.suspended);
+      return inScope(q.ownerCompany) && (stage === "승인 대기" || stage === "부분 승인");
+    })
+    .map(q => ({ id: q.id, title: q.title, dept: q.dept, submittedAt: q.submittedAt, type: catName(q.kind), source: q.kind, company: q.ownerCompany, approvalSlots: q.approvalSlots }));
   const partialCount = pending.filter(p => p.approvalSlots.company.approved !== p.approvalSlots.global.approved).length;
-  return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount };
+
+  // 최근 승인 = 게시된 카탈로그(자산 SSOT) 최신 updatedAt 상위 4건. 검토 큐에는 승인 완료분이 없어 게시본에서 파생(승인 완료 = 게시 카드 ⊂ 카탈로그).
+  const recentApproved: DashboardApproved[] = [...scopedAssets]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 4)
+    .map(i => ({ id: i.id, title: i.title, dept: i.dept, approvedAt: i.updatedAt, source: i.categoryId }));
+
+  // 게시된 도구 = 범위 내 카탈로그 수 / 누적 후기 = 범위 내 카드의 실제 후기 수(ownerCompany 파생).
+  const activeTools = scopedAssets.length;
+  const reviewTotal = Object.entries(MOCK_REVIEWS_BY_ITEM).reduce((sum, [id, rs]) => {
+    const item = assets.find(a => a.id === id);
+    return sum + (item && inScope(item.ownerCompany) ? rs.length : 0);
+  }, 0);
+  const newThisMonth = deriveNewThisMonth(assets, scope);
+  const companies = scopedCompanies(assets, scope);
+  return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth };
 }
 
 // ===== 관리자 통계 =====
 
-// AdminStatistics 범위별 통계 데이터 합성(META 병합·시간 파싱은 화면 프레젠테이션에서 처리).
-// TODO: 실제 연동 시 GET /api/v1/admin/stats?scope=:codes
+// AdminStatistics 범위별 통계 데이터 (자산 SSOT·후기에서 파생). 표시 전용 META 병합은 화면 프레젠테이션에서 처리.
+// TODO: 실제 연동 시 GET /api/v1/admin/stats?company=:codes
 export function getStatsByScope(scope: string[] | null) {
-  const companies = scopedCompanies(scope);
-  const monthSeries = aggregateMonthly(companies);
-  const sourceTotal = aggregateSourceTotal(companies);
-  const domain = aggregateDomain(companies);
-  const difficultyCounts = aggregateIndexed(companies, DIFFICULTY_BY_COMPANY, DIFFICULTY_BY_COMPANY[STAT_COMPANIES[0]].length);
-  const costCounts = aggregateIndexed(companies, COST_BY_COMPANY, COST_BY_COMPANY[STAT_COMPANIES[0]].length);
-  const mlTypeCounts = aggregateIndexed(companies, ML_TYPE_BY_COMPANY, ML_TYPE_BY_COMPANY[STAT_COMPANIES[0]].length);
-  const dept = aggregateDept(companies);
-  const keyword = aggregateKeyword(companies);
-  const timeSamples = aggregateTimeSaved(companies);
-  const topReviews = TOP5_REVIEWS_ALL.filter(r => companies.includes(r.company));
-  return { companies, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, keyword, timeSamples, topReviews };
+  const assets = MOCK_ASSET_ITEMS;
+  return {
+    companies: scopedCompanies(assets, scope),
+    companyTotals: deriveCompanyTotals(assets),
+    monthSeries: deriveMonthly(assets, scope),
+    sourceTotal: deriveSourceTotal(assets, scope),
+    domain: deriveDomain(assets, scope),
+    difficultyCounts: deriveDifficulty(assets, scope),
+    costCounts: deriveCost(assets, scope),
+    mlTypeCounts: deriveMlType(assets, scope),
+    dept: deriveDept(assets, scope),
+    deptCount: deriveDeptCount(assets, scope),
+    tagFreq: deriveTagFrequency(assets, scope),
+    timeSaved: deriveTimeSaved(assets, scope),
+    topReviews: deriveTopReviews(assets, MOCK_REVIEWS_BY_ITEM, scope),
+    newThisMonth: deriveNewThisMonth(assets, scope),
+  };
 }
 
-// 통계 헬퍼 재-export (로직 복제 금지 — mocks의 단일 정의를 위임). 화면 프레젠테이션 계산에 사용.
-export { monthTotal, COMPANY_NAME } from "../mocks/statsMockData";
-export type { SourceKey, StatCompany, MonthPoint } from "../mocks/statsMockData";
+// 랜딩·통계 공용 "이번 달 신규"(전사 기준, createdAt 당월 실측). 로직 복제 금지 — statsDerive 위임.
+// TODO: 실제 연동 시 GET /api/v1/stats/new-this-month?company=:codes 응답으로 교체
+export function getMonthlyNewCount(scope: string[] | null = null): number {
+  return deriveNewThisMonth(MOCK_ASSET_ITEMS, scope);
+}
+
+// 통계 파생 계층 재-export (화면·컴포넌트는 dataSource만 경유 — 로직 복제 금지).
+// 관계사 표시명은 조직 SSOT orgCompanyName(하단)을 사용한다.
+export { monthTotal, STAT_COMPANIES } from "./statsDerive";
+export type { SourceKey, MonthPoint, TopReview } from "./statsDerive";
 
 // ===== 관리자 카드 관리 =====
 
