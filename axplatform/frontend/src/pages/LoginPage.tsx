@@ -205,8 +205,8 @@ export default function LoginPage() {
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: `1px solid ${COLOR.border}` }}>
           <p style={{ fontSize: 11, color: COLOR.text3, lineHeight: 1.6 }}>
             로그인에 문제가 있으신가요?<br />
-            <a href="mailto:tech-hub@kolmar.co.kr" style={{ color: COLOR.primary, fontWeight: 600, textDecoration: "none" }}>
-              tech-hub@kolmar.co.kr
+            <a href="mailto:ax-platform@kolmar.co.kr" style={{ color: COLOR.primary, fontWeight: 600, textDecoration: "none" }}>
+              ax-platform@kolmar.co.kr
             </a>
             로 문의하세요
           </p>
