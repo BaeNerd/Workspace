@@ -166,13 +166,17 @@ def header_table(slide, screen_name, title, screen_id, path, page_no, page_total
 # 마커
 # ============================================================
 def marker(slide, x, y, num, d=0.26):
+    """빨간 원형 마커. 2자리 번호는 지름을 0.04in 키워(0.26→0.30) 숫자-테두리 접촉을 없앤다."""
+    two = len(str(num)) >= 2
+    if two:
+        d = d + 0.04
     sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x), Inches(y), Inches(d), Inches(d))
     _fill(sp, RED); _line(sp, WHITE, 1.0); sp.shadow.inherit = False
     tf = sp.text_frame
     tf.margin_left = 0; tf.margin_right = 0; tf.margin_top = 0; tf.margin_bottom = 0
     p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
     r = p.add_run(); r.text = str(num)
-    r.font.name = FONT; r.font.size = Pt(11); r.font.bold = True; r.font.color.rgb = WHITE
+    r.font.name = FONT; r.font.size = Pt(10 if two else 11); r.font.bold = True; r.font.color.rgb = WHITE
     return sp
 
 
