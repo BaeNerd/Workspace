@@ -56,6 +56,78 @@ export const scopedCompanies = (items: AssetItem[], scope: string[] | null): str
 export const monthTotal = (m: MonthPoint): number =>
   m.n8n + m.pa + m.assistant + m["ai-orchestration"] + m.ml + m.vibe + m.etc;
 
+// ── 기간(월 범위) ──
+// 통계·대시보드 공용 기간 선택 계약. 프리셋 5종은 시스템 현재월 파생(하드코딩 금지),
+// "월 범위 지정"은 커스텀 범위(kind:"range")로 표현한다. 유효 범위는 항상 {from,to}로 환원되어
+// 파생 계층 1곳에서 createdAt 필터로 적용된다(화면별 개별 필터 없음).
+export type PeriodPreset = "이번 달" | "최근 3개월" | "최근 6개월" | "올해 전체" | "전체 기간";
+export type PeriodSelection =
+  | { kind: "preset"; preset: PeriodPreset }
+  | { kind: "range"; from: string; to: string }; // "YYYY-MM" (시작·종료 inclusive)
+export type MonthRange = { from: string; to: string }; // "YYYY-MM" inclusive
+
+export const PERIOD_PRESETS: PeriodPreset[] = ["이번 달", "최근 3개월", "최근 6개월", "올해 전체", "전체 기간"];
+export const MAX_RANGE_MONTHS = 12; // 월 범위 지정 최대 길이(시작~종료 inclusive)
+
+// "YYYY-MM" 월키 산술 — 문자열·정수만 사용(Date 의존은 currentMonthKey 1곳에 격리).
+const pad2m = (n: number) => String(n).padStart(2, "0");
+const monthIndex = (key: string): number => { const [y, m] = key.split("-").map(Number); return y * 12 + (m - 1); };
+const monthFromIndex = (idx: number): string => `${Math.floor(idx / 12)}-${pad2m((idx % 12) + 1)}`;
+export const addMonths = (key: string, delta: number): string => monthFromIndex(monthIndex(key) + delta);
+// 시작~종료 inclusive 월 수.
+export const monthSpan = (from: string, to: string): number => monthIndex(to) - monthIndex(from) + 1;
+// 시작~종료 inclusive 연속 월키 목록(빈 월 포함) — x축 연속성의 기준.
+export const enumerateMonths = (from: string, to: string): string[] => {
+  const out: string[] = [];
+  for (let i = monthIndex(from); i <= monthIndex(to); i++) out.push(monthFromIndex(i));
+  return out;
+};
+
+// createdAt("YYYY.MM.DD") → 월키("YYYY-MM"). 미보유 시 null.
+const itemMonthKey = (item: AssetItem): string | null => {
+  if (!item.createdAt) return null;
+  const [y, mo] = item.createdAt.split(".");
+  return `${y}-${mo}`;
+};
+
+// 기준월(현재) — 시스템 현재 날짜 파생. 실서버 전환 시 서버 기준시각으로 대체.
+export const currentMonthKey = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2m(d.getMonth() + 1)}`;
+};
+
+// 데이터 존재 월 경계 {min,max}("YYYY-MM"). 비어 있으면 현재월 단일. 레거시(2024) 하한 포함.
+export const dataMonthBounds = (items: AssetItem[]): { min: string; max: string } => {
+  const keys = (items.map(itemMonthKey).filter(Boolean) as string[]).sort();
+  if (keys.length === 0) { const c = currentMonthKey(); return { min: c, max: c }; }
+  return { min: keys[0], max: keys[keys.length - 1] };
+};
+
+// 프리셋/범위 선택 → 유효 월 범위 {from,to}. 기준월=시스템 현재월, "전체 기간"만 데이터 하한까지 확장.
+// range 선택은 종료<시작 자동 스왑 + 최대 길이 방어 절단(초과분은 시작 기준 +MAX-1로 클램프).
+export function resolvePeriodRange(sel: PeriodSelection, items: AssetItem[]): MonthRange {
+  if (sel.kind === "range") {
+    let { from, to } = sel;
+    if (monthIndex(to) < monthIndex(from)) [from, to] = [to, from];
+    if (monthSpan(from, to) > MAX_RANGE_MONTHS) to = addMonths(from, MAX_RANGE_MONTHS - 1);
+    return { from, to };
+  }
+  const now = currentMonthKey();
+  const bounds = dataMonthBounds(items);
+  switch (sel.preset) {
+    case "이번 달": return { from: now, to: now };
+    case "최근 3개월": return { from: addMonths(now, -2), to: now };
+    case "최근 6개월": return { from: addMonths(now, -5), to: now };
+    case "올해 전체": return { from: `${now.slice(0, 4)}-01`, to: now };
+    case "전체 기간": return { from: bounds.min, to: bounds.max >= now ? bounds.max : now };
+  }
+}
+
+// createdAt 월이 [from,to] 안인 항목만 (기간 집계용). 날짜 미보유 항목은 제외.
+export function filterByMonthRange(items: AssetItem[], from: string, to: string): AssetItem[] {
+  return items.filter(i => { const k = itemMonthKey(i); return k !== null && k >= from && k <= to; });
+}
+
 // 카테고리별 등록 현황(7종). TODO: 실제 연동 시 GET /api/v1/stats/by-category?company=:codes 응답으로 교체
 export function deriveSourceTotal(items: AssetItem[], scope: string[] | null): Record<SourceKey, number> {
   const acc: Record<SourceKey, number> = { n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 };
@@ -63,23 +135,33 @@ export function deriveSourceTotal(items: AssetItem[], scope: string[] | null): R
   return acc;
 }
 
+// 빈 월 포인트("YYYY-MM" → 0 스택). 라벨은 "YY.MM"(연도 구분 표기).
+const emptyMonthPoint = (key: string): MonthPoint => {
+  const label = `${key.slice(2, 4)}.${key.slice(5, 7)}`;
+  return { key, m: label, month: label, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 };
+};
+
 // 월별 추이(createdAt 파생, 카테고리 스택). 등장 월만 시간순 버킷 — 빈 월 없음, 합=총 등록물.
 // 레거시 1건(범위 밖 2024월)도 포함되어 월 합계 총량이 카탈로그와 일치한다.
-// TODO: 실제 연동 시 GET /api/v1/stats/monthly?company=:codes 응답으로 교체
+// TODO: 실제 연동 시 GET /api/v1/stats/monthly?company=:codes&from=YYYY-MM&to=YYYY-MM 응답으로 교체
 export function deriveMonthly(items: AssetItem[], scope: string[] | null): MonthPoint[] {
   const byKey = new Map<string, MonthPoint>();
   scoped(items, scope).forEach(i => {
-    if (!i.createdAt) return;
-    const [y, mo] = i.createdAt.split(".");
-    const key = `${y}-${mo}`;
+    const key = itemMonthKey(i);
+    if (key === null) return;
     let p = byKey.get(key);
-    if (!p) {
-      p = { key, m: `${y.slice(2)}.${mo}`, month: `${y.slice(2)}.${mo}`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 };
-      byKey.set(key, p);
-    }
+    if (!p) { p = emptyMonthPoint(key); byKey.set(key, p); }
     p[i.categoryId] += 1;
   });
   return [...byKey.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+// 연속 월축(from~to inclusive, 빈 월 0-fill) — 선택 범위의 x축 연속성을 유지한다(등장 월만 뽑으면 빈 월이 축에서 빠진다).
+// 프리셋·범위 지정 공용. 등장 월 집계는 deriveMonthly에 위임(로직 복제 없음).
+// TODO: 실제 연동 시 GET /api/v1/stats/monthly?company=:codes&from=YYYY-MM&to=YYYY-MM 응답으로 교체
+export function deriveMonthlySeries(items: AssetItem[], scope: string[] | null, from: string, to: string): MonthPoint[] {
+  const present = new Map(deriveMonthly(items, scope).map(p => [p.key, p]));
+  return enumerateMonths(from, to).map(key => present.get(key) ?? emptyMonthPoint(key));
 }
 
 // 비즈니스 도메인 분포(6종, 고정 순서). TODO: 실제 연동 시 GET /api/v1/stats/by-domain?company=:codes 응답으로 교체

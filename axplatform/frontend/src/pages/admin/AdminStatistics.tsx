@@ -3,16 +3,12 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
+import AdminPeriodSelect from "../../components/AdminPeriodSelect";
 import { useAuth } from "../../context/useAuth";
 import { CATEGORIES } from "../../types/categoryTypes";
-import { getStatsByScope, monthTotal, orgCompanyName } from "../../lib/dataSource";
+import { getStatsByScope, resolvePeriod, monthTotal, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
-import type { MonthPoint, SourceKey } from "../../lib/dataSource";
-
-const PERIODS = ["이번 달", "최근 3개월", "최근 6개월", "올해 전체"] as const;
-type Period = typeof PERIODS[number];
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
+import type { SourceKey, PeriodSelection } from "../../lib/dataSource";
 
 // 유형 색상·라벨은 CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
@@ -46,15 +42,6 @@ const ML_TYPE_META = [
 const scopeCompanyNames = (codes: string[]): string =>
   codes.map(c => orgCompanyName(c)).join(" · ");
 
-// 데이터가 걸친 연도(2025~2026). 월 지정 선택기 노출 범위.
-const PICK_YEARS = [2025, 2026];
-const PICK_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-const selectStyle: React.CSSProperties = {
-  padding: "6px 10px", fontSize: 12, fontWeight: 600, color: COLOR.text, background: "#fff",
-  border: `1.5px solid ${COLOR.border}`, borderRadius: 6, outline: "none", fontFamily: "inherit", cursor: "pointer",
-};
-
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: 12, fontWeight: 800, color: COLOR.text2, letterSpacing: "0.04em",
   textTransform: "uppercase", margin: "8px 0 14px",
@@ -63,10 +50,10 @@ const sectionLabelStyle: React.CSSProperties = {
 
 export default function AdminStatistics() {
   const { isCompanyAdmin, managedCompanies } = useAuth();
-  const [periodMode, setPeriodMode] = useState<"preset" | "month">("preset");
-  const [period, setPeriod] = useState<Period>("최근 6개월");
-  const [pickYear, setPickYear] = useState(2025);
-  const [pickMonth, setPickMonth] = useState(6);
+  // 기간 선택 — 기본 "올해 전체"(현재 연도 1월~현재 월, 시스템 현재월 파생). 유효 범위는 resolvePeriod로 환원.
+  const [periodSel, setPeriodSel] = useState<PeriodSelection>({ kind: "preset", preset: "올해 전체" });
+  const range = useMemo(() => resolvePeriod(periodSel), [periodSel]);
+  const rangeKey = `${range.from}~${range.to}`;
 
   // 조회 범위 선택 (표시용 필터). 권한 범위(baseScope) 안에서만 선택 가능.
   const [scopeSel, setScopeSel] = useState<ScopeSelection>({ kind: "all" });
@@ -86,7 +73,7 @@ export default function AdminStatistics() {
 
   const agg = useMemo(() => {
     const currentScope = scopeKey === "ALL" ? null : (scopeKey === "" ? [] : scopeKey.split(","));
-    const s = getStatsByScope(currentScope);
+    const s = getStatsByScope(currentScope, range);
 
     // 표시 전용 META(라벨·색상) 병합만 화면에서 처리 — 데이터·집계·시간 파싱은 dataSource(statsDerive)가 공급.
     const difficulty = DIFFICULTY_META.map((d, i) => ({ ...d, count: s.difficultyCounts[i] }));
@@ -97,15 +84,7 @@ export default function AdminStatistics() {
       difficulty, cost, mlType, dept: s.dept, deptCount: s.deptCount, tagFreq: s.tagFreq,
       topReviews: s.topReviews, newThisMonth: s.newThisMonth,
       totalAnnualHoursSaved: s.timeSaved.annualTotal, estimableCount: s.timeSaved.estimable, unestimableCount: s.timeSaved.unestimable };
-  }, [scopeKey]);
-
-  const MONTH_SERIES = agg.monthSeries;
-  const PRESET_MONTHS: Record<Period, MonthPoint[]> = {
-    "이번 달": MONTH_SERIES.slice(-1),
-    "최근 3개월": MONTH_SERIES.slice(-3),
-    "최근 6개월": MONTH_SERIES.slice(-6),
-    "올해 전체": MONTH_SERIES,
-  };
+  }, [scopeKey, rangeKey]);
 
   const totalRegistrations =
     agg.sourceTotal.n8n + agg.sourceTotal.pa + agg.sourceTotal.assistant +
@@ -118,16 +97,13 @@ export default function AdminStatistics() {
   const maxDept = Math.max(...agg.dept.map(d => d.count), 1);
   const maxTag = Math.max(...agg.tagFreq.map(k => k.count), 1);
 
-  const monthly: MonthPoint[] = periodMode === "month"
-    ? [MONTH_SERIES.find(s => s.key === `${pickYear}-${pad2(pickMonth)}`)
-        ?? { key: `${pickYear}-${pad2(pickMonth)}`, m: `${String(pickYear).slice(2)}.${pad2(pickMonth)}`, month: `${String(pickYear).slice(2)}.${pad2(pickMonth)}`, n8n: 0, pa: 0, assistant: 0, "ai-orchestration": 0, ml: 0, vibe: 0, etc: 0 }]
-    : PRESET_MONTHS[period];
-
+  // 월별 시계열은 선택 범위 위에서 0-fill된 연속 축(파생 계층 공급). 카테고리 합계도 동일 기간 소스(sourceTotal)에서 파생 — 화면 개별 필터 없음.
+  const monthly = agg.monthSeries;
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
-  const periodLabel = periodMode === "month" ? `${pickYear}.${pad2(pickMonth)}` : period;
+  const periodLabel = range.from === range.to ? range.from.replace("-", ".") : `${range.from.replace("-", ".")} ~ ${range.to.replace("-", ".")}`;
 
-  const sourceByPeriod = SOURCES.map(s => ({ ...s, count: monthly.reduce((acc, m) => acc + (m as Record<SourceKey, number>)[s.key], 0) }));
-  const periodTotal = sourceByPeriod.reduce((a, b) => a + b.count, 0);
+  const sourceByPeriod = SOURCES.map(s => ({ ...s, count: agg.sourceTotal[s.key] }));
+  const periodTotal = totalRegistrations;
 
   return (
     <div style={{ fontFamily: "var(--font-ui)", background: COLOR.bgSubtle, minHeight: "100vh", color: COLOR.text }}>
@@ -153,36 +129,7 @@ export default function AdminStatistics() {
               <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 등록 현황을 통합 분석합니다.</p>
             </div>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 4, background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 8, padding: 4 }}>
-                {PERIODS.map(p => {
-                  const active = periodMode === "preset" && period === p;
-                  return (
-                    <button key={p} onClick={() => { setPeriodMode("preset"); setPeriod(p); }} style={{
-                      padding: "6px 12px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                      background: active ? "#0F172A" : "transparent",
-                      color: active ? "#fff" : COLOR.text2,
-                    }}>{p}</button>
-                  );
-                })}
-                <button onClick={() => setPeriodMode("month")} style={{
-                  padding: "6px 12px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  background: periodMode === "month" ? "#0F172A" : "transparent",
-                  color: periodMode === "month" ? "#fff" : COLOR.text2,
-                }}>월 지정</button>
-              </div>
-
-              {periodMode === "month" && (
-                <div style={{ display: "flex", gap: 6, alignItems: "center", background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 8, padding: "4px 6px" }}>
-                  <select value={pickYear} onChange={e => setPickYear(Number(e.target.value))} style={selectStyle}>
-                    {PICK_YEARS.map(y => <option key={y} value={y}>{y}년</option>)}
-                  </select>
-                  <select value={pickMonth} onChange={e => setPickMonth(Number(e.target.value))} style={selectStyle}>
-                    {PICK_MONTHS.map(m => <option key={m} value={m}>{m}월</option>)}
-                  </select>
-                </div>
-              )}
-            </div>
+            <AdminPeriodSelect value={periodSel} onChange={setPeriodSel} />
           </div>
 
           {noScope && (

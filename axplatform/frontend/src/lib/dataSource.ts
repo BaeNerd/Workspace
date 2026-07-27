@@ -32,11 +32,12 @@ import { INITIAL_ITEMS as REVIEW_QUEUE } from "../mocks/adminReviewMockData";
 import { INITIAL_ITEMS as MY_APPLICATIONS, MOCK_MY_REVIEWS } from "../mocks/myStatusMockData";
 import {
   scopedCompanies,
-  deriveSourceTotal, deriveMonthly, deriveDomain, deriveDept, deriveDeptCount,
+  deriveSourceTotal, deriveMonthlySeries, deriveDomain, deriveDept, deriveDeptCount,
   deriveDifficulty, deriveCost, deriveMlType, deriveCompanyTotals, deriveNewThisMonth,
   deriveTimeSaved, deriveTagFrequency, deriveTopReviews,
+  resolvePeriodRange, filterByMonthRange, dataMonthBounds, currentMonthKey, enumerateMonths,
 } from "./statsDerive";
-import type { SourceKey } from "./statsDerive";
+import type { SourceKey, PeriodSelection, MonthRange } from "./statsDerive";
 import {
   INITIAL_ADMINS, INITIAL_GROUP_VIEWERS, REGISTRANTS, LOGS, MOCK_SSO_USERS, SELECTABLE_COMPANIES,
 } from "../mocks/adminUsersMockData";
@@ -101,16 +102,21 @@ export function getMyReviews() {
 // ===== 관리자 대시보드 =====
 
 // AdminDashboard 범위별 대시보드 데이터 (자산 SSOT·검토 큐·후기에서 파생). scope=null → 전사, 배열 → 해당 관계사(ownerCompany).
-// TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?company=:codes
+// range는 등록 추이(월별 시계열)에만 적용된다 — KPI·구성·도메인은 카탈로그 누적(전 구간) 스냅샷이라 기간에 무관하다.
+// TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?company=:codes&from=YYYY-MM&to=YYYY-MM
 export type DashboardPending = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: string; approvalSlots: ApprovalSlots };
 export type DashboardApproved = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey };
-export function getDashboardData(scope: string[] | null) {
+export function getDashboardData(scope: string[] | null, range?: MonthRange) {
   const assets = MOCK_ASSET_ITEMS;
   const inScope = (co: string | undefined) => scope === null || (co != null && scope.includes(co));
   const scopedAssets = scope === null ? assets : assets.filter(i => inScope(i.ownerCompany));
 
+  const bounds = dataMonthBounds(assets);
+  const from = range?.from ?? bounds.min;
+  const to = range?.to ?? bounds.max;
+
   const sourceTotal = deriveSourceTotal(assets, scope);
-  const monthly = deriveMonthly(assets, scope);
+  const monthly = deriveMonthlySeries(assets, scope, from, to);
   const domain = deriveDomain(assets, scope);
 
   // 승인 대기 = 검토 큐 중 미종결(승인 대기·부분 승인) 항목을 등록 관계사(ownerCompany) 범위로 필터. 부분 승인 = 슬롯 하나만 완료.
@@ -142,25 +148,43 @@ export function getDashboardData(scope: string[] | null) {
 // ===== 관리자 통계 =====
 
 // AdminStatistics 범위별 통계 데이터 (자산 SSOT·후기에서 파생). 표시 전용 META 병합은 화면 프레젠테이션에서 처리.
-// TODO: 실제 연동 시 GET /api/v1/admin/stats?company=:codes
-export function getStatsByScope(scope: string[] | null) {
+// range는 전 집계에 적용된다(createdAt 기준 기간 필터를 파생 계층 1곳에서 수행 — 화면별 개별 필터 없음).
+// 예외: companyTotals(범위·기간 무관 전량)·newThisMonth(당월 고정)는 전 구간 기준.
+// TODO: 실제 연동 시 GET /api/v1/admin/stats?company=:codes&from=YYYY-MM&to=YYYY-MM
+export function getStatsByScope(scope: string[] | null, range?: MonthRange) {
   const assets = MOCK_ASSET_ITEMS;
+  const bounds = dataMonthBounds(assets);
+  const from = range?.from ?? bounds.min;
+  const to = range?.to ?? bounds.max;
+  const ranged = filterByMonthRange(assets, from, to); // 기간 집계용 소스(월별 시계열은 전 구간에서 0-fill)
   return {
-    companies: scopedCompanies(assets, scope),
+    companies: scopedCompanies(ranged, scope),
     companyTotals: deriveCompanyTotals(assets),
-    monthSeries: deriveMonthly(assets, scope),
-    sourceTotal: deriveSourceTotal(assets, scope),
-    domain: deriveDomain(assets, scope),
-    difficultyCounts: deriveDifficulty(assets, scope),
-    costCounts: deriveCost(assets, scope),
-    mlTypeCounts: deriveMlType(assets, scope),
-    dept: deriveDept(assets, scope),
-    deptCount: deriveDeptCount(assets, scope),
-    tagFreq: deriveTagFrequency(assets, scope),
-    timeSaved: deriveTimeSaved(assets, scope),
-    topReviews: deriveTopReviews(assets, MOCK_REVIEWS_BY_ITEM, scope),
+    monthSeries: deriveMonthlySeries(assets, scope, from, to),
+    sourceTotal: deriveSourceTotal(ranged, scope),
+    domain: deriveDomain(ranged, scope),
+    difficultyCounts: deriveDifficulty(ranged, scope),
+    costCounts: deriveCost(ranged, scope),
+    mlTypeCounts: deriveMlType(ranged, scope),
+    dept: deriveDept(ranged, scope),
+    deptCount: deriveDeptCount(ranged, scope),
+    tagFreq: deriveTagFrequency(ranged, scope),
+    timeSaved: deriveTimeSaved(ranged, scope),
+    topReviews: deriveTopReviews(ranged, MOCK_REVIEWS_BY_ITEM, scope),
     newThisMonth: deriveNewThisMonth(assets, scope),
   };
+}
+
+// 기간 선택 → 유효 월 범위 환원(전 화면 동일 계산). 화면은 dataSource만 경유하므로 자산 SSOT 주입을 여기서 처리.
+export function resolvePeriod(sel: PeriodSelection): MonthRange {
+  return resolvePeriodRange(sel, MOCK_ASSET_ITEMS);
+}
+
+// 월 범위 지정 선택기의 선택 가능 월 목록("YYYY-MM"). 데이터 존재 구간 하한 ~ 현재월(레거시 2024 포함).
+export function getSelectableMonths(): string[] {
+  const bounds = dataMonthBounds(MOCK_ASSET_ITEMS);
+  const now = currentMonthKey();
+  return enumerateMonths(bounds.min, bounds.max >= now ? bounds.max : now);
 }
 
 // 랜딩·통계 공용 "이번 달 신규"(전사 기준, createdAt 당월 실측). 로직 복제 금지 — statsDerive 위임.
@@ -173,6 +197,9 @@ export function getMonthlyNewCount(scope: string[] | null = null): number {
 // 관계사 표시명은 조직 SSOT orgCompanyName(하단)을 사용한다.
 export { monthTotal, STAT_COMPANIES } from "./statsDerive";
 export type { SourceKey, MonthPoint, TopReview } from "./statsDerive";
+// 기간 선택 계약 재-export (선택기 컴포넌트·화면 공용 — 파생 계층 단일 정의 위임).
+export { PERIOD_PRESETS, MAX_RANGE_MONTHS, monthSpan, addMonths } from "./statsDerive";
+export type { PeriodSelection, PeriodPreset, MonthRange } from "./statsDerive";
 
 // ===== 관리자 카드 관리 =====
 
