@@ -9,6 +9,7 @@ import type { WorkflowInput } from "../../components/WorkflowDiagram";
 import { useAuth } from "../../context/useAuth";
 import { getReviewQueue, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_MASTER_WIDTH, ADMIN_PAD } from "../../styles/layout";
 import { useVisibleCount } from "../../hooks/useVisibleCount";
 import LoadMoreButton from "../../components/LoadMoreButton";
 
@@ -515,7 +516,7 @@ export default function AdminReview() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 통합 대기 목록 ===== */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+          <div style={{ width: ADMIN_MASTER_WIDTH, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 4 }}>
                 등록 신청 목록
@@ -581,11 +582,11 @@ export default function AdminReview() {
           </div>
 
           {/* ===== 우측: 상세 검토 패널 ===== */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: `24px ${ADMIN_PAD}px` }}>
             {!merged ? (
               <div style={{ textAlign: "center", padding: "60px 0", color: COLOR.text3 }}>검토할 카드를 선택하세요.</div>
             ) : (
-              <div style={{ maxWidth: 720 }}>
+              <div style={{ maxWidth: ADMIN_CONTENT_MAX }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, background: SOURCE_STYLE[merged.kind].bg, color: SOURCE_STYLE[merged.kind].color, padding: "3px 10px", borderRadius: 20 }}>{kindLabel}</span>
                   {stageStyle && (

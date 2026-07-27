@@ -6,6 +6,7 @@ import {
   getSelectableCompanies, getCompanyAdmins,
 } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_PAD } from "../../styles/layout";
 import { useVisibleCount } from "../../hooks/useVisibleCount";
 import LoadMoreButton from "../../components/LoadMoreButton";
 import type { CompanyAdminUser } from "../../lib/dataSource";
@@ -258,7 +259,7 @@ export default function AdminUsers() {
       <div style={{ display: "flex" }}>
         <AdminSidebar />
 
-        <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
+        <main style={{ flex: 1, padding: `28px ${ADMIN_PAD}px`, minWidth: 0, maxWidth: ADMIN_CONTENT_MAX }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>사용자 / 권한 / 로그 관리</h1>

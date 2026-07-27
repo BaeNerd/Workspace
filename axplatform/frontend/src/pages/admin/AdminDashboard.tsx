@@ -9,6 +9,7 @@ import { useAuth } from "../../context/useAuth";
 import { getDashboardData, orgCompanyName } from "../../lib/dataSource";
 import type { SourceKey } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_PAD } from "../../styles/layout";
 
 // 출처 표시용 정의 — CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
 const SOURCES: { key: SourceKey; label: string; color: string }[] =
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar pendingCount={userPendingCount} />
-        <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
+        <main style={{ flex: 1, padding: `28px ${ADMIN_PAD}px`, minWidth: 0, maxWidth: ADMIN_CONTENT_MAX }}>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
             <div>

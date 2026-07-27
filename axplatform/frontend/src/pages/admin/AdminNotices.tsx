@@ -6,6 +6,7 @@ import { NOTICE_KINDS } from "../../types/noticeTypes";
 import type { Notice, NoticeKind } from "../../types/noticeTypes";
 import { getAdminNotices, sortNotices } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_MASTER_WIDTH, ADMIN_PAD } from "../../styles/layout";
 import { useVisibleCount } from "../../hooks/useVisibleCount";
 import LoadMoreButton from "../../components/LoadMoreButton";
 
@@ -233,7 +234,7 @@ export default function AdminNotices() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 소식 목록 ===== */}
-          <div style={{ width: 320, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+          <div style={{ width: ADMIN_MASTER_WIDTH, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>소식 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{notices.length}</span></span>
@@ -280,11 +281,11 @@ export default function AdminNotices() {
           </div>
 
           {/* ===== 우측: 상세/편집 패널 ===== */}
-          <div style={{ flex: 1, minWidth: 0, padding: "24px 32px", overflowY: "auto" }}>
+          <div style={{ flex: 1, minWidth: 0, padding: `24px ${ADMIN_PAD}px`, overflowY: "auto" }}>
             {!displayData ? (
               <div style={{ padding: 60, textAlign: "center", color: COLOR.text3, fontSize: 13 }}>좌측에서 소식을 선택하거나 새로 작성하세요.</div>
             ) : (
-              <div style={{ maxWidth: 640, margin: "0 auto" }}>
+              <div style={{ maxWidth: ADMIN_CONTENT_MAX, margin: "0 auto" }}>
 
                 {saved && (
                   <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#065F46", marginBottom: 16 }}>

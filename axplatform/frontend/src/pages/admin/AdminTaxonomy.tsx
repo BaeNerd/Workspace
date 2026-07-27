@@ -5,6 +5,7 @@ import { CATEGORIES } from "../../types/categoryTypes";
 import type { CategoryId } from "../../types/categoryTypes";
 import { getCategoryTaxonomy, getFreeTags } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_PAD } from "../../styles/layout";
 import { useVisibleCount } from "../../hooks/useVisibleCount";
 import LoadMoreButton from "../../components/LoadMoreButton";
 
@@ -207,7 +208,7 @@ export default function AdminTaxonomy() {
       <AdminNavbar />
       <div style={{ display: "flex" }}>
         <AdminSidebar />
-        <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
+        <main style={{ flex: 1, padding: `28px ${ADMIN_PAD}px`, minWidth: 0, maxWidth: ADMIN_CONTENT_MAX }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>

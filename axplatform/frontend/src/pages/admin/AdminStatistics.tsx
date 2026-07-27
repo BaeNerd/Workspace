@@ -8,6 +8,7 @@ import { useAuth } from "../../context/useAuth";
 import { CATEGORIES } from "../../types/categoryTypes";
 import { getStatsByScope, resolvePeriod, monthTotal, orgCompanyName } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_PAD } from "../../styles/layout";
 import type { SourceKey, PeriodSelection } from "../../lib/dataSource";
 
 // 유형 색상·라벨은 CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
@@ -178,7 +179,7 @@ export default function AdminStatistics() {
       <div style={{ display: "flex" }}>
         <AdminSidebar />
 
-        <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
+        <main style={{ flex: 1, padding: `28px ${ADMIN_PAD}px`, minWidth: 0, maxWidth: ADMIN_CONTENT_MAX }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, gap: 16, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{isCompanyAdmin ? "관계사 관리자" : "관리자"}</div>

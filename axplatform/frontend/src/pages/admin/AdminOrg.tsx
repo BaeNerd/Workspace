@@ -7,6 +7,7 @@ import { TEAMS_CHANNEL_URL as DEFAULT_TEAMS_CHANNEL_URL } from "../../config/ope
 // 공유 목업 모듈을 관계사 중심으로 투영한다.
 import { getCompanyAdmins, getOrgCompanies, getOrgDepts, getAssetItemRefs, getTeamsSyncSource } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_PAD } from "../../styles/layout";
 
 // 조직 목업 데이터는 mocks/adminOrgMockData에 있다. 타입은 소비처(페이지)에 두고
 // mocks·dataSource가 이를 참조한다.
@@ -426,7 +427,7 @@ export default function AdminOrg() {
       <div style={{ display: "flex" }}>
         <AdminSidebar />
 
-        <main style={{ flex: 1, padding: "28px 32px", minWidth: 0 }}>
+        <main style={{ flex: 1, padding: `28px ${ADMIN_PAD}px`, minWidth: 0, maxWidth: ADMIN_CONTENT_MAX }}>
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: COLOR.primary, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>관리자</div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em" }}>부서 / 조직 관리</h1>

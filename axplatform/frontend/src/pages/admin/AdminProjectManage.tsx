@@ -10,6 +10,7 @@ import { useAuth } from "../../context/useAuth";
 import { getManagedAssetItems, orgCompanyName } from "../../lib/dataSource";
 import { ImageCarouselInput, MAX_IMAGES } from "../../components/ImageCarouselInput";
 import { COLOR } from "../../styles/tokens";
+import { ADMIN_CONTENT_MAX, ADMIN_MASTER_WIDTH, ADMIN_PAD } from "../../styles/layout";
 
 // 등록 관계사 배지 (관리자 화면 전용 — 표시명은 조직 SSOT 파생, 신규 리터럴 금지).
 // 사용자 화면에는 어떤 관계사 배지도 두지 않는다(0.5).
@@ -411,7 +412,7 @@ export default function AdminProjectManage() {
         <main style={{ flex: 1, display: "flex", minWidth: 0, minHeight: "calc(100vh - 56px)" }}>
 
           {/* ===== 좌측: 통합 목록 ===== */}
-          <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
+          <div style={{ width: ADMIN_MASTER_WIDTH, flexShrink: 0, borderRight: `1px solid ${COLOR.border}`, background: "#fff", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "14px 14px 10px", borderBottom: `1px solid ${COLOR.bgSubtle}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>전체 카드 <span style={{ color: COLOR.text3, fontWeight: 500 }}>{manageableItems.length}</span></span>
@@ -492,9 +493,9 @@ export default function AdminProjectManage() {
           </div>
 
           {/* ===== 우측: 상세/편집 패널 ===== */}
-          <div style={{ flex: 1, minWidth: 0, padding: "24px 32px", overflowY: "auto" }}>
+          <div style={{ flex: 1, minWidth: 0, padding: `24px ${ADMIN_PAD}px`, overflowY: "auto" }}>
             {!displayData ? (
-              <div style={{ maxWidth: 900, margin: "0 auto" }}>
+              <div style={{ maxWidth: ADMIN_CONTENT_MAX, margin: "0 auto" }}>
                 <div style={{ marginBottom: 20 }}>
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: COLOR.text, letterSpacing: "-0.02em", margin: 0 }}>카드 관리</h2>
                   <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>
@@ -517,7 +518,7 @@ export default function AdminProjectManage() {
                 </div>
               </div>
             ) : (
-              <div style={{ maxWidth: 900, margin: "0 auto" }}>
+              <div style={{ maxWidth: ADMIN_CONTENT_MAX, margin: "0 auto" }}>
 
                 {saved && (
                   <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#065F46", marginBottom: 16 }}>
