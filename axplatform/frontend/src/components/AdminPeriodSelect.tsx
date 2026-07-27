@@ -3,7 +3,7 @@ import { PERIOD_PRESETS, MAX_RANGE_MONTHS, monthSpan, addMonths, getSelectableMo
 import type { PeriodSelection } from "../lib/dataSource";
 import { COLOR } from "../styles/tokens";
 
-// 기간 선택기 — 통계·대시보드 공용. 프리셋 5종 세그먼트 + "월 범위 지정"(시작~종료, 최대 12개월).
+// 기간 선택기 — 통계·대시보드 공용. 프리셋 3종 세그먼트(최근 3개월·최근 6개월·올해 전체) + "범위 지정"(시작~종료, 최대 24개월).
 // 유효 범위 환원은 dataSource.resolvePeriod가 담당하고, 이 컴포넌트는 선택 상태만 통제한다(controlled).
 type Props = {
   value: PeriodSelection;
@@ -42,7 +42,7 @@ export default function AdminPeriodSelect({ value, onChange }: Props) {
     onChange({ kind: "range", from: months[Math.max(0, months.length - 6)], to: last });
   };
 
-  // 시작 변경: 종료<시작이면 종료=시작, 12개월 초과면 종료를 시작+(MAX-1)로 절단.
+  // 시작 변경: 종료<시작이면 종료=시작, 24개월 초과면 종료를 시작+(MAX-1)로 절단.
   const onFrom = (from: string) => {
     if (!isRange) return;
     let to = value.to;
@@ -50,7 +50,7 @@ export default function AdminPeriodSelect({ value, onChange }: Props) {
     if (monthSpan(from, to) > MAX_RANGE_MONTHS) to = addMonths(from, MAX_RANGE_MONTHS - 1);
     onChange({ kind: "range", from, to });
   };
-  // 종료 변경: 시작>종료면 시작=종료, 12개월 초과면 시작을 종료-(MAX-1)로 당김(방금 고른 종료 유지).
+  // 종료 변경: 시작>종료면 시작=종료, 24개월 초과면 시작을 종료-(MAX-1)로 당김(방금 고른 종료 유지).
   const onTo = (to: string) => {
     if (!isRange) return;
     let from = value.from;
@@ -59,7 +59,7 @@ export default function AdminPeriodSelect({ value, onChange }: Props) {
     onChange({ kind: "range", from, to });
   };
 
-  // 종료 옵션을 [시작, 시작+(MAX-1)] 창으로 제한 — 종료≥시작·최대 12개월을 UI에서 강제(선택 제한).
+  // 종료 옵션을 [시작, 시작+(MAX-1)] 창으로 제한 — 종료≥시작·최대 24개월을 UI에서 강제(선택 제한).
   const fromKey = isRange ? value.from : first;
   const windowEnd = addMonths(fromKey, MAX_RANGE_MONTHS - 1);
   const toOptions = months.filter(m => m >= fromKey && m <= windowEnd);
@@ -77,7 +77,7 @@ export default function AdminPeriodSelect({ value, onChange }: Props) {
         })}
         <button type="button" onClick={enterRange} style={{
           ...segBase, background: isRange ? SEG_ACTIVE_BG : "transparent", color: isRange ? "#fff" : COLOR.text2,
-        }}>월 범위 지정</button>
+        }}>범위 지정</button>
       </div>
 
       {isRange && (

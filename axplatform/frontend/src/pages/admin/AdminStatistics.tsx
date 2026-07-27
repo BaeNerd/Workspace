@@ -48,6 +48,71 @@ const sectionLabelStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 8,
 };
 
+// ============================================================
+// 순위 목록 차트 공용 패턴 — 기본 상위 5만 표시하고, 상자 클릭 또는 헤더 "전체 보기 (N)" 토글로
+// 같은 상자를 전체 목록으로 펼친다(재클릭·"접기"로 복귀). 부서별 현황·비즈니스 도메인 두 차트가
+// 이 한 컴포넌트를 공유한다(중복 구현 금지). 도메인은 현재 6종이라 상위 5 + 외 1개지만 동일 패턴을
+// 적용한다 — SSO 연동 후 부서·도메인이 급증해도 분기 없이 대응하기 위한 것이 사유다.
+// 접힘/펼침과 무관하게 분모(total·max)는 전량에서 계산하므로 막대 비율이 불변이고,
+// 표시 항목(상위 5) + "외 N개"의 합이 곧 전체다. 선택 기간·범위 필터 정합은 items가 이미
+// 파생 계층에서 기간 집계된 값이라 자동으로 보장된다.
+// ============================================================
+const TOP_RANK_LIMIT = 5;
+
+const rankCardStyle: React.CSSProperties = {
+  background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 22px",
+};
+const rankHeaderStyle: React.CSSProperties = {
+  display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 8,
+};
+const rankToggleStyle: React.CSSProperties = {
+  background: "transparent", border: "none", color: COLOR.primary, fontSize: 11, fontWeight: 700,
+  cursor: "pointer", padding: 0, whiteSpace: "nowrap",
+};
+
+type RankRow = { count: number };
+function CollapsibleRankChart<T extends RankRow>({ title, items, renderRow, emptyText }: {
+  title: string;
+  items: T[];
+  renderRow: (item: T, rank: number, max: number, total: number) => React.ReactNode;
+  emptyText: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = useMemo(() => [...items].sort((a, b) => b.count - a.count), [items]);
+  const total = sorted.reduce((s, x) => s + x.count, 0) || 1;
+  const max = Math.max(...sorted.map(x => x.count), 1);
+  const shown = expanded ? sorted : sorted.slice(0, TOP_RANK_LIMIT);
+  const hidden = sorted.length - shown.length; // 접힘 상태에서 감춰진 항목 수 = "외 N개"
+  const canExpand = sorted.length > TOP_RANK_LIMIT;
+
+  return (
+    <div
+      onClick={canExpand ? () => setExpanded(v => !v) : undefined}
+      onMouseEnter={canExpand ? e => (e.currentTarget.style.borderColor = COLOR.primary) : undefined}
+      onMouseLeave={canExpand ? e => (e.currentTarget.style.borderColor = COLOR.border) : undefined}
+      style={{ ...rankCardStyle, cursor: canExpand ? "pointer" : "default", transition: "border-color 0.12s" }}
+    >
+      <div style={rankHeaderStyle}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>{title}</div>
+        {canExpand && (
+          <button type="button" onClick={e => { e.stopPropagation(); setExpanded(v => !v); }} style={rankToggleStyle}>
+            {expanded ? "접기" : `전체 보기 (${sorted.length})`}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {shown.map((item, i) => renderRow(item, i, max, total))}
+        {!expanded && hidden > 0 && (
+          <div style={{ fontSize: 11, color: COLOR.text3, paddingTop: 2 }}>외 {hidden}개</div>
+        )}
+        {sorted.length === 0 && (
+          <div style={{ fontSize: 12, color: COLOR.text3, padding: "8px 0" }}>{emptyText}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminStatistics() {
   const { isCompanyAdmin, managedCompanies } = useAuth();
   // 기간 선택 — 기본 "올해 전체"(현재 연도 1월~현재 월, 시스템 현재월 파생). 유효 범위는 resolvePeriod로 환원.
@@ -90,16 +155,17 @@ export default function AdminStatistics() {
     agg.sourceTotal.n8n + agg.sourceTotal.pa + agg.sourceTotal.assistant +
     agg.sourceTotal["ai-orchestration"] + agg.sourceTotal.ml + agg.sourceTotal.vibe + agg.sourceTotal.etc;
 
-  const totalDomain = agg.domain.reduce((s, d) => s + d.count, 0) || 1;
+  // 도메인·부서 분포는 CollapsibleRankChart가 자체적으로 total·max를 전량에서 산출한다(접힘/펼침 합계 불변).
   const totalDifficulty = agg.difficulty.reduce((s, d) => s + d.count, 0) || 1;
   const totalCost = agg.cost.reduce((s, d) => s + d.count, 0) || 1;
   const totalMlType = agg.mlType.reduce((s, d) => s + d.count, 0) || 1;
-  const maxDept = Math.max(...agg.dept.map(d => d.count), 1);
   const maxTag = Math.max(...agg.tagFreq.map(k => k.count), 1);
 
   // 월별 시계열은 선택 범위 위에서 0-fill된 연속 축(파생 계층 공급). 카테고리 합계도 동일 기간 소스(sourceTotal)에서 파생 — 화면 개별 필터 없음.
   const monthly = agg.monthSeries;
   const maxMonthly = Math.max(...monthly.map(monthTotal), 1);
+  // x축 라벨 밀도 자동 조정 — 범위 지정 최대 24개월까지 YY.MM 라벨이 겹치지 않도록 표기 간격을 늘린다(막대는 전량 유지).
+  const monthLabelStep = monthly.length > 14 ? 2 : 1;
   const periodLabel = range.from === range.to ? range.from.replace("-", ".") : `${range.from.replace("-", ".")} ~ ${range.to.replace("-", ".")}`;
 
   const sourceByPeriod = SOURCES.map(s => ({ ...s, count: agg.sourceTotal[s.key] }));
@@ -182,7 +248,7 @@ export default function AdminStatistics() {
                           return <div key={s.key} title={`${s.label} ${val}건`} style={{ height: `${(val / total) * 100}%`, background: s.color }} />;
                         })}
                       </div>
-                      <div style={{ fontSize: 11, color: COLOR.text3 }}>{m.m}</div>
+                      <div style={{ fontSize: 11, color: COLOR.text3, minHeight: 14 }}>{i % monthLabelStep === 0 ? m.m : ""}</div>
                     </div>
                   );
                 })}
@@ -222,44 +288,41 @@ export default function AdminStatistics() {
             <span style={{ width: 4, height: 14, borderRadius: 2, background: COLOR.primary }} />AX 플랫폼 분석
           </div>
 
-          {/* 비즈니스 도메인 분포 | 부서별 현황 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>비즈니스 도메인 분포</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {agg.domain.map((d, i) => {
-                  const pct = Math.round(d.count / totalDomain * 100);
-                  return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 12, color: COLOR.text2, width: 80, flexShrink: 0 }}>{d.label}</span>
-                      <div style={{ flex: 1, background: COLOR.bgSubtle, borderRadius: 4, height: 7, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: COLOR.primary, borderRadius: 4 }} />
-                      </div>
-                      <span style={{ fontSize: 11, color: COLOR.text3, width: 28, textAlign: "right", flexShrink: 0 }}>{d.count}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 10, padding: "20px 22px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text, marginBottom: 16 }}>부서별 현황</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                {agg.dept.map((d, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: COLOR.text3, width: 16, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                    <span style={{ fontSize: 12, color: COLOR.text2, width: 100, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.dept}</span>
+          {/* 비즈니스 도메인 분포 | 부서별 현황 — 공용 TOP5 펼치기 패턴(CollapsibleRankChart) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16, alignItems: "start" }}>
+            <CollapsibleRankChart
+              title="비즈니스 도메인 분포"
+              items={agg.domain}
+              emptyText="해당 범위의 도메인 데이터가 없습니다."
+              renderRow={(d, _rank, _max, total) => {
+                const pct = Math.round(d.count / total * 100);
+                return (
+                  <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 12, color: COLOR.text2, width: 80, flexShrink: 0 }}>{d.label}</span>
                     <div style={{ flex: 1, background: COLOR.bgSubtle, borderRadius: 4, height: 7, overflow: "hidden" }}>
-                      <div style={{ width: `${(d.count / maxDept) * 100}%`, height: "100%", background: "#059669", borderRadius: 4 }} />
+                      <div style={{ width: `${pct}%`, height: "100%", background: COLOR.primary, borderRadius: 4 }} />
                     </div>
                     <span style={{ fontSize: 11, color: COLOR.text3, width: 28, textAlign: "right", flexShrink: 0 }}>{d.count}</span>
                   </div>
-                ))}
-                {agg.dept.length === 0 && (
-                  <div style={{ fontSize: 12, color: COLOR.text3, padding: "8px 0" }}>해당 범위의 부서 데이터가 없습니다.</div>
-                )}
-              </div>
-            </div>
+                );
+              }}
+            />
+
+            <CollapsibleRankChart
+              title="부서별 현황"
+              items={agg.dept}
+              emptyText="해당 범위의 부서 데이터가 없습니다."
+              renderRow={(d, rank, max, _total) => (
+                <div key={d.dept} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: COLOR.text3, width: 16, textAlign: "right", flexShrink: 0 }}>{rank + 1}</span>
+                  <span style={{ fontSize: 12, color: COLOR.text2, width: 100, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.dept}</span>
+                  <div style={{ flex: 1, background: COLOR.bgSubtle, borderRadius: 4, height: 7, overflow: "hidden" }}>
+                    <div style={{ width: `${(d.count / max) * 100}%`, height: "100%", background: "#059669", borderRadius: 4 }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: COLOR.text3, width: 28, textAlign: "right", flexShrink: 0 }}>{d.count}</span>
+                </div>
+              )}
+            />
           </div>
 
           {/* 등록 항목 분석 섹션 */}

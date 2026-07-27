@@ -35,7 +35,7 @@ import {
   deriveSourceTotal, deriveMonthlySeries, deriveDomain, deriveDept, deriveDeptCount,
   deriveDifficulty, deriveCost, deriveMlType, deriveCompanyTotals, deriveNewThisMonth,
   deriveTimeSaved, deriveTagFrequency, deriveTopReviews,
-  resolvePeriodRange, filterByMonthRange, dataMonthBounds, currentMonthKey, enumerateMonths,
+  resolvePeriodRange, filterByMonthRange, dataMonthBounds, currentMonthKey, enumerateMonths, addMonths,
 } from "./statsDerive";
 import type { SourceKey, PeriodSelection, MonthRange } from "./statsDerive";
 import {
@@ -175,9 +175,16 @@ export function getStatsByScope(scope: string[] | null, range?: MonthRange) {
   };
 }
 
-// 기간 선택 → 유효 월 범위 환원(전 화면 동일 계산). 화면은 dataSource만 경유하므로 자산 SSOT 주입을 여기서 처리.
+// 기간 선택 → 유효 월 범위 환원(전 화면 동일 계산). 프리셋은 시스템 현재월 파생이라 자산 SSOT 주입이 필요 없다.
 export function resolvePeriod(sel: PeriodSelection): MonthRange {
-  return resolvePeriodRange(sel, MOCK_ASSET_ITEMS);
+  return resolvePeriodRange(sel);
+}
+
+// 대시보드 등록 추이 고정 기준 — 최근 N개월(현재월 파생). 대시보드는 기간 선택기가 없는 고정 스냅숏이라
+// 추이 위젯만 이 고정 창을 쓴다(KPI·구성·도메인은 누적 스냅샷). 하드코딩 아님(현재월 파생).
+export function recentMonthsRange(n: number): MonthRange {
+  const now = currentMonthKey();
+  return { from: addMonths(now, -(n - 1)), to: now };
 }
 
 // 월 범위 지정 선택기의 선택 가능 월 목록("YYYY-MM"). 데이터 존재 구간 하한 ~ 현재월(레거시 2024 포함).

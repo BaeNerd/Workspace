@@ -372,7 +372,7 @@ axplatform/
         │   ├── NotificationBell.tsx     # 공용 알림 벨 (Navbar·AdminNavbar 공유)
         │   ├── AdminSidebar.tsx
         │   ├── AdminScopeSelect.tsx     # 조회 범위 선택기
-        │   ├── AdminPeriodSelect.tsx    # 기간 선택기(프리셋 6종 + 월 범위 지정, 통계·대시보드 공유)
+        │   ├── AdminPeriodSelect.tsx    # 기간 선택기(프리셋 3종 + 범위 지정 최대 24개월, 통계 전용 — 대시보드는 기간 선택기 없음)
         │   ├── ShareRedirect.tsx        # 공유 모드 경로 가로채기
         │   ├── SharePreviewBanner.tsx   # 공유 모드 상단 안내 바
         │   ├── Footer.tsx
@@ -515,8 +515,9 @@ AX 항목 상세(총 7경로, `/etc/:itemId` 포함). 플랫폼 종류별 섹션
 
 KPI 5개 (`repeat(5, 1fr)`): `전체 등록물` / `승인 대기`(부분 승인 N건 포함) / `이번 달 신규` / `게시된 도구` / `누적 활용 후기`. (운영 상태 폐기로 `사용 가능 도구` → `게시된 도구`로 변경 — 승인 완료·게시 기준.)
 
-- **조회 범위 선택기** 헤더 노출(위 [조회 범위 선택기] 참조). `pendingCount`는 `baseScope` 기준.
+- **조회 범위 선택기** 헤더 노출(위 [조회 범위 선택기] 참조). `pendingCount`는 `baseScope` 기준. **기간 선택기 없음** — 고정 스냅숏 화면이다.
 - 승인 대기 · 최근 승인 2열 목록, 월별 등록 추이 스택 바(7유형), 카테고리별 구성, 비즈니스 도메인 분포. 출처 색상·라벨은 `CATEGORIES`에서 파생(etc 포함). 목업 ID는 `{PREFIX}-2026-{NNN}` 형식으로 통일.
+- 위젯 고정 기준: 누적 위젯(전체 등록물·게시된 도구·누적 활용 후기·카테고리 구성·도메인) = 전체 기간 누적 · "이번 달 신규" = 당월 `createdAt` 실측 · 월별 등록 추이 = **최근 12개월 고정**(`recentMonthsRange(12)`) · 승인 대기/최근 승인 = 현재 큐/게시 카탈로그 최신순.
 
 #### `AdminReview.tsx` — `/admin/review` (admin + companyAdmin)
 
@@ -559,8 +560,9 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 
 통계 대시보드. 조회 범위 선택기 노출(pendingCount 없음).
 
-- 상단 카드 4개(전체 등록물/이번 달 신규/**참여 부서**/참여 관계사), 기간 선택기(`AdminPeriodSelect` 공유 — 프리셋 6종[이번 달·최근 3개월·최근 6개월·올해 전체·전체 기간·월 범위 지정] + 월 범위 지정 시작~종료 **최대 12개월**). "올해 전체"=현재 연도만(시스템 현재월 파생), "전체 기간"=레거시 2024 포함 전 구간. 통계 화면은 전 집계가 선택 기간(`createdAt`)에 정합(당월 고정 "이번 달 신규" 제외). (운영 상태 폐기로 `활성 항목` 카드 및 `항목 상태 4그룹` 차트 제거.)
+- 상단 카드 4개(전체 등록물/이번 달 신규/**참여 부서**/참여 관계사), 기간 선택기(`AdminPeriodSelect` — 확정 4종[최근 3개월·최근 6개월·올해 전체·범위 지정] + 범위 지정 시작~종료 **최대 24개월**). "올해 전체"=현재 연도만(시스템 현재월 파생), 전 기간 프리셋 없음 — 레거시 2024 구간은 범위 지정 전용(하한 2024.07). 통계 화면은 전 집계가 선택 기간(`createdAt`)에 정합(당월 고정 "이번 달 신규" 제외). 등록 추이 x축은 최대 24개월까지 라벨 밀도 자동 조정(14개월 초과 시 간격 2). (운영 상태 폐기로 `활성 항목` 카드 및 `항목 상태 4그룹` 차트 제거.)
 - 등록 추이(7유형 스택, `createdAt` 파생) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`statsDerive.parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Model]/ML 유형) · **후기 많은 카드 TOP 5** · **태그 빈도**(SSOT `tags` 집계 — 舊 "탐색 키워드 빈도" 교체, 실검색어 측정은 서버 몫·부록 B). 모든 수치는 자산 SSOT·후기 파생(`dataSource.getStatsByScope`), 출처 색상은 `CATEGORIES` 파생.
+- **`CollapsibleRankChart`**(모듈 레벨 공용 컴포넌트, 중복 구현 금지) — 부서별 현황·비즈니스 도메인 분포 두 순위 차트가 공유. 기본 TOP 5 + "외 N개", 상자 클릭 또는 헤더 "전체 보기 (N)" 토글로 전체 펼침(재클릭·"접기" 복귀). 분모(전량 합계·최댓값)는 접힘/펼침 불변이라 합계(상위 5 + 외 N = 전체) 보존. 도메인 6종도 동일 패턴 적용(SSO 연동 후 부서·도메인 급증 대비).
 
 #### `AdminCategories.tsx` — `/admin/platforms` (admin)
 
@@ -586,7 +588,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 | `NotificationBell.tsx` | 공용 알림 벨. 미읽음 뱃지 + 드롭다운(최근 5건·전체 읽음·항목 이동). `useNotifications` 소스. Navbar·AdminNavbar 공유. |
 | `AdminSidebar.tsx` | 관리자 좌측 사이드바. 역할별 메뉴 노출(companyAdmin 4개, 라벨 "관계사 관리자 메뉴"). `pendingCount` 뱃지. |
 | `AdminScopeSelect.tsx` | 조회 범위 선택 드롭다운. `ScopeSelection` / `restrictTo`. |
-| `AdminPeriodSelect.tsx` | 기간 선택기(통계·대시보드 공유). 프리셋 6종 세그먼트 + 월 범위 지정(네이티브 select 시작~종료, **최대 12개월**·종료≥시작 강제). `PeriodSelection` controlled, 유효 범위 환원은 `dataSource.resolvePeriod`. |
+| `AdminPeriodSelect.tsx` | 기간 선택기(통계 전용 — 대시보드는 고정 스냅숏이라 미사용). 프리셋 3종 세그먼트(최근 3개월·최근 6개월·올해 전체) + 범위 지정(네이티브 select 시작~종료, **최대 24개월**·종료≥시작 강제, 종료 옵션 창 제한으로 강제). `PeriodSelection` controlled, 유효 범위 환원은 `dataSource.resolvePeriod`. |
 | `ShareRedirect.tsx` | 공유 모드에서 랜딩 외 경로 가로채 안내 + 랜딩 복귀. |
 | `SharePreviewBanner.tsx` | 공유 모드 상단 sticky 안내 바. `SHARE_BANNER_HEIGHT = 32`. |
 | `Footer.tsx` | 공통 푸터(하단 고정). |
@@ -713,10 +715,10 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 |--------|------|-----------|
 | 자산(M1) | `getAssetItems` · `getAssetItem(id)` · `getReviewsByItem(id)` · `getPostsByItem(id)` · `getFallbackN8nWorkflowJson` | 자산 목록·단건·후기·게시글·n8n 폴백 JSON |
 | 검토/신청 | `getReviewQueue` · `getMyApplications` · `getMyReviews` | 검토 대기 큐 · 내 신청 · 내 후기 |
-| 대시보드 | `getDashboardData(scope, range?)` | 자산 SSOT·검토 큐·후기 파생: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth}`. 승인 대기=검토 큐, 최근 승인=게시 카탈로그 최신순, 게시된 도구·누적 후기=`ownerCompany` 파생. `range`(월 범위)는 `monthly`(등록 추이)에만 적용 — 나머지는 누적 스냅샷 |
+| 대시보드 | `getDashboardData(scope, range?)` | 자산 SSOT·검토 큐·후기 파생: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth}`. 승인 대기=검토 큐, 최근 승인=게시 카탈로그 최신순, 게시된 도구·누적 후기=`ownerCompany` 파생. `range`(월 범위)는 `monthly`(등록 추이)에만 적용 — 나머지는 누적 스냅샷. 대시보드는 기간 선택기 없이 `recentMonthsRange(12)` 고정 창을 주입한다 |
 | 통계 | `getStatsByScope(scope, range?)` | 자산 SSOT·후기 파생: `{companies, companyTotals, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, deptCount, tagFreq, timeSaved{annualTotal,estimable,unestimable,held}, topReviews, newThisMonth}` (표시 META 병합만 화면 프레젠테이션). `range`는 전 집계에 `createdAt` 기준 적용(예외: `companyTotals` 전량·`newThisMonth` 당월 고정) |
 | 랜딩/공용 | `getMonthlyNewCount(scope?)` | 이번 달 신규(전사 기준, `createdAt` 당월 실측) — 랜딩·통계 공용 |
-| 기간 | `resolvePeriod(sel)` · `getSelectableMonths()` | 기간 선택→유효 월 범위 `{from,to}` 환원(프리셋=시스템 현재월 파생, "전체 기간"=데이터 하한까지) · 월 범위 지정 선택 가능 월 목록(데이터 존재 구간~현재월) |
+| 기간 | `resolvePeriod(sel)` · `getSelectableMonths()` · `recentMonthsRange(n)` | 기간 선택→유효 월 범위 `{from,to}` 환원(프리셋=시스템 현재월 파생, 전 기간 프리셋 없음 — 레거시는 범위 지정 전용) · 범위 지정 선택 가능 월 목록(데이터 존재 구간 2024.07~현재월) · 대시보드 등록 추이 고정 창(최근 n개월, 현재월 파생) |
 | 관리 | `getManagedAssetItems` · `getAdmins` · `getGroupViewers` · `getRegistrants` · `getAuditLogs` · `getSsoUsers` · `getSelectableCompanies` | 게시 항목·전사 관리자·그룹 뷰어·등록자·활동 로그·SSO 검색·관계사 선택지 |
 | 관계사 관리자 | `getCompanyAdmins` · `getManagedCompanies(email)` | 관계사 관리자 목록 · 이메일→담당 관계사(auth/me 모사) |
 | 조직 | `getOrgCompanies` · `getOrgDepts` · `getAssetItemRefs` · `getTeamsSyncSource` | 관계사·부서·자산 관계사 투영·Teams 동기화 원천 |
@@ -739,10 +741,10 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `SourceKey` / `MonthPoint` / `StatCompany` | 통계 타입 — `SourceKey`=`CategoryId`(7종), `MonthPoint`(7유형 스택, key=`YYYY-MM`·라벨 `YY.MM`), `StatCompany`(STAT_COMPANIES 원소) |
 | `STAT_COMPANIES` | 통계 표시 대상 관계사(표시 순서). 실측상 자산 `ownerCompany` 등장 집합과 일치, 표시명은 `orgCompanyName`(조직 SSOT) |
 | `scopedCompanies` / `monthTotal` / `parseTimeSaved` | 범위 내 등장 관계사 · 월 합계(7유형, etc 포함) · 절감시간 파서(화면→이관, 로직 무변경) |
-| `deriveSourceTotal` / `deriveMonthly` / `deriveDomain` / `deriveDept` / `deriveDeptCount` | 카테고리별 등록·월별 추이(createdAt)·도메인(6종)·부서 상위 8·참여 부서 수 |
+| `deriveSourceTotal` / `deriveMonthly` / `deriveDomain` / `deriveDept` / `deriveDeptCount` | 카테고리별 등록·월별 추이(createdAt)·도메인(6종)·부서 전량(내림차순, TOP5 절단은 화면 표시 계층)·참여 부서 수 |
 | `deriveDifficulty` / `deriveCost` / `deriveMlType` | 난이도(n8n)·비용 등급(AI Model)·ML 유형 — 표시 축 인덱스 사상 |
 | `deriveCompanyTotals` / `deriveNewThisMonth` / `deriveTimeSaved` / `deriveTagFrequency` / `deriveTopReviews` | 관계사 합계(ownerCompany)·당월 신규·절감 효과(연간 환산·집계 가능/추정 불가)·태그 빈도(SSOT tags)·후기 TOP5(후기 누적) |
-| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 계약 — 프리셋 5종(+월 범위 지정=`kind:"range"`), 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 12개월 |
+| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 계약 — 프리셋 3종(최근 3개월·최근 6개월·올해 전체) + 범위 지정=`kind:"range"`, 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 24개월. 전 기간 프리셋 없음 — 레거시(2024) 구간은 범위 지정 전용 |
 | `currentMonthKey` / `dataMonthBounds` / `resolvePeriodRange` / `filterByMonthRange` / `deriveMonthlySeries` · `addMonths`·`monthSpan`·`enumerateMonths` | 기준월(시스템 현재월 파생, 하드코딩 금지)·데이터 월 경계·선택→유효 범위 환원·기간 집계 소스 필터(createdAt)·연속 월축 0-fill · "YYYY-MM" 월키 산술 |
 
 - 함수별 `// TODO: 실제 연동 시 GET /api/v1/stats/...&from=YYYY-MM&to=YYYY-MM 응답으로 교체` 주석이 곧 서버 stats 계약 초안(기간 파라미터 포함).

@@ -4,11 +4,10 @@ import AdminNavbar from "../../components/AdminNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import AdminScopeSelect from "../../components/AdminScopeSelect";
 import type { ScopeSelection } from "../../components/AdminScopeSelect";
-import AdminPeriodSelect from "../../components/AdminPeriodSelect";
 import { CATEGORIES } from "../../types/categoryTypes";
 import { useAuth } from "../../context/useAuth";
-import { getDashboardData, resolvePeriod, monthTotal, orgCompanyName } from "../../lib/dataSource";
-import type { SourceKey, PeriodSelection } from "../../lib/dataSource";
+import { getDashboardData, recentMonthsRange, monthTotal, orgCompanyName } from "../../lib/dataSource";
+import type { SourceKey } from "../../lib/dataSource";
 import { COLOR } from "../../styles/tokens";
 
 // 출처 표시용 정의 — CATEGORIES 단일 소스에서 파생 (7유형: etc 포함)
@@ -36,9 +35,9 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { isCompanyAdmin, managedCompanies } = useAuth();
 
-  // 기간 선택 — 기본 "올해 전체". 대시보드에서는 등록 추이(월별 시계열)에만 적용된다(KPI·구성·도메인은 누적 스냅샷).
-  const [periodSel, setPeriodSel] = useState<PeriodSelection>({ kind: "preset", preset: "올해 전체" });
-  const range = useMemo(() => resolvePeriod(periodSel), [periodSel]);
+  // 대시보드는 기간 선택기 없는 고정 스냅숏이다. 등록 추이(월별 시계열)만 최근 12개월 고정 창을 쓰고,
+  // KPI·카테고리 구성·도메인은 전체 기간 누적, "이번 달 신규"는 당월 실측 — 위젯별 기준이 고정되어 있다.
+  const range = useMemo(() => recentMonthsRange(12), []);
   const rangeKey = `${range.from}~${range.to}`;
 
   // 조회 범위 선택 (표시용 필터). 권한 범위(baseScope) 안에서만 선택 가능.
@@ -107,7 +106,6 @@ export default function AdminDashboard() {
               </div>
               <p style={{ fontSize: 13, color: COLOR.text2, marginTop: 4 }}>AX 플랫폼(n8n · Power Automate · 나만의 비서 · AI Model · ML · Vibe · AI 프로젝트) 통합 현황</p>
             </div>
-            <AdminPeriodSelect value={periodSel} onChange={setPeriodSel} />
           </div>
 
           {noScope && (
@@ -197,7 +195,7 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "20px 22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>월별 등록 추이 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>{range.from === range.to ? range.from.replace("-", ".") : `${range.from.replace("-", ".")} ~ ${range.to.replace("-", ".")}`} · 카테고리별</span></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLOR.text }}>월별 등록 추이 <span style={{ fontSize: 11, color: COLOR.text3, fontWeight: 500, marginLeft: 6 }}>최근 12개월 · 카테고리별</span></div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {SOURCES.map(s => (
                     <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>

@@ -57,17 +57,18 @@ export const monthTotal = (m: MonthPoint): number =>
   m.n8n + m.pa + m.assistant + m["ai-orchestration"] + m.ml + m.vibe + m.etc;
 
 // ── 기간(월 범위) ──
-// 통계·대시보드 공용 기간 선택 계약. 프리셋 5종은 시스템 현재월 파생(하드코딩 금지),
-// "월 범위 지정"은 커스텀 범위(kind:"range")로 표현한다. 유효 범위는 항상 {from,to}로 환원되어
+// 통계·대시보드 공용 기간 선택 계약. 프리셋 3종은 시스템 현재월 파생(하드코딩 금지),
+// "범위 지정"은 커스텀 범위(kind:"range")로 표현한다. 유효 범위는 항상 {from,to}로 환원되어
 // 파생 계층 1곳에서 createdAt 필터로 적용된다(화면별 개별 필터 없음).
-export type PeriodPreset = "이번 달" | "최근 3개월" | "최근 6개월" | "올해 전체" | "전체 기간";
+// 전 기간 프리셋은 없다 — 레거시(2024) 구간은 범위 지정으로만 조회한다.
+export type PeriodPreset = "최근 3개월" | "최근 6개월" | "올해 전체";
 export type PeriodSelection =
   | { kind: "preset"; preset: PeriodPreset }
   | { kind: "range"; from: string; to: string }; // "YYYY-MM" (시작·종료 inclusive)
 export type MonthRange = { from: string; to: string }; // "YYYY-MM" inclusive
 
-export const PERIOD_PRESETS: PeriodPreset[] = ["이번 달", "최근 3개월", "최근 6개월", "올해 전체", "전체 기간"];
-export const MAX_RANGE_MONTHS = 12; // 월 범위 지정 최대 길이(시작~종료 inclusive)
+export const PERIOD_PRESETS: PeriodPreset[] = ["최근 3개월", "최근 6개월", "올해 전체"];
+export const MAX_RANGE_MONTHS = 24; // 범위 지정 최대 길이(시작~종료 inclusive)
 
 // "YYYY-MM" 월키 산술 — 문자열·정수만 사용(Date 의존은 currentMonthKey 1곳에 격리).
 const pad2m = (n: number) => String(n).padStart(2, "0");
@@ -103,9 +104,10 @@ export const dataMonthBounds = (items: AssetItem[]): { min: string; max: string 
   return { min: keys[0], max: keys[keys.length - 1] };
 };
 
-// 프리셋/범위 선택 → 유효 월 범위 {from,to}. 기준월=시스템 현재월, "전체 기간"만 데이터 하한까지 확장.
+// 프리셋/범위 선택 → 유효 월 범위 {from,to}. 기준월=시스템 현재월(하드코딩 금지).
+// 전 기간 프리셋 없음 — 레거시(2024) 구간은 range 선택으로만 도달한다.
 // range 선택은 종료<시작 자동 스왑 + 최대 길이 방어 절단(초과분은 시작 기준 +MAX-1로 클램프).
-export function resolvePeriodRange(sel: PeriodSelection, items: AssetItem[]): MonthRange {
+export function resolvePeriodRange(sel: PeriodSelection): MonthRange {
   if (sel.kind === "range") {
     let { from, to } = sel;
     if (monthIndex(to) < monthIndex(from)) [from, to] = [to, from];
@@ -113,13 +115,10 @@ export function resolvePeriodRange(sel: PeriodSelection, items: AssetItem[]): Mo
     return { from, to };
   }
   const now = currentMonthKey();
-  const bounds = dataMonthBounds(items);
   switch (sel.preset) {
-    case "이번 달": return { from: now, to: now };
     case "최근 3개월": return { from: addMonths(now, -2), to: now };
     case "최근 6개월": return { from: addMonths(now, -5), to: now };
     case "올해 전체": return { from: `${now.slice(0, 4)}-01`, to: now };
-    case "전체 기간": return { from: bounds.min, to: bounds.max >= now ? bounds.max : now };
   }
 }
 
@@ -173,11 +172,12 @@ export function deriveDomain(items: AssetItem[], scope: string[] | null): { labe
   }));
 }
 
-// 부서별 현황 (등록 수 상위 8). TODO: 실제 연동 시 GET /api/v1/stats/by-dept?company=:codes 응답으로 교체
+// 부서별 현황 (등록 수 내림차순 전량). 상위 N 절단·"외 N개" 접힘은 화면 표시 계층(TOP5 펼치기 패턴)이 담당하며,
+// 여기서는 전체 집계를 보존해 접힘/펼침 합계가 동일하도록 한다. TODO: 실제 연동 시 GET /api/v1/stats/by-dept?company=:codes 응답으로 교체
 export function deriveDept(items: AssetItem[], scope: string[] | null): { dept: string; count: number }[] {
   const map = new Map<string, number>();
   scoped(items, scope).forEach(i => { if (i.dept) map.set(i.dept, (map.get(i.dept) ?? 0) + 1); });
-  return [...map.entries()].map(([dept, count]) => ({ dept, count })).sort((a, b) => b.count - a.count).slice(0, 8);
+  return [...map.entries()].map(([dept, count]) => ({ dept, count })).sort((a, b) => b.count - a.count);
 }
 
 // 참여 부서 수 (범위 내 등장 부서의 고유 개수). TODO: 실제 연동 시 GET /api/v1/stats/dept-count?company=:codes
