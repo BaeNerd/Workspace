@@ -22,6 +22,19 @@
 
 ---
 
+## 디자인·레이아웃 표준 (기획설명서 0.11)
+
+| 축 | 단일 소스 | 값 |
+|---|---|---|
+| 색 | `styles/tokens.ts` | 랜딩 기준 파스텔 톤의 중립·주조색 토큰(`COLOR` 등). 화면 코드는 인라인 hex 리터럴 대신 이 모듈을 참조한다. **의미색**(카테고리·승인 단계·신호색·알림 kind)은 정보 축이므로 토큰 통일 대상에서 제외. |
+| 사용자 화면 폭 | `styles/layout.ts` | `CONTENT_MAX_WIDTH = 1400`(탐색·소비형) / `FORM_MAX_WIDTH = 760`(입력형) |
+| 관리자 화면 폭 (ADM-WIDTH) | `styles/layout.ts` | `ADMIN_CONTENT_MAX = 1320` · `ADMIN_MASTER_WIDTH = 300`(마스터·디테일형 좌측 목록) · `ADMIN_PAD = 32`(좌우 패딩) — **관리자 9화면 공통** |
+| 성장형 목록 | `hooks/useVisibleCount` + `components/LoadMoreButton` | "더보기 (남은 N건)" 증분 패턴으로 통일 |
+
+- 신규 화면·수정 시 이 표준을 따르며 **개별 리터럴 도입을 금지**한다.
+
+---
+
 ## 역할(Role) 3단계 모델
 
 | 역할 | 식별자 | 설명 | 접근 가능 페이지 |
@@ -85,7 +98,7 @@ export type CurrentUser = {
 | `/admin/platforms` | ✓ | — |
 | `/admin/notices` | ✓ | ✓* |
 
-→ companyAdmin이 접근 가능한 4종은 **대시보드·검토·카드 관리·통계**. `taxonomy·org·users·platforms`는 **admin 단독**.
+→ companyAdmin이 실제로 사용하는 4종은 **대시보드·검토·카드 관리·통계**(`/admin/notices`는 라우트 통과만 허용, 화면은 전사 전용 — 기획설명서 0.6). `taxonomy·org·users·platforms`는 **admin 단독**.
 → **`*` `/admin/notices`는 실질 admin 전용.** 라우트는 `allowCompanyAdmin`으로 통과만 허용하되, 화면 내부에서 `isCompanyAdmin`이면 관리 UI 대신 "전사 관리자 전용" 안내를 렌더한다(사이드바 메뉴는 companyAdmin에게 비노출).
 
 ### 역할별 UI 노출
@@ -347,15 +360,17 @@ axplatform/
         │   ├── useAuth.ts
         │   └── ShareNoticeContext.tsx  # 공유 모드 안내(3초)
         ├── styles/
-        │   └── layout.ts     # CONTENT_MAX_WIDTH=1400 / FORM_MAX_WIDTH=760
+        │   ├── layout.ts     # CONTENT_MAX_WIDTH=1400 / FORM_MAX_WIDTH=760 / ADMIN_CONTENT_MAX=1320 · ADMIN_MASTER_WIDTH=300 · ADMIN_PAD=32
+        │   └── tokens.ts     # 색 토큰 단일 소스(COLOR 등) — 의미색은 제외
         ├── types/
         │   ├── categoryTypes.ts        # 타입·CATEGORIES·ICON_PRESETS·승인 슬롯·detailPathForItemId
         │   ├── noticeTypes.ts          # Notice(공지·업데이트) 타입
         │   └── notificationTypes.ts    # AxNotification·NotificationKind(7종)·배지 스타일
-        ├── hooks/                       # 개인화 공용 훅 (useSyncExternalStore + localStorage)
+        ├── hooks/                       # 개인화 공용 훅 (useSyncExternalStore + localStorage) + 표시 공용 훅
         │   ├── useScraps.ts            # ax_scraps
         │   ├── useInterests.ts         # ax_user_interests
-        │   └── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
+        │   ├── useNotifications.ts     # ax_notifications_read (+ 알림 목업 병합)
+        │   └── useVisibleCount.ts      # 성장형 목록 증분 카운트(LoadMoreButton과 짝)
         ├── mocks/                       # 목업 SSOT 모듈군 — 페이지·훅은 직접 import 금지(lib/dataSource 경유)
         │   ├── assetItemMockData.ts    # 자산 항목 SSOT(목록·상세·후기·게시글·n8n 폴백, 카드 관리 파생 원천) — M1
         │   ├── adminReviewMockData.ts  # 검토 대기 큐(INITIAL_ITEMS)
@@ -372,9 +387,14 @@ axplatform/
         │   ├── NotificationBell.tsx     # 공용 알림 벨 (Navbar·AdminNavbar 공유)
         │   ├── AdminSidebar.tsx
         │   ├── AdminScopeSelect.tsx     # 조회 범위 선택기
-        │   ├── AdminPeriodSelect.tsx    # 기간 선택기(프리셋 3종 + 범위 지정 최대 24개월, 통계 전용 — 대시보드는 기간 선택기 없음)
+        │   ├── AdminPeriodSelect.tsx    # 기간 선택기(확정 4종 = 최근 3개월·최근 6개월·올해 전체·범위 지정[최대 24개월], 통계 전용 — 대시보드는 기간 선택기 없음)
         │   ├── ShareRedirect.tsx        # 공유 모드 경로 가로채기
         │   ├── SharePreviewBanner.tsx   # 공유 모드 상단 안내 바
+        │   ├── CardIdTag.tsx            # 카드 ID 공용 표시 태그(0.3)
+        │   ├── LoadMoreButton.tsx       # 성장형 목록 "더보기 (남은 N건)" 공용 버튼
+        │   ├── ChipInput.tsx            # 태그·칩 다중 입력(등록·수정 폼 공용)
+        │   ├── TimeSavedInput.tsx       # 예상 절감 시간 수치+주기 입력(0.8)
+        │   ├── ImageCarouselInput.tsx   # 이미지 캐러셀 입력(MAX_IMAGES 동봉)
         │   ├── Footer.tsx
         │   ├── ProtectedRoute.tsx
         │   ├── N8nFlowPreview.tsx
@@ -491,7 +511,8 @@ AX 항목 상세(총 7경로, `/etc/:itemId` 포함). 플랫폼 종류별 섹션
 - **공통 필드**: 사진(최대 10장, 캐러셀 입력) · 제목 · 한 줄 요약 · 상세 설명 · 업무 도메인 · 태그 · 담당자.
 - **유형별**: n8n(JSON 업로드→다이어그램 자동 표시·예상 효과·구성 난이도) / pa(예상 효과) / assistant(공유 프롬프트·기반 모델) / ai-orchestration(이용 가능 여부·강점 및 활용 방법·모델 접속 URL·세부 모델명·처리 가능 글 분량·비용 등급, **관리자 전용**) / ml(모델 유형·학습 데이터 개요·개발 도구) / vibe·etc(공통만).
 - **관계사 범위 입력 없음** — 전 항목 전사 공용(`company: []`)으로 고정. 상태·실행 URL(ai-orch 모델 접속 제외) 입력 없음.
-- **내부 컴포넌트**(모듈 레벨): `Section`, `SubHeading`, `Field`, `Tag`, `RowRemoveButton`, `ImageCarouselInput`, `TimeSavedInput`, `ChipInput` 등.
+- **공용 컴포넌트**(`src/components/`, EditRequestPage와 공유): `ImageCarouselInput`(`MAX_IMAGES` 동봉) · `TimeSavedInput`(`serializeTimeSaved`·`parseTimeSaved`·`SavedPeriod` 동봉) · `ChipInput`.
+- **내부 컴포넌트**(모듈 레벨): `Section`, `SubHeading`, `Field`, `Tag`, `RowRemoveButton` 등.
 
 #### `MyStatusPage.tsx` — `/my-status`
 
@@ -548,11 +569,11 @@ AX 항목 병렬 2슬롯 승인 검토. `SummaryStrip`(필터) · `SlotPill`(목
 - **데이터 소스**: `getManagedAssetItems()`가 자산 SSOT(`getAssetItems`)에서 `ManagedAssetItem`으로 파생(별도 목업 사본 없음). 편집·삭제 데모는 화면 로컬 state.
 - **내부 컴포넌트**(모듈 레벨): `Chevron`, `FieldRow`, `SectionBlock`, `SingleSelectTag`, `ImageStripView`, `TimeSavedInput`. 이미지 편집 캐러셀 `ImageCarouselInput`은 등록 폼과 공유하는 공용 컴포넌트(`src/components/ImageCarouselInput.tsx`, `MAX_IMAGES` 동봉).
 
-#### `AdminTaxonomy.tsx` — `/admin/taxonomy` (admin)
+#### `AdminTaxonomy.tsx` — `/admin/taxonomy` (admin) · 화면명 **분류체계 관리**
 
 AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 · 비용 등급 · ML 모델 유형**) + 자유 태그. 등록 폼에서 입력이 사라진 고아 분류(n8n 노드 힌트·PA 커넥터·n8n·PA 연동 앱·Vibe 도구 힌트)는 삭제 — n8n은 JSON 업로드로 전환되어 수동 노드 입력이 없다. 구성 난이도는 **n8n 전용**. 자유 태그 출처(`sourceKind`)는 `etc`(표시명 "AI 프로젝트") 포함 7유형 대응.
 
-#### `AdminOrg.tsx` — `/admin/org` (admin)
+#### `AdminOrg.tsx` — `/admin/org` (admin) · 화면명 **부서·조직 관리**
 
 조직 관리 **4개 섹션**:
 
@@ -563,7 +584,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 
 - **내부 컴포넌트**(모듈 레벨): `Toggle`, `CompanyVisibilityDropdown`, `DeptRow`, `CompanyAccordion`.
 
-#### `AdminUsers.tsx` — `/admin/users` (admin)
+#### `AdminUsers.tsx` — `/admin/users` (admin) · 화면명 **사용자·권한·로그 관리**
 
 사용자 권한 관리. 탭 4종(관리자 권한 / 그룹 전체보기 / 등록자 관리 / 활동 로그). `관리자 권한` 탭이 관리자 지정 유일 편집 지점. (상세는 위 [관리자 지정 체계 → AdminUsers] 참조.)
 
@@ -575,7 +596,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 - 등록 추이(7유형 스택, `createdAt` 파생) · 카테고리별 등록 현황(3-col) · 비즈니스 도메인·부서별 현황 · **절감 효과 요약**(`statsDerive.parseTimeSaved` → 연간 환산, `baseScope`/`viewScope`·`AdminScopeSelect` 구조 유지) · 3-column 분석(난이도[**n8n 전용**]/비용 구간[AI Model]/ML 유형) · **후기 많은 카드 TOP 5** · **태그 빈도**(SSOT `tags` 집계 — 舊 "탐색 키워드 빈도" 교체, 실검색어 측정은 서버 몫·부록 B). 모든 수치는 자산 SSOT·후기 파생(`dataSource.getStatsByScope`), 출처 색상은 `CATEGORIES` 파생.
 - **`CollapsibleRankChart`**(모듈 레벨 공용 컴포넌트, 중복 구현 금지) — 부서별 현황·비즈니스 도메인 분포 두 순위 차트가 공유. 기본 TOP 5 + "외 N개", 상자 클릭 또는 헤더 "전체 보기 (N)" 토글로 전체 펼침(재클릭·"접기" 복귀). 분모(전량 합계·최댓값)는 접힘/펼침 불변이라 합계(상위 5 + 외 N = 전체) 보존. 도메인 6종도 동일 패턴 적용(SSO 연동 후 부서·도메인 급증 대비).
 
-#### `AdminCategories.tsx` — `/admin/platforms` (admin)
+#### `AdminCategories.tsx` — `/admin/platforms` (admin) · 화면명 **자동화·AI 도구 관리**
 
 7개 카테고리 메타데이터(이름·설명·경로·색상·아이콘) CRUD. `IconPicker`(ICON_PRESETS 그리드) + `iconPreset()` 폴백 + `CategoryIcon`. (표시 문자열은 "카테고리", 파일·코드 심볼은 category 계열로 rename(`AdminCategories`·`CategoryIcon`), 라우트 `/admin/platforms`는 현행 유지. 위 [아이콘 체계] 참조.)
 
@@ -599,7 +620,7 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 | `NotificationBell.tsx` | 공용 알림 벨. 미읽음 뱃지 + 드롭다운(최근 5건·전체 읽음·항목 이동). `useNotifications` 소스. Navbar·AdminNavbar 공유. |
 | `AdminSidebar.tsx` | 관리자 좌측 사이드바. 역할별 메뉴 노출(companyAdmin 4개, 라벨 "관계사 관리자 메뉴"). `pendingCount` 뱃지. |
 | `AdminScopeSelect.tsx` | 조회 범위 선택 드롭다운. `ScopeSelection` / `restrictTo`. |
-| `AdminPeriodSelect.tsx` | 기간 선택기(통계 전용 — 대시보드는 고정 스냅숏이라 미사용). 프리셋 3종 세그먼트(최근 3개월·최근 6개월·올해 전체) + 범위 지정(네이티브 select 시작~종료, **최대 24개월**·종료≥시작 강제, 종료 옵션 창 제한으로 강제). `PeriodSelection` controlled, 유효 범위 환원은 `dataSource.resolvePeriod`. |
+| `AdminPeriodSelect.tsx` | 기간 선택기(통계 전용 — 대시보드는 고정 스냅숏이라 미사용). **확정 4종**(최근 3개월·최근 6개월·올해 전체·범위 지정) — 앞 3종은 세그먼트, 범위 지정은 네이티브 select 시작~종료(**최대 24개월**·종료≥시작 강제, 종료 옵션 창 제한으로 강제). `PeriodSelection` controlled, 유효 범위 환원은 `dataSource.resolvePeriod`. |
 | `ShareRedirect.tsx` | 공유 모드에서 랜딩 외 경로 가로채 안내 + 랜딩 복귀. |
 | `SharePreviewBanner.tsx` | 공유 모드 상단 sticky 안내 바. `SHARE_BANNER_HEIGHT = 32`. |
 | `Footer.tsx` | 공통 푸터(하단 고정). |
@@ -607,6 +628,10 @@ AX 항목 분류체계 관리. 탭 4종(**업무 도메인 · 구성 난이도 �
 | `N8nFlowPreview.tsx` | SVG 기반 n8n 워크플로우 시각화. |
 | `WorkflowDiagram.tsx` | 워크플로우 다이어그램 시각화. |
 | `CardIdTag.tsx` | **카드 ID(0.3 체계) 공용 표시 태그**. 사용자 화면 카드·상세 공용(목록·랜딩·상세 헤더·내 현황). 등록 부서 왼쪽 고정(없으면 메타 줄 선두). 디자인 토큰만·신규 hex 금지·선택 가능 텍스트. 단일 정의 — 지점별 개별 스타일 금지. |
+| `LoadMoreButton.tsx` | **성장형 목록 공용 "더보기" 버튼**(0.11). `remaining` 표기("더보기 (남은 N건)"), 전량 노출 시 미렌더. `hooks/useVisibleCount`와 짝. 소비: 상세 논의 탭·내 현황·소식·검토·분류체계·사용자·공지 관리. |
+| `ChipInput.tsx` | 태그·칩 다중 입력 공용 컴포넌트. 등록 폼·수정 요청 폼 공유. |
+| `TimeSavedInput.tsx` | 예상 절감 시간 입력(수치 + 주기) 공용 컴포넌트(0.8). `serializeTimeSaved`·`parseTimeSaved`·`SavedPeriod` 동봉. 등록 폼·수정 요청 폼 공유(관리자 검토·카드 관리는 화면 내부 동명 컴포넌트). |
+| `ImageCarouselInput.tsx` | 이미지 캐러셀 입력(추가·개별 삭제, `MAX_IMAGES` 동봉). 등록 폼·수정 요청 폼·카드 관리 편집 공유. |
 | `ScrollToTop.tsx` | 라우트 변경 시 스크롤 최상단 이동. |
 
 ### ProtectedRoute 구현
@@ -755,7 +780,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `deriveSourceTotal` / `deriveMonthly` / `deriveDomain` / `deriveDept` / `deriveDeptCount` | 카테고리별 등록·월별 추이(createdAt)·도메인(6종)·부서 전량(내림차순, TOP5 절단은 화면 표시 계층)·참여 부서 수 |
 | `deriveDifficulty` / `deriveCost` / `deriveMlType` | 난이도(n8n)·비용 등급(AI Model)·ML 유형 — 표시 축 인덱스 사상 |
 | `deriveCompanyTotals` / `deriveNewThisMonth` / `deriveTimeSaved` / `deriveTagFrequency` / `deriveTopReviews` | 관계사 합계(ownerCompany)·당월 신규·절감 효과(연간 환산·집계 가능/추정 불가)·태그 빈도(SSOT tags)·후기 TOP5(후기 누적) |
-| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 계약 — 프리셋 3종(최근 3개월·최근 6개월·올해 전체) + 범위 지정=`kind:"range"`, 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 24개월. 전 기간 프리셋 없음 — 레거시(2024) 구간은 범위 지정 전용 |
+| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 계약 — **확정 4종**(최근 3개월·최근 6개월·올해 전체·범위 지정), 이 중 범위 지정=`kind:"range"`, 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 24개월. 전 기간 프리셋 없음 — 레거시(2024) 구간은 범위 지정 전용 |
 | `currentMonthKey` / `dataMonthBounds` / `resolvePeriodRange` / `filterByMonthRange` / `deriveMonthlySeries` · `addMonths`·`monthSpan`·`enumerateMonths` | 기준월(시스템 현재월 파생, 하드코딩 금지)·데이터 월 경계·선택→유효 범위 환원·기간 집계 소스 필터(createdAt)·연속 월축 0-fill · "YYYY-MM" 월키 산술 |
 
 - 함수별 `// TODO: 실제 연동 시 GET /api/v1/stats/...&from=YYYY-MM&to=YYYY-MM 응답으로 교체` 주석이 곧 서버 stats 계약 초안(기간 파라미터 포함).
