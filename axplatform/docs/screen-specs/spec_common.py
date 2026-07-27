@@ -15,6 +15,7 @@ from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.oxml.ns import qn
 
 FONT = "맑은 고딕"
+AUTHOR = ""   # 빌드 스크립트에서 spec_common.AUTHOR = "..." 로 지정 (헤더 표 '작성자' 칸)
 
 INK   = RGBColor(0x11, 0x11, 0x11)
 G33   = RGBColor(0x33, 0x33, 0x33)
@@ -157,7 +158,7 @@ def header_table(slide, screen_name, title, screen_id, path, page_no, page_total
     _cell(g.cell(2, 0), "Screen Path", size=9.5, bold=True, color=G33, fill=GEE)
     _cell(g.cell(2, 1), path, size=9.5, color=G33)
     _cell(g.cell(2, 2), "작성자", size=9.5, bold=True, color=G33, fill=GEE)
-    _cell(g.cell(2, 3), "", size=10)
+    _cell(g.cell(2, 3), AUTHOR, size=10)
     return y + h
 
 
