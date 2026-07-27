@@ -511,13 +511,24 @@ AX 항목 상세(총 7경로, `/etc/:itemId` 포함). 플랫폼 종류별 섹션
 
 모든 관리자 페이지는 `<AdminNavbar />` + `<AdminSidebar />` 레이아웃 공유.
 
-#### `AdminDashboard.tsx` — `/admin` (admin + companyAdmin)
+#### `AdminDashboard.tsx` — `/admin` (admin + companyAdmin) · **운영 콕핏**
 
-KPI 5개 (`repeat(5, 1fr)`): `전체 등록물` / `승인 대기`(부분 승인 N건 포함) / `이번 달 신규` / `게시된 도구` / `누적 활용 후기`. (운영 상태 폐기로 `사용 가능 도구` → `게시된 도구`로 변경 — 승인 완료·게시 기준.)
+"지금 내가 처리할 것"에 답하는 액션·현황 콕핏. 분석성 차트(추이·분포·관계사 합계)는 통계(ADM-04)로 위임하고 여기서는 제거했다.
 
-- **조회 범위 선택기** 헤더 노출(위 [조회 범위 선택기] 참조). `pendingCount`는 `baseScope` 기준. **기간 선택기 없음** — 고정 스냅숏 화면이다.
-- 승인 대기 · 최근 승인 2열 목록, 월별 등록 추이 스택 바(7유형), 카테고리별 구성, 비즈니스 도메인 분포. 출처 색상·라벨은 `CATEGORIES`에서 파생(etc 포함). 목업 ID는 `{PREFIX}-2026-{NNN}` 형식으로 통일.
-- 위젯 고정 기준: 누적 위젯(전체 등록물·게시된 도구·누적 활용 후기·카테고리 구성·도메인) = 전체 기간 누적 · "이번 달 신규" = 당월 `createdAt` 실측 · 월별 등록 추이 = **최근 12개월 고정**(`recentMonthsRange(12)`) · 승인 대기/최근 승인 = 현재 큐/게시 카탈로그 최신순.
+**위젯 구성**
+
+| 구획 | 위젯 | 파생 소스 | 진입점(라우트) |
+|---|---|---|---|
+| 스냅숏 KPI ×3 (`repeat(3,1fr)`, 소형) | 총 카드 수 · 이번 달 신규 · 승인 대기 총계(부분 승인 N건 포함) | `sourceTotal` 합 · `newThisMonth` · `pending.length`/`partialCount` | — |
+| 액션 대기 (2열) | 승인 대기 큐(요약 + 최대 5건: 유형·제목·ID·단계 칩·`ownerCompany` 배지) | `getDashboardData().pending`(검토 큐 미종결) | `/admin/review` |
+| 액션 대기 (2열) | 수정 요청 대기(빈 상태 — 데모 데이터 없음, 데이터 신설 금지) | — | `/admin/review` |
+| 현황 (2열) | 최근 게시된 카드 | `recentApproved`(게시 카탈로그 `updatedAt` 상위 4) | `/admin/projects` |
+| 현황 (2열) | 최근 활동(후기·게시글 최신 5, 카드 제목 병기) | `recentActivity`(`deriveRecentActivity`) | 카드 상세(`detailPathOf`) |
+| 하단 | "자세한 분석은 통계에서" 텍스트 링크(과한 배너 금지) | — | `/admin/statistics` |
+
+- **조회 범위 선택기** 헤더 노출(위 [조회 범위 선택기] 참조) — 콕핏에서도 "담당 범위 대기 건만 보기" 축으로 유효해 존치. `pendingCount`는 `baseScope` 기준. **기간 선택기 없음** — 고정 스냅숏(STATS-RANGE v3에서 제거).
+- 출처 색상·라벨은 `CATEGORIES` 파생(etc 포함), 관계사 표시명은 `orgCompanyName` 파생. 단계 칩 색은 파일 내 기존 강조색 재사용(신규 hex 없음). 목업 ID는 `{PREFIX}-2026-{NNN}` 형식.
+- 위젯 고정 기준: 총 카드 수 = 전체 기간 누적 · "이번 달 신규" = 당월 `createdAt` 실측 · 승인 대기/최근 게시/최근 활동 = 현재 큐/게시 카탈로그/후기·게시글 최신순.
 
 #### `AdminReview.tsx` — `/admin/review` (admin + companyAdmin)
 
@@ -715,7 +726,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 |--------|------|-----------|
 | 자산(M1) | `getAssetItems` · `getAssetItem(id)` · `getReviewsByItem(id)` · `getPostsByItem(id)` · `getFallbackN8nWorkflowJson` | 자산 목록·단건·후기·게시글·n8n 폴백 JSON |
 | 검토/신청 | `getReviewQueue` · `getMyApplications` · `getMyReviews` | 검토 대기 큐 · 내 신청 · 내 후기 |
-| 대시보드 | `getDashboardData(scope, range?)` | 자산 SSOT·검토 큐·후기 파생: `{companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth}`. 승인 대기=검토 큐, 최근 승인=게시 카탈로그 최신순, 게시된 도구·누적 후기=`ownerCompany` 파생. `range`(월 범위)는 `monthly`(등록 추이)에만 적용 — 나머지는 누적 스냅샷. 대시보드는 기간 선택기 없이 `recentMonthsRange(12)` 고정 창을 주입한다 |
+| 대시보드 | `getDashboardData(scope, range?)` | 자산 SSOT·검토 큐·후기·게시글 파생: `{companies, sourceTotal, monthly, domain, pending, recentApproved, recentActivity, activeTools, reviewTotal, partialCount, newThisMonth}`. **콕핏 소비 필드**: 승인 대기(`pending` — 검토 큐 미종결, `stage`·`company` 포함) / 최근 게시(`recentApproved` — 게시 카탈로그 최신순) / 최근 활동(`recentActivity` — 후기·게시글 병합 최신순) / 스냅숏 KPI(`sourceTotal`·`newThisMonth`·`partialCount`). `monthly`·`domain`·`activeTools`·`reviewTotal`은 파생·재사용 여지로 반환하나 콕핏 렌더에는 미사용(추이·분포는 통계로 위임). `range`는 `monthly`에만 적용 — 콕핏은 range를 주지 않는 스냅숏 |
 | 통계 | `getStatsByScope(scope, range?)` | 자산 SSOT·후기 파생: `{companies, companyTotals, monthSeries, sourceTotal, domain, difficultyCounts, costCounts, mlTypeCounts, dept, deptCount, tagFreq, timeSaved{annualTotal,estimable,unestimable,held}, topReviews, newThisMonth}` (표시 META 병합만 화면 프레젠테이션). `range`는 전 집계에 `createdAt` 기준 적용(예외: `companyTotals` 전량·`newThisMonth` 당월 고정) |
 | 랜딩/공용 | `getMonthlyNewCount(scope?)` | 이번 달 신규(전사 기준, `createdAt` 당월 실측) — 랜딩·통계 공용 |
 | 기간 | `resolvePeriod(sel)` · `getSelectableMonths()` · `recentMonthsRange(n)` | 기간 선택→유효 월 범위 `{from,to}` 환원(프리셋=시스템 현재월 파생, 전 기간 프리셋 없음 — 레거시는 범위 지정 전용) · 범위 지정 선택 가능 월 목록(데이터 존재 구간 2024.07~현재월) · 대시보드 등록 추이 고정 창(최근 n개월, 현재월 파생) |

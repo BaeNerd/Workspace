@@ -34,7 +34,7 @@ import {
   scopedCompanies,
   deriveSourceTotal, deriveMonthlySeries, deriveDomain, deriveDept, deriveDeptCount,
   deriveDifficulty, deriveCost, deriveMlType, deriveCompanyTotals, deriveNewThisMonth,
-  deriveTimeSaved, deriveTagFrequency, deriveTopReviews,
+  deriveTimeSaved, deriveTagFrequency, deriveTopReviews, deriveRecentActivity,
   resolvePeriodRange, filterByMonthRange, dataMonthBounds, currentMonthKey, enumerateMonths, addMonths,
 } from "./statsDerive";
 import type { SourceKey, PeriodSelection, MonthRange } from "./statsDerive";
@@ -104,7 +104,7 @@ export function getMyReviews() {
 // AdminDashboard 범위별 대시보드 데이터 (자산 SSOT·검토 큐·후기에서 파생). scope=null → 전사, 배열 → 해당 관계사(ownerCompany).
 // range는 등록 추이(월별 시계열)에만 적용된다 — KPI·구성·도메인은 카탈로그 누적(전 구간) 스냅샷이라 기간에 무관하다.
 // TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?company=:codes&from=YYYY-MM&to=YYYY-MM
-export type DashboardPending = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: string; approvalSlots: ApprovalSlots };
+export type DashboardPending = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: string; stage: string; approvalSlots: ApprovalSlots };
 export type DashboardApproved = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey };
 export function getDashboardData(scope: string[] | null, range?: MonthRange) {
   const assets = MOCK_ASSET_ITEMS;
@@ -122,11 +122,9 @@ export function getDashboardData(scope: string[] | null, range?: MonthRange) {
   // 승인 대기 = 검토 큐 중 미종결(승인 대기·부분 승인) 항목을 등록 관계사(ownerCompany) 범위로 필터. 부분 승인 = 슬롯 하나만 완료.
   const catName = (k: SourceKey) => CATEGORIES.find(c => c.id === k)?.name ?? k;
   const pending: DashboardPending[] = REVIEW_QUEUE
-    .filter(q => {
-      const stage = deriveStage(q.approvalSlots, q.rejected, q.suspended);
-      return inScope(q.ownerCompany) && (stage === "승인 대기" || stage === "부분 승인");
-    })
-    .map(q => ({ id: q.id, title: q.title, dept: q.dept, submittedAt: q.submittedAt, type: catName(q.kind), source: q.kind, company: q.ownerCompany, approvalSlots: q.approvalSlots }));
+    .map(q => ({ q, stage: deriveStage(q.approvalSlots, q.rejected, q.suspended) }))
+    .filter(({ q, stage }) => inScope(q.ownerCompany) && (stage === "승인 대기" || stage === "부분 승인"))
+    .map(({ q, stage }) => ({ id: q.id, title: q.title, dept: q.dept, submittedAt: q.submittedAt, type: catName(q.kind), source: q.kind, company: q.ownerCompany, stage, approvalSlots: q.approvalSlots }));
   const partialCount = pending.filter(p => p.approvalSlots.company.approved !== p.approvalSlots.global.approved).length;
 
   // 최근 승인 = 게시된 카탈로그(자산 SSOT) 최신 updatedAt 상위 4건. 검토 큐에는 승인 완료분이 없어 게시본에서 파생(승인 완료 = 게시 카드 ⊂ 카탈로그).
@@ -142,7 +140,9 @@ export function getDashboardData(scope: string[] | null, range?: MonthRange) {
   }, 0);
   const newThisMonth = deriveNewThisMonth(assets, scope);
   const companies = scopedCompanies(assets, scope);
-  return { companies, sourceTotal, monthly, domain, pending, recentApproved, activeTools, reviewTotal, partialCount, newThisMonth };
+  // 최근 활동 = 범위 내 카드의 후기·게시글 최신순 병합(카드 상세 진입점). 등록 추이 스냅숏과 무관하게 전 구간에서 파생.
+  const recentActivity = deriveRecentActivity(assets, MOCK_REVIEWS_BY_ITEM, MOCK_POSTS_BY_ITEM, scope);
+  return { companies, sourceTotal, monthly, domain, pending, recentApproved, recentActivity, activeTools, reviewTotal, partialCount, newThisMonth };
 }
 
 // ===== 관리자 통계 =====
@@ -203,7 +203,7 @@ export function getMonthlyNewCount(scope: string[] | null = null): number {
 // 통계 파생 계층 재-export (화면·컴포넌트는 dataSource만 경유 — 로직 복제 금지).
 // 관계사 표시명은 조직 SSOT orgCompanyName(하단)을 사용한다.
 export { monthTotal, STAT_COMPANIES } from "./statsDerive";
-export type { SourceKey, MonthPoint, TopReview } from "./statsDerive";
+export type { SourceKey, MonthPoint, TopReview, ActivityItem } from "./statsDerive";
 // 기간 선택 계약 재-export (선택기 컴포넌트·화면 공용 — 파생 계층 단일 정의 위임).
 export { PERIOD_PRESETS, MAX_RANGE_MONTHS, monthSpan, addMonths } from "./statsDerive";
 export type { PeriodSelection, PeriodPreset, MonthRange } from "./statsDerive";

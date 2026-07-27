@@ -10,7 +10,7 @@
 //    각 함수 주석의 엔드포인트가 그 계약 초안이다.
 // ============================================================
 
-import type { AssetItem, AssetReview, CategoryId, BusinessDomain } from "../types/categoryTypes";
+import type { AssetItem, AssetReview, Post, CategoryId, BusinessDomain } from "../types/categoryTypes";
 import { CATEGORIES, BUSINESS_DOMAINS } from "../types/categoryTypes";
 
 // 출처 키 = 7개 카테고리 그대로 (etc = AI 프로젝트 포함)
@@ -314,6 +314,38 @@ export function deriveTopReviews(
     });
   }
   return rows.sort((a, b) => b.reviewCount - a.reviewCount).slice(0, limit);
+}
+
+// 최근 활동 (후기·게시글 최신순 병합, 카드 제목·유형 병기). 대시보드 "최근 활동" 위젯 전용 파생.
+// 후기·게시글 SSOT를 카드(ownerCompany 범위) 기준으로 필터해 날짜("YYYY.MM.DD") 내림차순 상위 N을 반환한다.
+// source(=categoryId)는 위젯이 카드 상세 경로를 구성하는 축이다.
+// TODO: 실제 연동 시 GET /api/v1/admin/recent-activity?company=:codes 응답으로 교체
+export type ActivityItem = {
+  activity: "review" | "post";
+  itemId: string;
+  itemTitle: string;
+  source: SourceKey;
+  author: string;
+  dept: string;
+  date: string;
+};
+export function deriveRecentActivity(
+  items: AssetItem[],
+  reviewsByItem: Record<string, AssetReview[]>,
+  postsByItem: Record<string, Post[]>,
+  scope: string[] | null,
+  limit = 5,
+): ActivityItem[] {
+  const byId = new Map(items.map(i => [i.id, i]));
+  const rows: ActivityItem[] = [];
+  const push = (id: string, activity: "review" | "post", author: string, dept: string, date: string) => {
+    const item = byId.get(id);
+    if (!item || !inScope(item, scope)) return;
+    rows.push({ activity, itemId: id, itemTitle: item.title, source: item.categoryId, author, dept, date });
+  };
+  for (const [id, reviews] of Object.entries(reviewsByItem)) reviews.forEach(r => push(id, "review", r.author, r.dept, r.createdAt));
+  for (const [id, posts] of Object.entries(postsByItem)) posts.forEach(p => push(id, "post", p.author, p.dept, p.date));
+  return rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
 }
 
 // 카테고리 표시 정의(라벨·색상) — CATEGORIES 단일 소스 재-export 헬퍼(범례·스택 공용).
