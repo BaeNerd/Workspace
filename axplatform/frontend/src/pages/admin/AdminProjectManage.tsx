@@ -275,10 +275,11 @@ export default function AdminProjectManage() {
     ...CATEGORIES.map(p => ({ key: p.id, label: p.name })),
   ];
 
-  // canManageItem 판정 — companyAdmin은 담당 관계사 범위 + 전사 공용만 관리 (원본 판정 구조 유지)
+  // canManageItem 판정 — 등록 주체 관계사(ownerCompany) 축 단일 기준(검토 화면 ownsByOwnerCompany와 원칙 일치).
+  // admin=전체 / companyAdmin=등록 주체가 본인 담당 관계사인 건만(노출 범위 company와 무관, ADM-02).
   const canManageItem = (i: ManagedAssetItem): boolean => {
     if (isAdmin) return true;
-    if (isCompanyAdmin) return i.company.length === 0 || i.company.some(c => managedCompanies.includes(c));
+    if (isCompanyAdmin) return i.ownerCompany !== undefined && managedCompanies.includes(i.ownerCompany);
     return false;
   };
 
@@ -545,7 +546,7 @@ export default function AdminProjectManage() {
                     {!isEditing ? (
                       <>
                         {isAdmin && <button onClick={startEdit} style={{ background: "#fff", border: `1.5px solid ${COLOR.border}`, borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: COLOR.text2, cursor: "pointer" }}>수정</button>}
-                        <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>
+                        {canManageItem(displayData) && <button onClick={() => setDeleteConfirm(displayData.id)} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 7, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#EF4444", cursor: "pointer" }}>삭제</button>}
                       </>
                     ) : (
                       <>

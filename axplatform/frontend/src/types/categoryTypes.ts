@@ -154,23 +154,12 @@ export type AssetItem = {
 
   // n8n / pa 공용 — 트리거 설명·예상 효과
   triggerAction?: string;
-  nodes?: string[];         // @deprecated 등록 폼 제거 — 기존 목업·상세 호환 위해 유지, 후속 정리 예정
-  connectedApps?: string[]; // @deprecated 등록 폼 제거 — 기존 목업·상세 호환 위해 유지, 후속 정리 예정
   expectedTimeSaved?: string;
   difficulty?: "쉬움" | "보통" | "어려움";
 
-  // pa 전용 — @deprecated 등록 폼 제거 (기존 목업·상세 호환 위해 유지, 후속 정리 예정)
-  flowType?: string;
-  runMode?: string;
-  connectorTier?: string;
-
   // 나만의 비서(assistant) 전용
-  shareScope?: string;        // @deprecated 등록 폼 제거 — 호환 위해 유지
   sharedPrompt?: string;
   basedModel?: string;
-  roleDefinition?: string;    // @deprecated 등록 폼 제거 — 호환 위해 유지
-  connectedData?: string;     // @deprecated 등록 폼 제거 — 호환 위해 유지
-  sampleQuestions?: string[]; // @deprecated 등록 폼 제거 — 호환 위해 유지
 
   // AI Model(ai-orchestration) 전용
   modelMeta?: {
@@ -187,18 +176,9 @@ export type AssetItem = {
   // ML 전용
   mlType?: string;
   trainingDataDesc?: string;
-  performanceSummary?: string; // @deprecated 등록 폼 제거 — 호환 위해 유지
 
-  // ML / Vibe 공용
-  devTool?: string;    // @deprecated 등록 폼(vibe) 제거 — 호환 위해 유지
-  sourceRepo?: string; // @deprecated 등록 폼 제거 — 호환 위해 유지
-  outputType?: string; // @deprecated 등록 폼(vibe) 제거 — 호환 위해 유지
-
-  // 상태 사유 — "일부 제한" / "사용 중지" 항목에 제한·중단 이유 기재
-  statusNote?: string;
-
-  // 이용 방식 — self: 셀프서비스(바로 사용) / contact: 담당자 문의(카탈로그형)
-  usageMode?: "self" | "contact";
+  // ML 개발 도구 — ml 등록/수정 폼에서 계속 소비(프리필·카드 관리)되어 유지.
+  devTool?: string;    // @deprecated 등록 폼(vibe) 제거 — ml 폼 소비 중이라 유지
 
   // 업무 도메인 — 정식 분류 축 (AdminTaxonomy에서 관리)
   domain?: BusinessDomain;

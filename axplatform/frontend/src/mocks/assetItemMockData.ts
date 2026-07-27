@@ -13,7 +13,7 @@
 //
 // ── 필드 충돌 기준(왜 상세 값인가) ──
 // 두 사본이 어긋나는 필드는 상세(detail)를 SSOT로 삼는다:
-//  (a) 드리프트(views·summary·mlType·tags·likes·outputType) — 상세가 최신·완전.
+//  (a) 드리프트(views·summary·mlType·tags·likes) — 상세가 최신·완전.
 //  (b) modelMeta(11건) — 상세가 목록의 상위집합이라 무손실(목록 표시 불변).
 //  (c) specificUrl — 항목 URL 폐기 정책(기획설명서 0.5)에 따라 AI Model(AIO)만
 //      보존, 그 외 전 항목은 목록·상세 값 모두 폐기(공백). 정책 집행 예외.
@@ -290,12 +290,8 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     images: [PLACEHOLDER_IMG_2, PLACEHOLDER_IMG_1],
     mlType: "회귀 (Regression)",
     trainingDataDesc: "최근 2년 생산 배합 데이터 8,000건",
-    performanceSummary: "평균 오차 3% 이내",
     devTool: "TensorFlow",
-    outputType: "예측 색상값 (RGB)",
-    sourceRepo: "gitlab.kolmar.co.kr/ml/color-prediction",
     domain: "연구",
-    usageMode: "contact",
   },
   {
     id: "VIBE-2026-001",
@@ -316,10 +312,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2025.07.02",
     images: [PLACEHOLDER_IMG_4, PLACEHOLDER_IMG_2],
     devTool: "Cursor, Claude",
-    outputType: "Python 스크립트 + Slack 알림",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/daily-sales-report",
     domain: "영업",
-    usageMode: "contact",
   },
   {
     id: "AST-2026-001",
@@ -727,7 +720,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     expectedTimeSaved: "주 1.5시간",
     triggerAction: "Forms 제출 완료 → Teams 메시지 + 이메일 동시 발송",
     domain: "HR",
-    usageMode: "contact",
   },
   {
     id: "PA-2026-003",
@@ -769,12 +761,8 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2025.06.16",
     mlType: "시계열 예측",
     trainingDataDesc: "최근 3년 생산·판매 데이터 15,000건",
-    performanceSummary: "RMSE 12.4 (검증셋 기준)",
     devTool: "Python, Prophet",
-    outputType: "월별 수요 예측값 (Excel)",
-    sourceRepo: "gitlab.kolmar.co.kr/ml/demand-forecast",
     domain: "생산",
-    usageMode: "contact",
   },
   {
     id: "VIBE-2026-002",
@@ -794,10 +782,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     ownerCompany: "KMG",
     createdAt: "2025.10.16",
     devTool: "ChatGPT",
-    outputType: "Python 스크립트 + Excel 리포트",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/cost-analysis",
     domain: "재무",
-    usageMode: "contact",
   },
   {
     id: "N8N-2026-005",
@@ -864,7 +849,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     triggerAction: "출장 신청서 제출 → 결재 라인 자동 설정 → 항공·숙박 조회 링크 발송",
     difficulty: "보통",
     domain: "연구",
-    usageMode: "contact",
   },
   {
     id: "N8N-2026-008",
@@ -909,8 +893,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     triggerAction: "SAP 오류 이벤트 → 담당자 Teams 알림 + 이메일",
     difficulty: "어려움",
     domain: "재무",
-    usageMode: "contact",
-    statusNote: "SAP 연동 권한이 KKM 법인에만 허용됨. 타 계열사 확장은 SAP 관리자 권한 신청 및 IT 심사 후 지원 예정",
   },
   {
     id: "N8N-2026-010",
@@ -933,7 +915,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     triggerAction: "(운영 종료) 서버 장애 감지 → Slack 채널 알림",
     difficulty: "쉬움",
     domain: "IT",
-    statusNote: "2024년 9월 사내 협업 도구 Teams 전환 이후 운영 중단. 동일 기능의 Teams 버전(N8N-2026-001)으로 이전 완료",
   },
   {
     id: "PA-2026-004",
@@ -955,7 +936,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     expectedTimeSaved: "주 2시간",
     triggerAction: "ERP 재고 임계치 이하 → 구매 담당자 Teams 알림 + 이메일",
     domain: "생산",
-    usageMode: "contact",
   },
   {
     id: "PA-2026-005",
@@ -998,7 +978,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     expectedTimeSaved: "월 4시간",
     triggerAction: "공급사 등록 양식 제출 → 구매팀 승인 → 재무팀 승인 → 법무팀 승인 → ERP 등록",
     domain: "생산",
-    usageMode: "contact",
   },
   {
     id: "PA-2026-007",
@@ -1020,8 +999,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     expectedTimeSaved: "주 3시간",
     triggerAction: "경비 청구서 제출 → 사규 기준 검증 → 이상 건 재무팀 알림",
     domain: "재무",
-    usageMode: "contact",
-    statusNote: "5만 원 초과 건 및 해외 출장비는 수동 검토 필수. 전면 자동화 승인은 내부 감사팀 검토 진행 중",
   },
   {
     id: "PA-2026-008",
@@ -1043,7 +1020,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     expectedTimeSaved: "주 1.5시간",
     triggerAction: "(운영 종료) 이미지 업로드 → SharePoint 저장 → 완료 알림",
     domain: "IT",
-    statusNote: "설비관리 전용 모바일 점검 앱 도입(2025.03)으로 대체 완료. 기존 스캔 데이터는 SharePoint 아카이브에 보관",
   },
   {
     id: "AST-2026-005",
@@ -1104,7 +1080,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2026.06.26",
     basedModel: "GPT-5.4",
     domain: "생산",
-    usageMode: "contact",
   },
   {
     id: "AST-2026-008",
@@ -1125,8 +1100,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2026.07.14",
     basedModel: "Claude Sonnet 4.6",
     domain: "생산",
-    usageMode: "contact",
-    statusNote: "시장 단가 기준 데이터가 월 1회 갱신되어 최근 시황 반영이 늦을 수 있음. 고액 협상 건은 구매팀 확인 권장",
   },
   {
     id: "AST-2026-009",
@@ -1147,7 +1120,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2025.11.13",
     basedModel: "GPT-4 Turbo (구버전)",
     domain: "재무",
-    statusNote: "최신 모델 기반 법무 검토 보조 봇(AST-2026-001)으로 완전 대체. 2025년 12월 서비스 종료 및 데이터 이관 완료",
   },
   {
     id: "ML-2026-003",
@@ -1168,13 +1140,8 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2025.12.24",
     mlType: "분류 (Classification)",
     trainingDataDesc: "불량품·정상품 이미지 8만 장",
-    performanceSummary: "정확도 96.2% (테스트셋 기준)",
     devTool: "Python, TensorFlow, OpenCV",
-    outputType: "실시간 판별 결과 + 불량 이미지 저장",
-    sourceRepo: "gitlab.kolmar.co.kr/ml/defect-classifier",
     domain: "생산",
-    usageMode: "contact",
-    statusNote: "KKM·KMW 생산 라인 카메라에만 연동됨. 신규 라인 적용 전 카메라 스펙 검증 필요 (품질팀 요청)",
   },
   {
     id: "ML-2026-004",
@@ -1195,12 +1162,8 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2026.02.26",
     mlType: "분류 (Classification)",
     trainingDataDesc: "성분 상호작용 데이터 3만 건 (공개 논문·특허 기반)",
-    performanceSummary: "F1-score 0.89 (검증셋 기준)",
     devTool: "Python, PyTorch, scikit-learn",
-    outputType: "위험도 등급 (낮음/보통/높음) + 근거 성분 목록",
-    sourceRepo: "gitlab.kolmar.co.kr/ml/ingredient-interaction",
     domain: "연구",
-    usageMode: "contact",
   },
   {
     id: "ML-2026-005",
@@ -1221,12 +1184,8 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     createdAt: "2026.06.19",
     mlType: "시계열 예측",
     trainingDataDesc: "3개 채널 36개월 판매 데이터",
-    performanceSummary: "MAPE 8.3% (3개월 예측 기준)",
     devTool: "Python, Prophet, LightGBM",
-    outputType: "채널별 월별 수요 예측값 (Excel + 대시보드)",
-    sourceRepo: "gitlab.kolmar.co.kr/ml/demand-channel",
     domain: "영업",
-    usageMode: "contact",
   },
   {
     id: "AIO-2026-011",
@@ -1257,8 +1216,6 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
       costTier: "낮음",
       useCases: ["중국어 계약서 번역", "중국 현지 보고서 분석", "중국어 이메일 작성"],
     },
-    usageMode: "contact",
-    statusNote: "개인정보·영업비밀 포함 문서 입력 금지. 외부 서버로 데이터가 전송되므로 반드시 비공개 정보 제거 후 사용 (IT보안 정책 2025.05)",
   },
   {
     id: "VIBE-2026-003",
@@ -1278,10 +1235,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     ownerCompany: "KKM",
     createdAt: "2025.11.20",
     devTool: "Cursor",
-    outputType: "Python 앱 (Streamlit)",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/kpi-dashboard",
     domain: "HR",
-    usageMode: "contact",
   },
   {
     id: "VIBE-2026-004",
@@ -1301,10 +1255,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     ownerCompany: "HC",
     createdAt: "2026.04.17",
     devTool: "바이브 코딩 도구",
-    outputType: "웹앱 (HTML/JS)",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/coffee-roulette",
     domain: "영업",
-    usageMode: "contact",
   },
   {
     id: "VIBE-2026-005",
@@ -1324,10 +1275,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     ownerCompany: "KKM",
     createdAt: "2026.07.05",
     devTool: "Claude Code",
-    outputType: "Windows 실행 프로그램",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/ecm-downloader",
     domain: "IT",
-    usageMode: "contact",
   },
   {
     id: "VIBE-2026-006",
@@ -1347,10 +1295,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
     ownerCompany: "KMG",
     createdAt: "2025.08.11",
     devTool: "ChatGPT",
-    outputType: "Excel VBA 매크로",
-    sourceRepo: "gitlab.kolmar.co.kr/vibe/legacy-cost-vba",
     domain: "재무",
-    statusNote: "보안팀 매크로 실행 정책 강화(2025.10)로 사용 금지 처리. n8n 기반 원가 자동화 워크플로우(VIBE-2026-002 후속)로 이관",
   },
   {
     id: "ETC-2026-001",

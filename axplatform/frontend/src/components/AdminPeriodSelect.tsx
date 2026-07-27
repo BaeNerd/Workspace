@@ -65,7 +65,7 @@ export default function AdminPeriodSelect({ value, onChange }: Props) {
   const toOptions = months.filter(m => m >= fromKey && m <= windowEnd);
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flexShrink: 0 }}>
       <div style={groupStyle}>
         {PERIOD_PRESETS.map(p => {
           const active = value.kind === "preset" && value.preset === p;

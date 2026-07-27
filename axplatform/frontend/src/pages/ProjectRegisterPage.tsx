@@ -9,6 +9,9 @@ import { toWorkflowDef, parseN8nJson } from "../components/WorkflowDiagram";
 import type { WorkflowInput } from "../components/WorkflowDiagram";
 import N8nFlowPreview from "../components/N8nFlowPreview";
 import { ImageCarouselInput, MAX_IMAGES } from "../components/ImageCarouselInput";
+import { ChipInput } from "../components/ChipInput";
+import { TimeSavedInput, serializeTimeSaved } from "../components/TimeSavedInput";
+import type { SavedPeriod } from "../components/TimeSavedInput";
 import { FORM_MAX_WIDTH } from "../styles/layout";
 import { COLOR } from "../styles/tokens";
 
@@ -17,15 +20,7 @@ const DIFFICULTY_LEVELS = ["쉬움", "보통", "어려움"] as const;
 // AI Model 이용 가능 상태 (기존 4종 상태 체계와 별개 축)
 const AGENT_AVAILABILITY = ["사용 가능", "사용 불가"] as const;
 
-// 예상 절감 시간 — 수치 + 주기 조합으로 입력받아 표준 문자열로 직렬화
-type SavedPeriod = "일" | "주" | "월" | "년";
-const SAVED_PERIODS: SavedPeriod[] = ["일", "주", "월", "년"];
-const PERIOD_ANNUAL_FACTOR: Record<SavedPeriod, number> = { "일": 365, "주": 52, "월": 12, "년": 1 };
-const PERIOD_FULL_LABEL: Record<SavedPeriod, string> = { "일": "매일", "주": "주당", "월": "월당", "년": "연간" };
-const serializeTimeSaved = (value: number | "", period: SavedPeriod): string =>
-  value === "" || value <= 0 ? "" : `${period} ${value}시간`;
-const annualHours = (value: number | "", period: SavedPeriod): number =>
-  value === "" || value <= 0 ? 0 : Number(value) * PERIOD_ANNUAL_FACTOR[period];
+// 예상 절감 시간(수치 + 주기)·직렬화는 공용 TimeSavedInput 모듈 단일 소스 참조.
 
 // HK GPT 제공 모델 힌트 (나만의 비서 기반 모델 입력용)
 const ASSISTANT_MODEL_HINTS = [
@@ -139,106 +134,6 @@ function RowRemoveButton({ first, onClick }: { first: boolean; onClick: () => vo
       width: rowActionWidth, background: "none", border: "none", color: COLOR.text3,
       cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0,
     }}>×</button>
-  );
-}
-
-function ChipInput({
-  items, onAdd, onRemove, draft, onDraftChange, suggestions, placeholder,
-}: {
-  items: string[]; onAdd: (value?: string) => void; onRemove: (v: string) => void;
-  draft: string; onDraftChange: (v: string) => void; suggestions: string[]; placeholder: string;
-}) {
-  return (
-    <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: items.length > 0 ? 10 : 0 }}>
-        {items.map(item => (
-          <span key={item} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: 12, fontWeight: 600, background: "#E8F0FE", color: "#1E40AF",
-            padding: "4px 6px 4px 10px", borderRadius: 6, border: "1px solid #BFDBFE",
-          }}>
-            {item}
-            <button onClick={() => onRemove(item)} style={{ background: "none", border: "none", color: "#1E40AF", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
-          </span>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input value={draft} onChange={e => onDraftChange(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
-          placeholder={placeholder} style={{ ...inputStyle, flex: 1 }}
-          onFocus={e => (e.target.style.borderColor = COLOR.primary)}
-          onBlur={e => (e.target.style.borderColor = COLOR.border)} />
-        <button onClick={() => onAdd()} style={{
-          background: COLOR.primary, color: "#fff", border: "none", borderRadius: 7,
-          padding: "0 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-        }}>추가</button>
-      </div>
-      {suggestions.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
-          {suggestions.filter(s => !items.includes(s)).slice(0, 8).map(s => (
-            <span key={s} onClick={() => onAdd(s)} style={{
-              fontSize: 11, color: COLOR.text3, background: COLOR.bgSubtle, border: `1px solid ${COLOR.border}`,
-              padding: "3px 9px", borderRadius: 20, cursor: "pointer",
-            }}>+ {s}</span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TimeSavedInput({
-  value, period, onValueChange, onPeriodChange,
-}: {
-  value: number | ""; period: SavedPeriod;
-  onValueChange: (v: number | "") => void; onPeriodChange: (p: SavedPeriod) => void;
-}) {
-  const annual = annualHours(value, period);
-  const hasValue = value !== "" && Number(value) > 0;
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 4 }}>
-          {SAVED_PERIODS.map(p => (
-            <span key={p} onClick={() => onPeriodChange(p)} style={{
-              fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 8,
-              border: `1.5px solid ${period === p ? COLOR.primary : COLOR.border}`,
-              background: period === p ? "#E8F0FE" : "#fff",
-              color: period === p ? COLOR.primary : COLOR.text2,
-              cursor: "pointer", userSelect: "none",
-            }}>{p}</span>
-          ))}
-        </div>
-        <input
-          type="number" min={0} step={0.5} inputMode="decimal" value={value}
-          onChange={e => {
-            const raw = e.target.value;
-            if (raw === "") { onValueChange(""); return; }
-            const n = Number(raw);
-            if (Number.isNaN(n) || n < 0) return;
-            onValueChange(n);
-          }}
-          placeholder="예: 3"
-          style={{ ...inputStyle, maxWidth: 120 }}
-          onFocus={e => (e.target.style.borderColor = COLOR.primary)}
-          onBlur={e => (e.target.style.borderColor = COLOR.border)}
-        />
-        <span style={{ fontSize: 13, fontWeight: 600, color: COLOR.text2, whiteSpace: "nowrap" }}>시간</span>
-      </div>
-      {hasValue && (
-        <div style={{
-          marginTop: 10, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8,
-          padding: "10px 14px", fontSize: 12, color: "#065F46", lineHeight: 1.6,
-        }}>
-          <strong style={{ fontWeight: 700 }}>{PERIOD_FULL_LABEL[period]} {value}시간</strong> 절감
-          {" → "}
-          연간 약 <strong style={{ fontWeight: 700 }}>{annual.toLocaleString()}시간</strong>
-          <span style={{ color: "#059669", marginLeft: 4 }}>
-            ({value}시간 × {PERIOD_ANNUAL_FACTOR[period].toLocaleString()}{period === "년" ? "" : period})
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
 
