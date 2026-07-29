@@ -6,10 +6,10 @@
 // 단일 소스. 배열명은 MOCK_ASSET_ITEMS.)
 //
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
-//   GET /api/v1/platform-items              — MOCK_ASSET_ITEMS (목록/카운트)
-//   GET /api/v1/platform-items/:id          — 상세 단건
-//   GET /api/v1/platform-items/:id/reviews  — MOCK_REVIEWS_BY_ITEM
-//   GET /api/v1/platform-items/:id/posts    — MOCK_POSTS_BY_ITEM
+//   GET /api/v1/assets              — MOCK_ASSET_ITEMS (목록/카운트)
+//   GET /api/v1/assets/:id          — 상세 단건
+//   GET /api/v1/assets/:id/reviews  — MOCK_REVIEWS_BY_ITEM
+//   GET /api/v1/assets/:id/posts    — MOCK_POSTS_BY_ITEM
 //
 // ── 필드 충돌 기준(왜 상세 값인가) ──
 // 두 사본이 어긋나는 필드는 상세(detail)를 SSOT로 삼는다:
@@ -27,7 +27,7 @@ const PLACEHOLDER_IMG_2 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/20
 const PLACEHOLDER_IMG_3 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450'%3E%3Crect width='800' height='450' fill='%23F5F3FF'/%3E%3Crect x='90' y='90' width='300' height='90' rx='14' fill='none' stroke='%236D28D9' stroke-width='4'/%3E%3Crect x='410' y='90' width='300' height='90' rx='14' fill='%236D28D9' opacity='0.18'/%3E%3Crect x='90' y='210' width='620' height='60' rx='12' fill='%236D28D9' opacity='0.10'/%3E%3Crect x='90' y='300' width='420' height='60' rx='12' fill='%236D28D9' opacity='0.10'/%3E%3C/svg%3E";
 const PLACEHOLDER_IMG_4 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450'%3E%3Crect width='800' height='450' fill='%23FDF2F8'/%3E%3Cpolyline points='120,300 280,180 420,240 560,120 680,190' fill='none' stroke='%23DB2777' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='280' cy='180' r='9' fill='%23DB2777'/%3E%3Ccircle cx='560' cy='120' r='9' fill='%23DB2777'/%3E%3C/svg%3E";
 
-// TODO: 실제 연동 시 GET /api/v1/platform-items · GET /api/v1/platform-items/:id 응답으로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets · GET /api/v1/assets/:id 응답으로 교체
 export const MOCK_ASSET_ITEMS: AssetItem[] = [
   {
     id: "N8N-2026-001",
@@ -1319,7 +1319,7 @@ export const MOCK_ASSET_ITEMS: AssetItem[] = [
   },
 ];
 
-// 항목별 mock 게시글 — TODO: 실제 연동 시 GET /api/v1/platform-items/:id/posts
+// 항목별 mock 게시글 — TODO: 실제 연동 시 GET /api/v1/assets/:id/posts
 export const MOCK_POSTS_BY_ITEM: Record<string, Post[]> = {
   "N8N-2026-001": [
     { id: 1, author: "이서현", dept: "IT인프라팀", date: "2025.06.05", tag: "공지", text: "워크플로우 운영 시작했습니다. 계정 생성 누락 시 IT인프라팀으로 바로 알려주세요.", likes: 4, likedByMe: false },
@@ -1332,7 +1332,7 @@ export const MOCK_POSTS_BY_ITEM: Record<string, Post[]> = {
   ],
 };
 
-// 항목별 mock 활용 후기 — TODO: 실제 연동 시 GET /api/v1/platform-items/:id/reviews
+// 항목별 mock 활용 후기 — TODO: 실제 연동 시 GET /api/v1/assets/:id/reviews
 export const MOCK_REVIEWS_BY_ITEM: Record<string, AssetReview[]> = {
   "N8N-2026-001": [
     { id: "r1", itemId: "N8N-2026-001", itemTitle: "신규 입사자 계정 자동 생성", itemKind: "n8n", author: "박성민", dept: "IT인프라팀", text: "입사자 계정 생성 시간이 1시간에서 5분으로 줄었습니다. 실수도 없어졌어요.", createdAt: "2025.06.10", likes: 8 },

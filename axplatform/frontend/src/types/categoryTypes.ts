@@ -213,14 +213,6 @@ export type Post = {
   likedByMe: boolean;
 };
 
-// ===== 에디터 픽 (금주의 발견) =====
-export type EditorsPick = {
-  itemId: string;
-  reason: string;
-  pickedAt: string;
-  pickedBy: string;
-};
-
 // ===== 병렬 2슬롯 승인 =====
 // 항목마다 독립 승인 슬롯 2개를 두고, 순서 없이 어느 쪽이 먼저 승인해도 된다.
 // - company 슬롯: 담당 companyAdmin 또는 admin이 수행

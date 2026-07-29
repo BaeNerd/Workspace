@@ -6,7 +6,7 @@
 // ⚠️ 백엔드 연동 시 전량 폐기 대상.
 //   GET /api/v1/admin/companies              — INITIAL_COMPANIES (Teams 조직도 API)
 //   GET /api/v1/admin/departments            — INITIAL_DEPTS
-//   GET /api/v1/admin/platform-items?fields=company — ASSET_ITEM_REFS (관계사 집계용 최소 투영)
+//   GET /api/v1/admin/assets?fields=company — ASSET_ITEM_REFS (관계사 집계용 최소 투영)
 //   GET /api/v1/admin/teams/org-preview      — TEAMS_SYNC_SOURCE (Graph API 조직도 미리보기)
 // ============================================================
 
@@ -73,7 +73,7 @@ export const INITIAL_DEPTS: Dept[] = [
 ];
 
 // ★ AssetItem 관계사 집계용 최소 투영 목업
-// TODO: 실제 연동 시 GET /api/v1/admin/platform-items?fields=company 응답으로 교체
+// TODO: 실제 연동 시 GET /api/v1/admin/assets?fields=company 응답으로 교체
 export const ASSET_ITEM_REFS: AssetItemRef[] = [
   { id: "N8N-001", company: ["KKM"] },
   { id: "N8N-002", company: ["KKM"] },

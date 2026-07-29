@@ -5,7 +5,8 @@
 //   GET    /api/v1/notices              — 사용자 공개 목록(visible=true만)
 //   GET    /api/v1/admin/notices        — 관리자 전체 목록(비노출 포함)
 //   POST   /api/v1/admin/notices        — 신규 작성
-//   PUT    /api/v1/admin/notices/:id    — 수정
+//   PUT    /api/v1/admin/notices/:id    — 전체 교체
+//   PATCH  /api/v1/admin/notices/:id    — 고정(pinned)·노출(visible) 토글
 //   DELETE /api/v1/admin/notices/:id    — 삭제
 
 export type NoticeKind = "공지사항" | "업데이트";

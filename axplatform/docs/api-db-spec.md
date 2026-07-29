@@ -1,4 +1,4 @@
-# AX Platform API·DB 명세서 (초판)
+# AX Platform API·DB 명세서 (v1.1)
 
 본 문서는 `docs/AX-Platform-화면별-기획설명서.md`(v4, 이하 **v4**)를 1순위 근거로 하고,
 `frontend/src`의 목업 데이터 접근 계층(`lib/dataSource.ts`·`lib/statsDerive.ts`·`types/*`)이
@@ -7,6 +7,7 @@
 
 - v4와 코드가 어긋나는 지점은 임의로 확정하지 않고 **[7장 결정 필요 항목](#7-결정-필요-항목)** 에 올렸다.
 - v4·코드 어디에도 근거가 없는 계약은 발명하지 않았다. 미근거 항목 역시 7장으로 보냈다.
+- **v1.1에서 DN-01~DN-18 중 17건이 확정되어 본문에 반영되었다.** 잔여 결정 대기는 **DN-05(이미지 스토리지)** 한 건이다.
 
 **확정 전제 (변경 금지)**
 
@@ -134,7 +135,7 @@ sequenceDiagram
     API->>ENT: 코드 교환 (client_secret / cert)
     ENT-->>API: id_token · access_token (oid, email, name)
     API->>DB: users UPSERT (entra_oid 기준) · 부서·소속 동기화
-    API->>DB: roles · company_admin_scopes 조회
+    API->>DB: user_roles · company_admin_scopes 조회
     DB-->>API: role, managedCompanies[], isGroupViewer
     API-->>FE: axplatform JWT (+ refresh) · GET /auth/me 페이로드
     FE->>U: 역할별 랜딩 (admin·companyAdmin → /admin, user → 원래 목적지)
@@ -168,7 +169,7 @@ SSO 전환 시 제거한다(v4 §0.2·USR-01). 서버는 데모 계정 경로를
 - 권한이 변경되면(ADM-08 부여·회수) 해당 사용자의 리프레시 토큰을 무효화해 다음 갱신 시 클레임을 재발급한다.
 
 > **클레임은 캐시일 뿐이다.** 모든 가시성·조작 판정은 요청 시점에 DB의
-> `roles` · `company_admin_scopes`를 다시 읽어 재검증한다(v4 §0.6 서버 검증 책임).
+> `user_roles` · `company_admin_scopes`를 다시 읽어 재검증한다(v4 §0.6 서버 검증 책임).
 
 ### 2.3 권한 축 — ownerCompany 단일 축
 
@@ -247,7 +248,7 @@ erDiagram
     companies ||--o{ asset_visibility_companies : "노출 범위"
     companies ||--o{ company_admin_scopes : "담당"
 
-    users ||--o{ roles : "부여"
+    users ||--o{ user_roles : "부여"
     users ||--o{ company_admin_scopes : "담당 관계사"
     users ||--o{ assets : "submitted_by"
     users ||--o{ approval_history : "actor"
@@ -261,6 +262,8 @@ erDiagram
     users ||--o{ edit_requests : "requested_by"
     users ||--o{ notices : "작성"
     users ||--o{ operation_settings : "updated_by"
+    users ||--o{ asset_views : "조회 판정"
+    users ||--o{ search_logs : "검색자"
 
     categories ||--o{ assets : "분류"
     categories ||--o{ asset_id_sequences : "연도별 순번"
@@ -278,6 +281,7 @@ erDiagram
     assets ||--o{ asset_likes : "좋아요"
     assets ||--o{ edit_requests : "수정 요청"
     assets ||--o{ scraps : "스크랩됨"
+    assets ||--o{ asset_views : "조회 판정"
 
     taxonomies ||--o{ taxonomy_values : "값"
     taxonomy_values ||--o{ assets : "domain·difficulty·cost_tier·ml_type"
@@ -314,7 +318,7 @@ erDiagram
         timestamptz created_at
         timestamptz last_login_at
     }
-    roles {
+    user_roles {
         bigserial id PK
         uuid user_id FK
         text role "user|admin|companyAdmin"
@@ -395,8 +399,8 @@ erDiagram
     approval_history {
         bigserial id PK
         text asset_id FK
-        text slot_key "company|global · 반려는 null"
-        text action "approve|reject|cancel"
+        text slot_key "company|global · 반려·중지는 null"
+        text action "approve|reject|cancel|suspend|unsuspend"
         uuid actor_id FK
         timestamptz acted_at
         text note "반려 사유"
@@ -498,6 +502,18 @@ erDiagram
         text asset_id PK
         timestamptz created_at
     }
+    asset_views {
+        text asset_id PK
+        uuid user_id PK
+        timestamptz last_counted_at "24시간 창 판정 기준 (DN-09)"
+    }
+    search_logs {
+        bigserial id PK
+        text keyword "정규화 전 원문"
+        uuid user_id FK "검색자 · 비로그인 없음"
+        timestamptz searched_at
+        int result_count "응답 total"
+    }
     user_interests {
         uuid user_id PK
         text[] categories
@@ -562,6 +578,12 @@ erDiagram
 - 검토 큐(`GET /admin/review-queue`)는 `published_at IS NULL OR 종결 플래그` 인 행을 다룬다.
 - 이 방침이 v4 §0.9 ①(단일 카탈로그 SSOT에서 총량 파생)을 물리 계층에서 보장한다 — 별도 집계 테이블 없음(6.5).
 
+**카드 ID 수명 규칙 (DN-16 확정)**
+
+- 카드 ID는 **접수 시점에 발급되고 승인 전후 불변**이다. 승인·반려·중지 어느 전이에서도 재발급하지 않는다.
+- 반려된 건을 삭제한 뒤 다시 신청하면 **새 ID를 발급**한다 — 삭제된 ID를 회수해 재사용하지 않는다.
+- 따라서 삭제·롤백으로 소비된 ID는 **결번으로 영구 잔류**한다(6.2 순번 발급 정책과 동일 원칙).
+
 ### 3.3 열거값 (코드 계약 = 정본)
 
 | 열거 | 값 | 코드 근거 |
@@ -570,6 +592,7 @@ erDiagram
 | 승인 단계(파생) | `승인 대기` `부분 승인` `게시됨` `반려` `중지` | `ApprovalStage` |
 | 슬롯 키 | `company` `global` | `ApprovalSlotKey` |
 | 승인 액션 | `승인`(approve) `반려`(reject) `취소`(cancel) | `ApprovalRecord.action` |
+| 이력 액션(DB 전용 확장) | `suspend` `unsuspend` — 프론트 타입 미대응(4.6) | DN-02 (c) |
 | 업무 도메인 | `영업` `생산` `연구` `재무` `HR` `IT` | `BUSINESS_DOMAINS` |
 | 구성 난이도 | `쉬움` `보통` `어려움` | n8n 전용 |
 | 비용 등급 | `낮음` `보통` `높음` | AI Model 전용 |
@@ -587,8 +610,15 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 영문 코드로 치환하면 무근거 매핑 계층이 생긴다(절대 규칙 1: 내부 식별자 리네이밍 금지).
 `approval_history.action`만 영문 병기(`approve|reject|cancel`)를 두어 API 요청 동사와 정렬한다.
 
-> **운영 상태(PlatformItemStatus)는 스키마에 존재하지 않는다.** v4 §0.4와
-> `types/categoryTypes.ts:94`가 전면 폐기를 명시한다. 관련 결정 사항은 7장 **DN-01** 참조.
+**다국어 방침 (DN-18 확정)**: 현 시점에는 한글 리터럴 저장을 유지한다.
+다국어는 **영어·중국어 한정**으로 염두에 두며, 도입 시 저장값(코드)과 표시값을 분리하는
+**표시값 분리 계층**을 설계한다 — 그때까지 저장형은 위 리터럴이 정본이다.
+
+> **운영 상태(PlatformItemStatus)는 스키마에 존재하지 않는다 — DN-01 확정.**
+> v4 §0.4와 `types/categoryTypes.ts:94`가 전면 폐기를 명시하며, **운영 상태 축은 전면 폐기로 확정**되었다.
+> `assets`에 상태 컬럼을 두지 않고, 상태 변경 API도 두지 않는다(부활 없음).
+> `agentAvailability`(`사용 가능`/`사용 불가`)는 **AI Model 전용 별개 축**으로 존치하며,
+> 폐기된 운영 상태 축과 무관하다 — 카드 전반의 운영 상태를 대신하지 않는다.
 
 ### 3.4 주요 인덱스·제약
 
@@ -606,9 +636,11 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `taxonomy_values` | `UK(taxonomy_key, value)` | 분류 값 중복 방지 |
 | `categories` | `UK(path)` / `UK(id_prefix)` | ADM-06 중복 검사 |
 | `notices` | `idx(visible, pinned DESC, posted_at DESC)` | 고정 우선·최신순 |
-| `roles` | `UK(user_id, role)` | 역할 중복 부여 방지 |
+| `user_roles` | `UK(user_id, role)` | 역할 중복 부여 방지 |
 | `company_admin_scopes` | `UK(user_id, company_code)` | 담당 중복 방지 |
 | `audit_logs` | `idx(occurred_at DESC)` / `idx(category)` | 로그 탭 필터 |
+| `asset_views` | `PK(asset_id, user_id)` | 조회 24시간 중복 방지(6.5) |
+| `search_logs` | `idx(searched_at DESC)` / `idx(keyword)` | 검색 로그 조회·키워드 집계 |
 
 **참조 무결성 정책**
 
@@ -620,6 +652,7 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `asset_*` 자식 테이블 → `assets.id` | `CASCADE` | 카드 삭제 시 부속 데이터 동반 삭제 |
 | `audit_logs.actor_id → users.id` | `SET NULL` | 감사 기록은 사용자 삭제와 무관하게 보존(`actor_name` 스냅숏) |
 | `departments.company_code → companies.code` | `RESTRICT` | 조직 축 보존 |
+| `search_logs.user_id → users.id` | `SET NULL` | 검색 통계는 사용자 삭제와 무관하게 보존(DN-12) |
 
 > 분류 참조를 FK로 걸지 않고 `assets.domain_value` 등 **텍스트 값**으로 둔 것은
 > ADM-05의 "삭제 시 공란 처리" 정책을 단순하게 만들기 위함이다.
@@ -664,6 +697,25 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 3. `isGroupViewer = true` 이면 2를 우회하고 전량 열람 — 응답에 `groupViewerBypass: true` 를 실어
    화면 상단 안내 뱃지의 근거로 삼는다.
 4. 응답에는 `ownerCompany`를 **제공하되**, 사용자 화면은 렌더하지 않는다(v4 §0.5).
+5. 카드의 `category_id`가 **비활성 카테고리**(`categories.active = false`)면 목록에서 제외한다(4.11 · DN-06).
+
+> **`audiences` 필드는 폐기 확정이다 — DN-07.** 접근 제어 축으로 전환하지 않으므로
+> 위 게이팅 규칙(`asset_visibility_companies` + `isGroupViewer` 단일 계층)의 **재설계는 불요**하다.
+> 중첩 게이팅 계층을 도입하지 않는다.
+
+**`q` 검색 범위 (DN-12 확정)**
+
+`GET /assets?q=` 는 **제목(`title`) · 상세 설명(`description`) · 부서(`dept`)** 세 축을 대상으로 한다.
+초판의 제목·요약 축에 **내용 축(`description`)** 을 추가한 것이며, 대소문자 무시 부분 일치다.
+
+- 검색 실행 시 서버는 `search_logs`에 **키워드 · 검색자 · 시각 · 결과 수**를 기록한다(3.1).
+- 결과 수는 게이팅 적용 **후** 의 `total` 값이다 — 검색자가 실제로 본 건수를 기록한다.
+- `q`가 공백이거나 없으면 기록하지 않는다.
+- `/stats/*` 에는 여전히 **키워드 축을 두지 않는다**(5.2) — `search_logs`는 적재만 하고
+  집계 엔드포인트는 백로그다.
+
+> **각주 — 결정 대기**: `search_logs`의 **보존 기간**은 운영 결정 사항이다.
+> 개인정보 취급 방침 확정 시 보존 기간·익명화 시점을 함께 정한다.
 
 **`AssetCreate` 요청 본문** (USR-05)
 
@@ -715,19 +767,32 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `GET /admin/edit-requests/:id` | `admin` + `companyAdmin*` | — | `EditRequest` | 403, 404 |
 | `PATCH /admin/edit-requests/:id` | `admin` + `companyAdmin*` | `{ status: "applied"\|"held"\|"rejected", note }` | `200 EditRequest` → `수정요청처리` 알림 | 400, 403, 404 |
 
-**신청 자격 규칙** (v4 USR-04·USR-06·§0.6)
+**신청 자격 규칙** (v4 USR-04·USR-06·§0.6 · **DN-03 확정**)
 
-> 게시된 카드에 대해 **누구나** 수정 요청을 신청할 수 있다 — 담당자 변경·이관처럼
-> 제3자가 발견하는 수정 사유가 실무에 많다는 판단이 근거다.
+> 게시된 카드에 대해 **로그인 사용자 누구나** 수정 요청을 신청할 수 있다 — 담당자 변경·이관처럼
+> 제3자가 발견하는 수정 사유가 실무에 많다는 판단이 근거다. **v4 정본을 그대로 유지한다.**
 > **예외: 대상 카드가 AI Model(`ai-orchestration`)이면 `admin` 전용**이다(v4 §0.6, 등록 제한과 동일 원칙).
-> 코드에서는 `EditRequestPage.tsx:228-240`이 비관리자 진입을 안내 화면으로 차단한다.
-> 이 예외의 화면 문구 병기 문제는 7장 **DN-03**.
+
+**화면 노출 방식도 현행 유지로 확정한다.** 상세 화면(USR-04)의 "수정 요청" 버튼은
+AI Model 카드에서도 **전원에게 노출**하고, 진입 후 `EditRequestPage`가 비관리자에게
+**관리자 전용 안내 화면**을 보여 차단한다(`EditRequestPage.tsx:228-240`). 버튼을 사전에
+숨기거나 비활성화하지 않는다 — 예외의 존재 자체를 알리는 편이 안내 비용이 낮다는 판단이다.
+
+> 화면정의서 USR-04 룰 문구에 이 AI Model 예외를 병기하는 작업은 **SPEC-AMEND 소관**이며
+> 본 명세서의 범위가 아니다. API 계약은 위 표의 권한 열이 정본이다.
 
 - `reason`은 필수다. 공백만 있는 값도 `400 REASON_REQUIRED`.
 - `payload`는 **변경분만** 담는다(v4 §0.2 "diff → 변경분만 저장").
 - 요청 본문에 `company`(노출 범위)를 포함하지 않는다(v4 §0.9 ③·USR-06).
 - 대상은 `published_at IS NOT NULL` 인 카드로 한정한다.
-- 관리자 처리 큐 **화면**은 미구현이며 API 계약만 선확보한다(v4 부록 B·USR-06).
+
+**처리 권한·큐 화면 (DN-10 확정)**
+
+- 처리(`PATCH /admin/edit-requests/:id`) 권한은 **`admin` + 담당 범위 내 `companyAdmin*`** 으로 확정한다
+  (4.4 표의 잠정안을 그대로 채택). 범위 판정은 대상 카드의 `owner_company` 기준(2.3)이다.
+- 관리자 처리 큐 **화면**은 미구현이며 API 계약만 선확보한다 — **화면 도입 시점은 백로그 유지**(v4 부록 B·USR-06).
+- 관리자가 신규 수정 요청을 인지하는 경로는 **관리자 화면**이다 — ADM-01 대시보드의
+  "수정 요청 대기" 위젯(4.7)과 위 처리 큐 API가 담당한다. **관리자 수신용 알림 kind는 신설하지 않는다**(6.3).
 
 ### 4.5 검토·승인 `/api/v1/admin/review-queue`
 
@@ -760,9 +825,29 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `DELETE /admin/assets/:id` | `admin` + `companyAdmin*` | `{ reason }` | `204` (복구 불가) | 403, 404 |
 | `POST /admin/assets/:id/images` | `admin` | multipart | `201 { storageKey }` | 403, 413 |
 | `DELETE /admin/assets/:id/images/:imageId` | `admin` | — | `204` | 403, 404 |
+| `POST /admin/assets/:id/suspend` | **`admin` 전용** | `{ reason }` (필수) | `200 { stage: "중지" }` | 400 `REASON_REQUIRED`, 403, 404, 409 `NOT_PUBLISHED` |
+| `POST /admin/assets/:id/unsuspend` | **`admin` 전용** | `{ reason }` (필수) | `200 { stage }` — 슬롯 재파생 | 400 `REASON_REQUIRED`, 403, 404, 409 `NOT_SUSPENDED` |
 
 권한 세분(v4 ADM-03): **수정·직접 등록은 admin 전용**, **삭제는 담당 범위 내 companyAdmin에게도 허용**.
 가시성은 검토 화면과 동일한 `ownerCompany` 판정이다.
+
+**중지 전이 (DN-02 (c) 확정)**
+
+`중지`(`assets.suspended`)로 전이시키는 조작이 코드·명세 양쪽에 부재했던 공백을 위 두 엔드포인트로 메운다.
+
+| 항목 | 규정 |
+|---|---|
+| 권한 | **`admin` 전용** — 게시된 카드를 전사 차원에서 내리는 조작이므로 companyAdmin에게 열지 않는다 |
+| 대상 | **게시 카드**(`published_at IS NOT NULL`)에 한한다. 미게시 건은 `409 NOT_PUBLISHED` — 미게시 건의 종결은 반려(4.5)다 |
+| 사유 | **필수**. 공백만 있는 값도 `400 REASON_REQUIRED` |
+| 이력 | `approval_history`에 `action='suspend'`\|`'unsuspend'`, `slot_key=null`, `note`=사유로 append |
+| 트랜잭션 | `suspended` 플래그 갱신 + 이력 기록을 **단일 트랜잭션**으로 처리한다(6.1과 동일 구조) |
+| 알림 | **신청자**(`assets.submitted_by`)가 수신한다 — 커밋 이후 발송(6.3) |
+| 게시 상태 | `unsuspend`는 `suspended=false`로 되돌릴 뿐이며 `published_at`을 건드리지 않는다 → `deriveStage`가 슬롯에서 `게시됨`을 재파생한다 |
+
+- `approval_history.action` 열거에 `suspend`·`unsuspend` 2값이 추가된다(3.1 주석의 `approve|reject|cancel` 확장).
+- **화면 도입은 백로그다.** ADM-03 카드 관리에 조작 진입점을 두는 안이 유력하나 시점은 미정이며,
+  **본 결정으로 인한 프론트엔드 변경은 없다** — API 계약만 선확보한다.
 
 ### 4.7 대시보드 `/api/v1/admin/dashboard`
 
@@ -780,7 +865,7 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
                  "type":"n8n", "source":"n8n", "company":"KKM",
                  "stage":"승인 대기", "approvalSlots": { "company": {...}, "global": {...} } } ],
   "partialCount": 2,                  // 부분 승인 건수(병기)
-  "pendingEditRequests": 0,           // 수정 요청 대기 — DN-04
+  "pendingEditRequests": 0,           // 수정 요청 대기 = status='pending' 단독(DN-04)
   "recentApproved": [ { "id":"…", "title":"…", "dept":"…", "approvedAt":"…", "source":"n8n" } ],
   "recentActivity": [ { "activity":"review", "itemId":"…", "itemTitle":"…",
                         "source":"n8n", "author":"…", "dept":"…", "date":"2026.06.20" } ],
@@ -794,6 +879,17 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 - `companyAdmin`은 `?company=`를 지정하더라도 서버가 `managedCompanies`와 교집합을 취한다.
 - 사이드바 승인 대기 건수는 조회 범위와 무관하게 **본인 권한 기준**(baseScope)으로 계산한다(v4 PART 2 공통).
   → `GET /admin/pending-count` 를 별도로 두지 않고 `GET /auth/me` 응답에 `pendingCount`를 포함한다.
+
+**`pendingEditRequests` 판정 기준 (DN-04 확정)**
+
+- **`edit_requests.status = 'pending'` 단독**이다. `held`(보류)는 **관리자가 이미 판단을 내린 상태**이므로
+  대기 건수에 포함하지 않는다. `applied`·`rejected`도 당연히 제외된다.
+- 범위는 대시보드 조회 범위와 동일하다 — 대상 카드의 `owner_company`가 `?company=` ∩ `managedCompanies` 안에 드는 건만 센다.
+- 위젯 클릭 시 이동 대상은 4.4의 처리 큐 API를 소비하는 화면이며, 그 **화면 도입 시점은 백로그**다(DN-10).
+
+> **현행 `AdminDashboard.tsx:166`의 하드코딩 `0`은 목업 잔재다.**
+> 수정 요청 데이터 모델·목업이 없어 상수로 두었을 뿐이며,
+> **서버 연동 시 삭제하고 `pendingEditRequests` 응답 값으로 대체할 대상**이다.
 
 ### 4.8 조직 `/api/v1/admin` (ADM-07)
 
@@ -814,6 +910,10 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 - 관계사를 비노출로 전환해도 데이터는 삭제되지 않는다(v4 ADM-07) — `visible` 플래그만 변경.
 - 노출 토글은 `GET /assets` 게이팅과 즉시 정합해야 한다(6.6 캐시 무효화).
 - 관계사 관리자 지정·해제는 이 영역에 두지 않는다 — 4.10(ADM-08) 단일 지점이다.
+
+**부서 동기화 실행 모델 (DN-15 확정)**: `POST /admin/teams/sync`는 **`202 Accepted` 비동기**로 확정한다.
+잠정 표기를 그대로 추인한 것이며, 요청은 즉시 접수 응답을 반환하고 동기화는 백그라운드에서 수행한다.
+`GET /admin/teams/org-preview`가 반영 결과 확인 경로다.
 
 ### 4.9 분류체계 `/api/v1/admin/taxonomy` (ADM-05)
 
@@ -870,7 +970,33 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 - `id` 형식 검증: 소문자·숫자·하이픈 (`^[a-z0-9-]+$`). `path`·`id`·`idPrefix` 중복 검사 필수.
 - `accessUrl`은 `null` 허용 = "미설정" 표기.
 - 참조 카드가 있는 카테고리는 삭제 불가(`409`) — 비활성화를 권장한다.
-- 비활성 카테고리의 기존 카드 처리 정책은 **미확정**(7장 **DN-06**).
+
+**비활성 카테고리 정책 (DN-06 확정)**
+
+`categories.active = false` 로 전환해도 데이터는 삭제되지 않으며, 축별로 다음과 같이 처리한다.
+
+| 축 | 비활성 카테고리 처리 |
+|---|---|
+| **신규 등록** | **차단**. `POST /assets`·`POST /admin/assets`에 비활성 `categoryId`가 오면 `422 CATEGORY_INACTIVE` |
+| **통계 집계** (`/stats/*`) | **제외** — 해당 카드를 카운트하지 않는다(5.1 집계 규칙) |
+| **랜딩 플랫폼 현황** (`/stats/summary`) | **제외** — `totalAssets`·`byCategory` 모두에서 빠진다 |
+| **카테고리 필터·목록** (`GET /assets`, `GET /categories`) | **제외** — 필터 선택지에서도, 목록 결과에서도 빠진다 |
+| **기존 게시 카드의 직접 열람** | **유지** — `GET /assets/:id`는 정상 응답한다. URL 직접 진입·알림 링크·스크랩 경로가 깨지지 않는다 |
+| **관리자 화면** (ADM-03 카드 관리 · ADM-02 검토) | **전부 표시** — `GET /admin/assets`·`GET /admin/review-queue`는 카테고리 활성 여부로 필터하지 않는다 |
+
+> 요지: **집계·탐색 동선에서는 사라지되 이미 발급된 링크는 살아 있고, 관리자에게는 전부 보인다.**
+> 비활성화는 "새로 늘리지 않고 조용히 접는" 조작이지 데이터 은폐가 아니다.
+
+**`accessUrl` 소비 지점 (DN-11 확정)**
+
+`categories.access_url`을 사용자 화면에서 소비하는 지점을 **USR-03 카탈로그 한 곳으로 확정**한다.
+
+- 위치: **카테고리 필터가 활성화되었을 때** 결과 수 표시 행의 **우측**.
+- 형태: `외부 도구 바로가기 ↗` 버튼 — **새 탭**으로 연다(`target="_blank"`).
+- 표시 조건: 선택된 카테고리의 `accessUrl`이 설정된 경우에만. **미설정(`null`) 카테고리에서는 미표시**한다.
+- 카테고리 필터가 비활성(전체 보기)이면 표시하지 않는다 — 대상 카테고리가 특정되지 않기 때문이다.
+
+> **화면 구현은 백로그다.** 본 명세서는 소비 지점만 확정하며, API 계약(`GET /categories`의 `accessUrl`)은 이미 확보되어 있다.
 
 ### 4.12 소식 `/api/v1/notices` (USR-10 · ADM-09)
 
@@ -952,6 +1078,14 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `companyTotals` (관계사별 합계) | 범위·기간 무관 **전량** |
 | `newThisMonth` (이번 달 신규) | **당월 고정** — 데이터의 최신 `created_at` 월 기준 |
 | `monthSeries` (월별 추이) | `from~to` 연속 월축, 빈 월은 0-fill |
+
+**집계 대상 제외 규칙 (DN-06 확정)**
+
+- 전 `/stats/*` 축과 공개 `GET /stats/summary`는 **비활성 카테고리(`categories.active = false`)의 카드를 집계에서 제외**한다.
+- 제외는 기간·범위 필터보다 **선행**한다 — 먼저 활성 카테고리 카드로 모집단을 좁힌 뒤 `company`·`from`·`to`를 적용한다.
+- `GET /stats/by-category`의 7키 고정 반환도 **활성 카테고리 키만**으로 축소된다(카테고리 수는 마스터 파생 현재값 — 6.5).
+- 관리자 화면 집계(ADM-02 `counts`)는 이 제외 규칙을 **적용하지 않는다** — 관리자에게는 전부 보여야 하기 때문이다(4.11).
+- 따라서 6.5의 총량 항등식은 **활성 카테고리 모집단 안에서** 성립한다.
 
 ### 5.2 `/stats/*` 엔드포인트 ↔ `statsDerive` 대응표
 
@@ -1048,8 +1182,25 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | `부분 승인` | 슬롯 1/2, 미종결 | **탭 O** (`부분 승인`) | **칩 O** — 하위에 `관계사만 N · 전사만 N` 세분 | `pending` 포함 + `partialCount` 병기 |
 | `게시됨` | 슬롯 2/2 | **탭 O** (`게시됨`) | `처리완료`에 합산 | `pending` 제외 · `recentApproved`·카탈로그 총량 |
 | `반려` | `rejected` | **탭 O** (`반려`) | `처리완료`에 합산 | 제외 |
-| `중지` | `suspended` | **탭 없음** ⚠️ | `처리완료`에 합산 ⚠️ | 제외 |
-| (합계) | — | `전체` 탭 = 미삭제 전량 (**중지 포함**) | `전체` 칩 = 가시 집합 전량 | — |
+| `중지` | `suspended` | **탭 없음 — 확정**(DN-02 (b)) | `처리완료`에 합산 — **확정**(DN-02 (a)) | 제외 |
+| (합계) | — | `전체` 탭 = 미삭제 전량 — **`중지` 포함 확정**(DN-02 (b)) | `전체` 칩 = 가시 집합 전량 | — |
+
+**DN-02 확정 사항 (2026-07)**
+
+| # | 결정 | 내용 |
+|---|---|---|
+| (a) | ADM-02 `처리완료` | **`게시됨` + `반려` + `중지` 3단계 합산**을 추인한다. 코드 실계약(`isTerminalStage`)이 정본이며 명세를 코드에 맞춘다 |
+| (b) | USR-07 `중지` 탭 | **미추가로 유지**한다. 동시에 **`전체` 탭 집계에는 `중지`를 포함**한다 — 아래 항등식 참조 |
+| (c) | `중지` 전이 API | **신설 확정** — `POST /admin/assets/:id/suspend` · `/unsuspend` (4.6). 단계 enum에서 `중지`를 제거하지 않는다 |
+
+> **(b)의 귀결 — 의도된 비항등식**: USR-07에서 `4개 단계 탭의 합 ≤ 전체 탭`이며,
+> 차이는 정확히 해당 사용자의 `중지` 건수다. 이는 **버그가 아니라 확정된 계약**이다.
+> `중지`는 사용자가 취할 조치가 없는 종결 상태여서 전용 탭의 값이 낮은 반면,
+> 본인 신청 건이 `전체`에서 사라지면 "내 신청이 없어졌다"로 읽히므로 총량에는 남긴다.
+> 화면은 이 차이를 설명할 의무가 없다(현 데모에 `중지` 건이 0건이라 드러나지 않는다).
+>
+> **프론트엔드 변경은 없다.** `MyStatusPage`의 `STAT_TABS` 5탭과 `counts` 계산은 현행 그대로가 확정 계약이며,
+> `counts`의 `중지` 키가 렌더되지 않는 것도 의도된 상태다.
 
 **코드 대조 결과**
 
@@ -1062,15 +1213,17 @@ DB에는 **코드 리터럴 그대로** 저장하고 별도 표시 매핑 테이
 | ADM-02 부분 승인 세분 | `AdminReview.tsx:463-465, 184` | `관계사만` = company만 승인 / `전사만` = global만 승인 |
 | ADM-01 `pending` | `dataSource.ts:124-128` | `승인 대기` ∪ `부분 승인` 만. `partialCount` = 슬롯 불일치 건수 |
 
-**대조에서 드러난 불일치** — 세 건 모두 7장 결정 필요로 올렸다.
+**대조에서 드러난 불일치와 그 처분** — 세 건 모두 DN-02로 묶여 **확정(2026-07)** 되었다.
 
-1. 과업 지시서가 확정을 요청한 "`처리완료` = 게시됨+반려 집계 여부"에 대해,
-   **코드 실계약은 `게시됨 + 반려 + 중지`** 다(`isTerminalStage`). → **DN-02**
-2. USR-07은 `중지` 탭이 없으나 `전체` 탭 집계에는 `중지`가 포함되어,
-   **4개 단계 탭의 합 ≠ `전체`** 가 될 수 있다(현 데모에 `중지` 건이 0건이라 드러나지 않는다). → **DN-02**
-3. `중지`로 전이시키는 조작·API가 **코드 어디에도 없다**.
-   `suspended = true`는 `LEGACY_APPROVAL_MAP["중지"]` 경유로만 세팅 가능하며 데모 데이터에 해당 건이 없다.
-   `AdminReview.tsx:423` 주석은 "정정은 '중지' 경로"라고 하나 그 경로가 구현·명세 양쪽에 부재하다. → **DN-02**
+1. "`처리완료` = 게시됨+반려 집계 여부"에 대해 **코드 실계약은 `게시됨 + 반려 + 중지`** 다(`isTerminalStage`).
+   → **코드를 추인**한다(DN-02 (a)). 명세를 코드에 맞췄다.
+2. USR-07은 `중지` 탭이 없으나 `전체` 탭 집계에는 `중지`가 포함되어 **4개 단계 탭의 합 ≠ `전체`** 가 될 수 있다.
+   → **현행 유지 확정**(DN-02 (b)). 위 "의도된 비항등식" 주석이 근거다.
+3. `중지`로 전이시키는 조작·API가 코드 어디에도 없었다.
+   `suspended = true`는 `LEGACY_APPROVAL_MAP["중지"]` 경유로만 세팅 가능했고, 데모 데이터에 해당 건이 없다.
+   `AdminReview.tsx:423` 주석의 "정정은 '중지' 경로"가 가리키던 경로가 구현·명세 양쪽에 부재했다.
+   → **4.6에 `suspend`/`unsuspend` 엔드포인트를 신설**해 명세 측 공백을 메웠다(DN-02 (c)).
+   화면 도입은 백로그이므로 코드 측 공백은 당분간 유지된다.
 
 **서버 응답 계약**
 
@@ -1144,12 +1297,23 @@ sequenceDiagram
 | `approve` | 슬롯 `approved=true` + 이력(`approve`) + 2/2 시 `published_at` | `관계사승인` / `전사승인` (2/2는 게시 문구) |
 | `reject` | `rejected=true` + `rejection_reason` + 이력(`reject`, `note`=사유) | `반려` (사유 body 포함) |
 | `cancel` | 슬롯 `approved=false` + 이력(`cancel`) | 슬롯 승인 철회 통지 |
+| `suspend` | `suspended=true` + 이력(`suspend`, `note`=사유) | 중지 통지 (사유 body 포함) |
+| `unsuspend` | `suspended=false` + 이력(`unsuspend`, `note`=사유) | 중지 해제 통지 |
 
+- `suspend`·`unsuspend`(4.6)도 **동일한 단일 트랜잭션 구조**를 따른다 — 카드 행 잠금 → 플래그 갱신 →
+  이력 append → COMMIT → 커밋 후 알림(수신자는 신청자). 별도 예외 경로를 두지 않는다.
 - `cancel`의 선행 조건은 **게시 전 + 본인 승인 슬롯**이다. 트랜잭션 진입 후 `published_at`을
   재확인해 `409 ALREADY_PUBLISHED`를 판정한다(사전 검사만으로는 경합을 막지 못한다).
 - **알림 발송은 커밋 이후**에 수행한다. 발송 실패가 승인 트랜잭션을 되돌리지 않도록
   아웃박스(outbox) 테이블 경유 비동기 발송을 권장한다.
 - 이력은 append-only다 — `approval_history`에 UPDATE·DELETE를 두지 않는다.
+
+**승인 큐 우회 예외 경로는 없다 (DN-08 확정)**
+
+n8n ABCD 연동(승인 큐 우회 · 활용 데이터 기록 권한 · LLM 호출 격리)은 **연동 항목 자체가 제거**되었다.
+따라서 본 절의 단일 트랜잭션 승인 모델에 **예외 경로가 존재하지 않는다** —
+외부 시스템이 승인 슬롯을 건너뛰고 카드를 게시시키는 경로는 설계하지 않는다.
+카드는 어떤 출처로 접수되든 `company`·`global` 두 슬롯을 모두 통과해야 `published_at`을 얻는다.
 
 ### 6.2 카드 ID 원자 발급
 
@@ -1193,9 +1357,27 @@ COMMIT;
 | 수정 요청 처리 | `수정요청처리` | 요청자 |
 | 후기 등록 | `후기등록` | 카드 담당자 |
 | 게시판 글 등록 | `게시판글` | 카드 담당자 |
+| 카드 중지 (`suspend`) | 중지 통지 (사유 body) | **신청자** |
+| 카드 중지 해제 (`unsuspend`) | 중지 해제 통지 | **신청자** |
 
 **소식(공지) 작성·수정은 어떤 알림도 발생시키지 않는다**(v4 §0.10·ADM-09).
 알림은 본인 신청·활동 통지로 한정해 피로도를 관리한다.
+
+**수신 거부 판정 없음 (DN-14 확정)**
+
+- 알림 **수신 거부(opt-out) 판정은 존재하지 않는다.** 발송 트리거는 위 표가 전부이며,
+  발송 직전에 사용자별 수신 설정을 조회하는 단계를 두지 않는다.
+- 이에 따라 **설정 확장 항목(USR-11)에서 "알림 수신 설정"을 제외**한다 — `PUT /me/interests` 외의
+  확장은 프로필 축에 한정한다.
+- 근거: 알림 범위가 이미 본인 신청·활동 통지로 좁혀져 있어(4.13) 끄고 싶은 알림이 구조적으로 생기지 않는다.
+  수신 거부 축을 두면 "승인됐는데 알림이 안 왔다"는 재현 불가 문의를 만들 뿐이다.
+
+**관리자 수신용 알림 kind는 신설하지 않는다 (DN-10 확정)**
+
+수정 요청에 대한 사용자 통지는 현행 **`수정요청처리`(요청자 본인 수신)** 로 충족한다.
+관리자에게 신규 수정 요청을 알리는 별도 kind를 추가하지 않으며,
+관리자의 인지 경로는 **관리자 화면**(ADM-01 위젯 · 4.4 처리 큐 API)이 담당한다.
+`NotificationKind` 7종은 변경 없이 유지된다(3.3).
 
 ### 6.4 권한 변경 트랜잭션
 
@@ -1205,13 +1387,13 @@ COMMIT;
 BEGIN
   SELECT … FOR UPDATE                      -- 대상 사용자 행 잠금
   보호 장치 ①②③ 판정 (2.4)                 -- 위반 시 ROLLBACK → 422 RULE_VIOLATION
-  INSERT/DELETE roles · company_admin_scopes
+  INSERT/DELETE user_roles · company_admin_scopes
   INSERT audit_logs (category='권한', …)
 COMMIT
 → 대상 사용자의 refresh token 무효화 (클레임 재발급 유도)
 ```
 
-보호 장치 ①(마지막 admin)은 `SELECT count(*) FROM roles WHERE role='admin'` 을
+보호 장치 ①(마지막 admin)은 `SELECT count(*) FROM user_roles WHERE role='admin'` 을
 **같은 트랜잭션 안에서** 잠금과 함께 평가해야 한다 — 두 관리자가 동시에 서로를 회수하는 경합을 막는다.
 
 ### 6.5 단일 소스 파생 — 집계 테이블 없음
@@ -1242,6 +1424,31 @@ v4 §0.9 ①: 랜딩·목록·통계·대시보드의 카드 총량은 **단일 
 원자 증가시킨다. v4 §0.9 ②에 따라 조회수는 **인기 정렬·트렌딩의 소스일 뿐 성과 지표·통계 축이 아니며**,
 `/stats/*` 어디에도 조회수 축을 두지 않는다.
 
+**조회수 중복 집계 방지 (DN-09 확정)**
+
+기준은 **동일 사용자 · 동일 카드 · 24시간에 1회**다. 판정은 `asset_views(asset_id, user_id, last_counted_at)`
+테이블(3.1)이 담당한다.
+
+```sql
+BEGIN;
+  INSERT INTO asset_views (asset_id, user_id, last_counted_at)
+  VALUES (:assetId, :userId, now())
+  ON CONFLICT (asset_id, user_id)
+  DO UPDATE SET last_counted_at = now()
+   WHERE asset_views.last_counted_at < now() - interval '24 hours'
+  RETURNING 1;                        -- 행이 반환되면 = 이번 호출이 유효 조회
+
+  -- 위에서 행이 반환된 경우에만:
+  UPDATE assets SET view_count = view_count + 1 WHERE id = :assetId;
+COMMIT;
+```
+
+- 판정 갱신과 카운터 증가는 **단일 트랜잭션**이다. `ON CONFLICT … WHERE` 조건이 24시간 창을 원자적으로 판정한다.
+- 24시간 창 안의 재호출은 `204`를 그대로 반환한다 — 중복임을 클라이언트에 알리지 않는다(멱등적으로 보이게 한다).
+- `POST /assets/:id/view`는 **로그인 전용**이므로 `user_id`가 항상 존재한다.
+  익명 조회 경로가 없어 **세션 기반 판정도, 봇 제외 로직도 불요**하다.
+- `asset_views`는 판정 테이블이지 이력 테이블이 아니다 — 사용자·카드당 1행이며 조회 이력을 누적하지 않는다.
+
 ### 6.6 캐시 무효화
 
 카테고리 마스터(ADM-06)·관계사 노출(ADM-07)·분류체계(ADM-05)는 편집이 **전 화면에 파급**된다
@@ -1249,7 +1456,7 @@ v4 §0.9 ①: 랜딩·목록·통계·대시보드의 카드 총량은 **단일 
 
 | 변경 | 무효화 대상 |
 |---|---|
-| `categories` CRUD·`active` 토글 | `GET /categories`, `GET /assets`(필터·뱃지), `GET /stats/by-category`, 랜딩 타일 |
+| `categories` CRUD·`active` 토글 | `GET /categories`, `GET /assets`(필터·뱃지·목록 제외), **전 `/stats/*` 및 `GET /stats/summary`**, 랜딩 타일·현황 카운터 |
 | `companies.visible` 토글 | `GET /assets` 게이팅, `GET /admin/companies`, 조회 범위 선택기 |
 | `taxonomy_values` CRUD | `GET /admin/taxonomy`, 등록·수정 폼 선택지, `GET /stats/by-domain`·`difficulty`·`cost-tier`·`ml-type` |
 | 카드 게시(2/2) · 삭제 | 카탈로그 목록, 랜딩 카운터, 전 `/stats/*` |
@@ -1258,6 +1465,14 @@ v4 §0.9 ①: 랜딩·목록·통계·대시보드의 카드 총량은 **단일 
 - 마스터 데이터 응답에는 `ETag`를 부여하고, 변경 시 버전을 올려 조건부 요청을 무효화한다.
 - 관계사 노출 토글은 **즉시 정합**이 요건이다(v4 ADM-07) — 이 축에는 지연 캐시를 두지 않는다.
 - 통계 응답은 캐시하더라도 TTL을 짧게(≤60초) 두고, 총량 일치 검증을 우회하지 않는다.
+
+**`categories.active` 토글의 파급 (DN-06)**: 이 토글은 카테고리 마스터가 아니라 **집계 모집단을 바꾼다**(5.1).
+따라서 무효화 범위가 카테고리 목록에 그치지 않고 **통계·랜딩 현황 전 축**으로 확대된다.
+
+- 무효화 누락 시 랜딩 총량과 카탈로그 총량이 어긋나므로 — 즉 6.5의 총량 일치 원칙이 깨지므로 —
+  이 토글도 관계사 노출 토글과 동일하게 **즉시 정합** 축으로 취급한다.
+- 반면 `GET /assets/:id` 단건 조회와 관리자 화면(`GET /admin/assets`·`review-queue`)은
+  비활성 카테고리 카드를 계속 반환하므로 **무효화 대상이 아니다**(4.11).
 
 ### 6.7 참조 무결성 운영 정책
 
@@ -1275,45 +1490,51 @@ v4 §0.9 ①: 랜딩·목록·통계·대시보드의 카드 총량은 **단일 
 
 ## 7. 결정 필요 항목
 
-v4와 코드가 어긋나거나, 양쪽 모두에 근거가 없어 본 명세서에서 확정하지 않은 항목이다.
-**임의 확정하지 않았다.** 각 항목은 결정 후 본문 해당 절에 반영한다.
+초판이 **임의 확정하지 않고** 올린 항목의 처분 현황이다.
+v1.1 시점에 **17건이 확정되어 본문에 반영**되었고, **1건(DN-05)이 결정 대기로 잔류**한다.
 
-### 7.1 v4 · 코드 불일치
+### 7.1 확정 항목 (2026-07)
 
-| ID | 항목 | v4 서술 | 코드 실계약 | 쟁점 | 영향 절 |
-|---|---|---|---|---|---|
-| **DN-01** | 운영 상태 `PlatformItemStatus` 4단계(`사용 가능`/`준비 중`/`일부 제한`/`사용 중지`)의 DB 저장값·표시값 매핑 | §0.4 — **"카드에는 운영 상태 축이 존재하지 않는다"**, 상태 변경 API도 없음 | `types/categoryTypes.ts:94` — **"전면 폐기됨"**, `MyStatusPage.tsx:14` 동일. 잔존 코드·컬럼 없음 | 과업 지시서는 이 4단계의 매핑 방침 명기를 요구했으나, **v4와 코드가 모두 폐기를 명시**한다. 근거 없는 축을 스키마에 되살릴 수 없어 `assets`에 상태 컬럼을 두지 않았다. 부활 여부·부활 시 `agentAvailability`(AI Model 전용 별개 축)와의 관계 정리 필요 | 3.3 |
-| **DN-02** | 승인 단계 `중지`의 처리 (3건 묶음) | §0.7 — 5단계 표준에 `중지` 포함 | ① ADM-02 `처리완료` = `게시됨+반려+`**`중지`** (`isTerminalStage`) ② USR-07 **`중지` 탭 없음**, 그러나 `counts`는 계산하고 `전체`에는 포함 → 4탭 합 ≠ 전체 ③ `suspended=true` 로 **전이시키는 조작·API가 부재** | (a) `처리완료`에 `중지`를 계속 포함할지 (b) USR-07에 `중지` 탭을 추가할지, 아니면 `전체`에서 제외할지 (c) `중지` 전이 주체·엔드포인트를 정의할지, 아니면 단계 enum에서 제거할지. 현 데모에 `중지` 건이 0이라 불일치가 드러나지 않는 상태 | 5.4 |
-| **DN-03** | USR-04 "수정 요청" 룰 문구의 AI Model 예외 병기 | USR-04 지켜야 할 룰 — **"수정 요청은 게시 카드에 대해 누구나 신청할 수 있다"** (예외 미기재) | §0.6·USR-06은 **"AI Model 카드의 수정은 관리자 전용"**. `EditRequestPage.tsx:228-240`이 비관리자를 차단. 단 `AssetItemDetailPage.tsx:269-275`의 "수정 요청" 버튼은 AI Model 카드에도 그대로 노출 | API 계약(4.4)에는 예외를 명문화했다. **화면정의서 USR-04 룰 문구에 예외 병기가 필요**하며, 상세 화면 버튼을 사전 차단할지(비관리자에게 숨김/비활성) 현행처럼 진입 후 안내할지 결정 필요 | 4.4 |
-| **DN-04** | ADM-01 "수정 요청 대기" 위젯의 수치 소스 | ADM-01 — "수정 요청 대기(건수와 최근 건, 클릭 → 검토 화면)" | `AdminDashboard.tsx:166` — 건수가 **하드코딩 `0`**. 수정 요청 데이터 모델·목업 부재 | 본 명세서는 `edit_requests` 테이블과 API(4.4)를 선확보했다. 위젯이 `pendingEditRequests`를 소비하도록 배선할 시점과, 대기 판정 기준(`status='pending'` 단독인지 `held` 포함인지) 결정 필요 | 4.7 |
-| **DN-05** | 이미지 스토리지 선정 | 부록 B **결정 대기** | `AssetItem.images`가 **data URL** 문자열 배열(데모 한정) | `asset_images.storage_key`의 실체(Blob Storage / S3 / DB LOB), 업로드 방식(직접 업로드 vs presigned URL), 최대 10장·용량 제한, 접근 제어 방식 미정. 등록·수정·카드 관리 업로드 연동의 전제 | 3.1, 4.6 |
-| **DN-06** | 비활성 카테고리의 기존 카드 정책 | 부록 B **결정 대기** — "열람 유지·신규 등록 차단 등, API 명세서에서 확정" | 코드에 비활성 카테고리 처리 분기 없음 (`CATEGORIES` 전량 활성) | 본 명세서는 `categories.active` 컬럼과 `GET /categories`의 `active=true` 필터만 확정했다. **기존 카드의 열람 유지 여부 · 신규 등록 차단 여부 · 통계 집계 포함 여부**는 미확정 | 4.11 |
-| **DN-07** | `audiences` 필드 | 부록 B **결정 대기** — "현행 참조 태그, 실제 접근 제어 전환 여부" | 현행 `AssetItem`에 해당 필드 **없음** | 접근 제어 축으로 전환한다면 `asset_visibility_companies`와의 관계(중첩 게이팅 여부) 및 `GET /assets` 게이팅 규칙(4.2) 재설계 필요. 전환하지 않으면 항목 폐기 | 4.2 |
-| **DN-08** | n8n ABCD 연동 3건 | 부록 B **결정 대기** — 승인 큐 우회 여부 · 활용 데이터 기록 권한 · LLM 호출 격리 | 코드 근거 없음 | 승인 큐 우회를 허용하면 6.1의 단일 트랜잭션 승인 모델에 예외 경로가 생긴다. 외부 시스템 인증 방식(서비스 계정 JWT vs API Key)도 함께 결정 필요 | 6.1 |
+각 행의 결정은 "반영 절"에 명문화되어 있으며, 본 표는 결정 요지의 색인이다.
 
-### 7.2 명세 확정 대기 (부록 B 잔여 · 계약 공백)
+| ID | 항목 | 상태 | 결정 요지 | 반영 절 |
+|---|---|---|---|---|
+| **DN-01** | 운영 상태 `PlatformItemStatus` 축 | **확정(2026-07)** | **운영 상태 축 전면 폐기**. `assets`에 상태 컬럼·상태 변경 API를 두지 않으며 부활시키지 않는다. `agentAvailability`는 **AI Model 전용 별개 축**으로 존치하며 운영 상태를 대신하지 않는다 | 3.3 |
+| **DN-02** | 승인 단계 `중지` 처리 (3건 묶음) | **확정(2026-07)** | (a) ADM-02 `처리완료` = **게시됨+반려+중지 3단계 합산** 추인 (b) USR-07 **`중지` 탭 미추가 유지** + **`전체` 탭 집계에 `중지` 포함**을 명문화 — 4탭 합 ≤ 전체는 의도된 계약 (c) **중지 전이 API 신설**: `POST /admin/assets/:id/suspend`·`/unsuspend`(admin 전용·사유 필수·이력 기록·게시 카드 대상, 알림은 신청자 수신). **화면 도입은 백로그, 프론트 변경 없음** | 4.6, 5.4, 6.1, 6.3 |
+| **DN-03** | 수정 요청 신청 자격·화면 노출 | **확정(2026-07)** | **v4 정본 유지** — 게시 카드에 대해 **로그인 사용자 누구나**(AI Model 카드만 `admin` 전용). 상세 화면 "수정 요청" 버튼은 **전원 노출**하고 **진입 후 관리자 전용 안내**로 차단한다. 화면정의서 USR-04 예외 병기는 **SPEC-AMEND 소관** | 4.4 |
+| **DN-04** | ADM-01 "수정 요청 대기" 판정 | **확정(2026-07)** | 대기 판정은 **`status='pending'` 단독** — `held`는 제외. `AdminDashboard.tsx:166`의 하드코딩 `0`은 **목업 잔재이며 연동 시 삭제 대상** | 4.7 |
+| **DN-06** | 비활성 카테고리의 기존 카드 정책 | **확정(2026-07)** | **신규 등록 차단** · **통계·랜딩 현황·카테고리 필터에서 해당 카드 제외** · **기존 게시 카드의 직접 열람(URL 진입)은 유지** · **관리자 화면(카드 관리·검토)에는 전부 표시** | 4.2, 4.11, 5.1, 6.6 |
+| **DN-07** | `audiences` 필드 | **확정(2026-07)** | **폐기**. 접근 제어 축으로 전환하지 않으므로 `GET /assets` 게이팅(단일 계층)의 **재설계 불요** | 4.2 |
+| **DN-08** | n8n ABCD 연동 3건 | **확정(2026-07) — 항목 제거** | 연동 항목 자체가 제거되어 본 장에서 삭제되었다. 결론만 남긴다: **승인 큐 우회 예외 경로 없음** — 6.1의 단일 트랜잭션 승인 모델에 예외를 두지 않는다 | 6.1 |
+| **DN-09** | 조회수 중복 집계 방지 | **확정(2026-07)** | **동일 사용자·동일 카드 24시간 1회**. 판정 테이블 `asset_views(asset_id, user_id, last_counted_at)` 신설. 로그인 전용 엔드포인트이므로 **세션 판정·봇 제외 불요** | 3.1, 3.4, 6.5 |
+| **DN-10** | 수정 요청 처리 큐·통지 | **확정(2026-07)** | 사용자 통지는 현행 **`수정요청처리`(요청자 본인 수신)** 로 충족 — **관리자 수신용 알림 kind 신설 없음**. 관리자 인지 경로는 관리자 화면(ADM-01 위젯 + 처리 큐 API). **처리 권한은 `admin` + 담당 범위 `companyAdmin*` 확정**, 큐 화면 도입 시점은 **백로그 유지** | 4.4, 6.3 |
+| **DN-11** | 카테고리 외부 환경 진입 UI | **확정(2026-07)** | 소비 지점은 **USR-03 카탈로그** — 카테고리 필터 활성 시 **결과 수 행 우측 "외부 도구 바로가기 ↗" 버튼(새 탭)**, `accessUrl` 미설정 카테고리는 미표시. **화면 구현은 백로그**, 명세서는 소비 지점만 확정 | 4.11 |
+| **DN-12** | 탐색 키워드 측정 | **확정(2026-07)** | `GET /assets` 검색 범위 = **제목·상세 설명·부서**(내용 축 추가). **`search_logs` 신설**(키워드·검색자·시각·결과 수) — **보존 기간은 운영 결정 대기(각주)**. `/stats/*`에 키워드 축은 **여전히 없음** | 3.1, 3.4, 4.2 |
+| **DN-13** | 큐레이션(하이라이트·금주의 발견) | **확정(2026-07) — 폐기** | 큐레이션 축을 **폐기**한다. `editors_picks` 테이블·API를 두지 않으며, 프론트의 `EditorsPick` 타입은 **제거되었다** | — (전 절 해당 없음) |
+| **DN-14** | 설정 확장 항목 | **확정(2026-07)** | **알림 수신 거부 없음** — 6.3에 "수신 거부 판정 없음"을 명시했다. 설정 확장 항목에서 **알림 수신 설정을 제외**하고 프로필 축에 한정한다 | 6.3 |
+| **DN-15** | 부서 동기화 실행 모델 | **확정(2026-07)** | `POST /admin/teams/sync` = **`202` 비동기** 추인 | 4.8 |
+| **DN-16** | `assets` 단일 테이블 방침 | **확정(2026-07)** | 방침 추인. **카드 ID는 접수 시점 발급·승인 전후 불변**, **반려 건 삭제 후 재신청 시 새 ID 발급**, **기존 ID는 결번으로 영구 잔류** | 3.2 |
+| **DN-17** | `roles` 테이블 명명 | **확정(2026-07)** | 테이블명을 **`user_roles`** 로 확정(사용자-역할 부여 관계라는 실체에 맞춘 명명). 역할 마스터 테이블은 두지 않는다. API 경로 `/admin/users/:id/roles`는 **불변** | 2.1, 2.2, 3.1, 3.4, 6.4 |
+| **DN-18** | 한글 열거값 DB 저장 | **확정(2026-07)** | **한글 리터럴 저장 유지**. 다국어는 **영어·중국어 한정**으로 염두에 두며, 도입 시 **표시값 분리 계층**을 설계한다 | 3.3 |
 
-| ID | 항목 | 현황 | 결정 필요 사항 |
-|---|---|---|---|
-| **DN-09** | 조회수 서버 집계 전환 | v4 §0.9 ② "서버 집계 전환 예정". 목업은 정적값 | `POST /assets/:id/view` 중복 집계 방지 기준(사용자당 1회 / 세션 / 시간창), 봇 제외 여부 |
-| **DN-10** | 관리자 수정 요청 처리 **큐 화면** | 부록 B 백로그 — API 계약만 선확보 | 화면 도입 시점. 처리 권한을 `admin` 전용으로 할지 `companyAdmin*`까지 열지(4.4는 잠정적으로 범위 내 companyAdmin 허용) |
-| **DN-11** | 카테고리 외부 환경 진입 UI | 부록 B 백로그 — `accessUrl` 소비 지점 미구현 | API는 `categories.access_url`을 제공한다. 사용자 화면의 소비 지점·진입 동선 미정 |
-| **DN-12** | 탐색 키워드 측정 | 부록 B 백로그 — Phase 2, 현행은 태그 빈도 대체 | 검색 로그 테이블 도입 시점·보존 기간·개인정보 취급. 도입 전까지 `/stats/tags`가 유일한 키워드성 축 |
-| **DN-13** | 큐레이션(하이라이트·금주의 발견) | 부록 B 백로그 — Phase 2. `EditorsPick` 타입만 존재하고 배선 없음 | `editors_picks` 테이블·API 도입 시점. 랜딩 노출 배선을 서버 연동과 함께 설계 |
-| **DN-14** | 설정 확장 항목 | 부록 B 백로그 — 프로필·알림 수신 설정 | `PUT /me/interests` 외 확장 필드의 스키마. 알림 수신 설정 도입 시 6.3 발송 트리거에 수신 거부 판정 추가 필요 |
-| **DN-15** | 부서 동기화 실행 모델 | v4 ADM-07 — 주기 설정·수동 실행 | `POST /admin/teams/sync`의 동기/비동기 여부, 실패 재시도, 부분 실패 시 롤백 단위. 4.8은 `202 Accepted`(비동기)로 잠정 표기 |
-| **DN-16** | `assets` 단일 테이블 방침 확인 | 본 명세서 3.2에서 채택 | 신청·게시본을 한 테이블로 두는 방침은 "카드 ID 승인 전후 불변"(§0.3)에서 도출한 것으로 v4에 명시 서술은 없다. 반려 후 재신청 시 새 ID 발급 규칙과 함께 확인 필요 |
-| **DN-17** | `roles` 테이블 명명 | 본 명세서 3.1에서 채택 | 과업 지시서의 테이블 목록이 `roles`이므로 이름을 유지했으나, 실체는 사용자-역할 **부여 관계**다(`user_roles`가 통상 명명). 역할 마스터를 별도로 둘지 여부와 함께 확정 필요 |
-| **DN-18** | 한글 열거값 DB 저장 | 본 명세서 3.3에서 채택(코드 리터럴 그대로 저장) | 다국어 전환 계획이 생기면 표시값 분리가 필요하다. 현 시점에는 프론트 계약이 문자열에 직접 의존하므로 분리하지 않았다 |
+### 7.2 결정 대기 (잔여 1건)
+
+| ID | 항목 | v4·코드 현황 | 결정 필요 사항 | 영향 절 |
+|---|---|---|---|---|
+| **DN-05** | 이미지 스토리지 선정 | 부록 B **결정 대기** / `AssetItem.images`가 **data URL** 문자열 배열(데모 한정) | `asset_images.storage_key`의 실체(Blob Storage / S3 / DB LOB), 업로드 방식(직접 업로드 vs presigned URL), 최대 10장·용량 제한, 접근 제어 방식 미정. 등록·수정·카드 관리 업로드 연동의 전제 | 3.1, 4.6 |
+
+> **백엔드 개발자 결정 사항**이다. 스토리지 실체가 정해지기 전까지 `asset_images.storage_key`는
+> 불투명 문자열로 두고, `POST /admin/assets/:id/images`의 응답 계약(`{ storageKey }`)만 유지한다.
 
 ### 7.3 확정 표기 정정 대상 (결정 불요 · 반영만 필요)
 
-| 대상 | 현행 | 정정 방향 |
-|---|---|---|
-| `lib/dataSource.ts`·`mocks/*` TODO 주석의 `GET /api/v1/platform-items` 계열 | D2 이전 초안 표기 | 본 명세서의 `/api/v1/assets`(D2)로 표기 통일. **주석만 변경**이며 내부 식별자·함수명은 유지 |
-| `getDashboardData(scope, range)`의 `range` 인자 | 대시보드 등록 추이 위젯 잔재 | 대시보드 API에는 기간 파라미터를 두지 않는다(4.7). 서버 전환 시 인자 제거 |
-| `types/noticeTypes.ts` 주석의 `PUT /api/v1/admin/notices/:id` | 전체 교체만 표기 | 4.12는 `PUT`(전체)과 `PATCH`(고정·노출 토글)를 분리한다 |
+| 대상 | 현행 | 정정 방향 | 상태 |
+|---|---|---|---|
+| `lib/dataSource.ts`·`mocks/*` TODO 주석의 `GET /api/v1/platform-items` 계열 | D2 이전 초안 표기 | 본 명세서의 `/api/v1/assets`(D2)로 표기 통일. **주석만 변경**이며 내부 식별자·함수명은 유지 | **반영 완료(v1.1)** |
+| `getDashboardData(scope, range)`의 `range` 인자 | 대시보드 등록 추이 위젯 잔재 | 대시보드 API에는 기간 파라미터를 두지 않는다(4.7). 서버 전환 시 인자 제거 | **주석 반영 완료(v1.1)** · 인자 제거는 서버 전환 시 |
+| `types/noticeTypes.ts` 주석의 `PUT /api/v1/admin/notices/:id` | 전체 교체만 표기 | 4.12는 `PUT`(전체)과 `PATCH`(고정·노출 토글)를 분리한다 | **반영 완료(v1.1)** |
 
 ---
 
-**문서 끝** · 초판. 7장의 결정이 확정되는 대로 본문 해당 절을 갱신한다.
+**문서 끝** · **v1.1 — 7장 결정 반영(DN-05만 결정 대기 잔류)**.
+DN-05가 확정되는 대로 3.1·4.6을 갱신한다.

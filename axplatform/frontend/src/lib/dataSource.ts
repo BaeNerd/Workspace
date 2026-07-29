@@ -53,31 +53,31 @@ import { notificationsByDate } from "../mocks/notificationMockData";
 // ===== 자산 도메인 =====
 
 // 전체 자산 항목 목록 (목록/카운트).
-// TODO: 실제 연동 시 GET /api/v1/platform-items 호출로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets 호출로 교체
 export function getAssetItems(): AssetItem[] {
   return MOCK_ASSET_ITEMS;
 }
 
 // 단건 조회 (상세). 없으면 undefined.
-// TODO: 실제 연동 시 GET /api/v1/platform-items/:id 호출로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets/:id 호출로 교체
 export function getAssetItem(id: string): AssetItem | undefined {
   return MOCK_ASSET_ITEMS.find(i => i.id === id);
 }
 
 // 항목별 활용 후기.
-// TODO: 실제 연동 시 GET /api/v1/platform-items/:id/reviews 호출로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets/:id/reviews 호출로 교체
 export function getReviewsByItem(id: string): AssetReview[] {
   return MOCK_REVIEWS_BY_ITEM[id] ?? [];
 }
 
 // 항목별 게시글(업데이트 & 논의).
-// TODO: 실제 연동 시 GET /api/v1/platform-items/:id/posts 호출로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets/:id/posts 호출로 교체
 export function getPostsByItem(id: string): Post[] {
   return MOCK_POSTS_BY_ITEM[id] ?? [];
 }
 
 // n8n 워크플로우 다운로드/미리보기 폴백 JSON (item.workflowJson 부재 시).
-// TODO: 실제 연동 시 GET /api/v1/platform-items/:id/workflow 호출로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets/:id/workflow 호출로 교체
 export function getFallbackN8nWorkflowJson(): string {
   return MOCK_N8N_WORKFLOW;
 }
@@ -103,7 +103,8 @@ export function getMyReviews() {
 
 // AdminDashboard 범위별 대시보드 데이터 (자산 SSOT·검토 큐·후기에서 파생). scope=null → 전사, 배열 → 해당 관계사(ownerCompany).
 // range는 등록 추이(월별 시계열)에만 적용된다 — KPI·구성·도메인은 카탈로그 누적(전 구간) 스냅샷이라 기간에 무관하다.
-// TODO: 실제 연동 시 GET /api/v1/admin/stats/dashboard?company=:codes&from=YYYY-MM&to=YYYY-MM
+// 대시보드 API에는 기간 파라미터를 두지 않는다(고정 스냅숏) — range 인자는 서버 전환 시 제거 대상이다.
+// TODO: 실제 연동 시 GET /api/v1/admin/dashboard?company=:codes
 export type DashboardPending = { id: string; title: string; dept: string; submittedAt: string; type: string; source: SourceKey; company: string; stage: string; approvalSlots: ApprovalSlots };
 export type DashboardApproved = { id: string; title: string; dept: string; approvedAt: string; source: SourceKey };
 export function getDashboardData(scope: string[] | null, range?: MonthRange) {
@@ -255,7 +256,7 @@ function toManagedAssetItem(item: AssetItem): ManagedAssetItem {
   };
 }
 
-// AdminProjectManage 게시 항목 전체 (자산 SSOT 파생). TODO: 실제 연동 시 GET /api/v1/admin/platform-items
+// AdminProjectManage 게시 항목 전체 (자산 SSOT 파생). TODO: 실제 연동 시 GET /api/v1/admin/assets
 export function getManagedAssetItems(): ManagedAssetItem[] {
   return MOCK_ASSET_ITEMS.map(toManagedAssetItem);
 }
@@ -329,7 +330,7 @@ export function getOrgCompanies() {
 export function getOrgDepts() {
   return INITIAL_DEPTS;
 }
-// 관계사 집계용 최소 투영. TODO: 실제 연동 시 GET /api/v1/admin/platform-items?fields=company
+// 관계사 집계용 최소 투영. TODO: 실제 연동 시 GET /api/v1/admin/assets?fields=company
 export function getAssetItemRefs() {
   return ASSET_ITEM_REFS;
 }
