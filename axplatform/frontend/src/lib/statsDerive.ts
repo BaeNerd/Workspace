@@ -4,10 +4,10 @@
 // 합성 관계사 더미 테이블 없이 MOCK_ASSET_ITEMS·MOCK_REVIEWS_BY_ITEM 단일 소스에서
 // 파생하므로 전 화면 총량이 카탈로그(50)와 일치한다. 모든 함수는 인자로 받은 배열만
 // 읽는 순수 함수이며, 범위(scope)는 관계사 코드 배열(null=전사)을 ownerCompany 기준으로 적용한다.
-// 이 축이 곧 서버 ?company= 파라미터 계약이다.
+// 이 축이 곧 서버 ?company= 파라미터 규격이다.
 //
 // ⭐ 실제 연동 시 이 파생 계층을 폐기하고 서버 집계 응답(GET /api/v1/stats/...)을 그대로 쓴다.
-//    각 함수 주석의 엔드포인트가 그 계약 초안이다.
+//    각 함수 주석의 엔드포인트가 그 규격 초안이다.
 // ============================================================
 
 import type { AssetItem, AssetReview, Post, CategoryId, BusinessDomain } from "../types/categoryTypes";
@@ -57,7 +57,7 @@ export const monthTotal = (m: MonthPoint): number =>
   m.n8n + m.pa + m.assistant + m["ai-orchestration"] + m.ml + m.vibe + m.etc;
 
 // ── 기간(월 범위) ──
-// 통계·대시보드 공용 기간 선택 계약. 프리셋 3종은 시스템 현재월 파생(하드코딩 금지),
+// 통계·대시보드 공용 기간 선택 규격. 프리셋 3종은 시스템 현재월 파생(하드코딩 금지),
 // "범위 지정"은 커스텀 범위(kind:"range")로 표현한다. 유효 범위는 항상 {from,to}로 환원되어
 // 파생 계층 1곳에서 createdAt 필터로 적용된다(화면별 개별 필터 없음).
 // 전 기간 프리셋은 없다 — 레거시(2024) 구간은 범위 지정으로만 조회한다.

@@ -205,7 +205,7 @@ export function getMonthlyNewCount(scope: string[] | null = null): number {
 // 관계사 표시명은 조직 SSOT orgCompanyName(하단)을 사용한다.
 export { monthTotal, STAT_COMPANIES } from "./statsDerive";
 export type { SourceKey, MonthPoint, TopReview, ActivityItem } from "./statsDerive";
-// 기간 선택 계약 재-export (선택기 컴포넌트·화면 공용 — 파생 계층 단일 정의 위임).
+// 기간 선택 규격 재-export (선택기 컴포넌트·화면 공용 — 파생 계층 단일 정의 위임).
 export { PERIOD_PRESETS, MAX_RANGE_MONTHS, monthSpan, addMonths } from "./statsDerive";
 export type { PeriodSelection, PeriodPreset, MonthRange } from "./statsDerive";
 

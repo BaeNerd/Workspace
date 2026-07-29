@@ -5,6 +5,29 @@
 
 ---
 
+## 설계 문서 체계 (`docs/`)
+
+| 문서 | 경로 | 역할 |
+|---|---|---|
+| 기획설명서 v4 | `docs/AX-Platform-화면별-기획설명서.md` | **화면 기획 정본.** 0.x 공통 결정(디자인·레이아웃 표준·표시 정책·카드 ID 체계 등)과 화면 단위 설계 근거, 부록 B 백로그를 담는다. 본 문서의 "기획설명서 N.N" 인용은 이 파일을 가리킨다. |
+| API·DB 명세서 v1.2 | `docs/api-db-spec.md` | **API 리소스·DB 스키마 정본.** 명명 규약(D2 — 카드 정본 리소스 `/api/v1/assets`)·API 공통 규약·엔드포인트 카탈로그(§4)·통계 API 규격(§5)·DN 결정 기록(§7)을 담는다. |
+| 화면정의서 — 사용자 | `docs/screen-specs/user-screens.pptx` | 사용자 화면 덱. `build_user.py` 산출물. |
+| 화면정의서 — 관리자 | `docs/screen-specs/admin-screens.pptx` | 관리자 화면 덱. `build_admin.py` 산출물. |
+
+### `docs/screen-specs/` 빌드·감사 도구
+
+| 파일 | 역할 |
+|---|---|
+| `spec_common.py` | 덱 공용 헬퍼(확정 템플릿). 본문 = 무언어 무채색 실루엣 와이어프레임 + 빨간 마커(`#DC2626`) → 우측 Description + 하단 "화면 룰·기획 근거" 박스. 정의 슬라이드(p0)는 좌[구조 트리·사용자 흐름] / 우[정의·역할·목적·기획 의도·룰·개발 연동 노트 5단]. 네이티브 도형·텍스트·표만, 맑은 고딕, 16:9. |
+| `_deck_base.pptx` | 덱 베이스 템플릿(빈 슬라이드 + 공용 마스터·테마). `spec_common`이 스크립트 옆에서 자동 탐색한다. |
+| `build_user.py` / `build_admin.py` | 화면별 페이로드를 담은 덱 빌드 스크립트. 실행 시 해당 pptx를 전량 재생성한다. |
+| `check_pptx.py` | 자가 점검 **4항** — 텍스트 프레임 경계 초과 · 슬라이드 경계 이탈 · 와이어프레임 내 문장형 텍스트 잔존(무언어 규칙 위반) · 본문 슬라이드의 브라우저 프레임 포함 여부. |
+| `check_layout.py` | 기하·규칙 감사 **9축** — ①경계 ②마커 지름 ③마커 충돌 ④마커 인접성 ⑤마커·설명 번호 일치 ⑥프레임 소속 ⑦톤다운 테두리 ⑧행 정렬 ⑨열 정렬. 실행: `python check_layout.py user-screens.pptx admin-screens.pptx` — **0 findings = 통과**. |
+
+- **덱은 직접 편집하지 않는다** — 수정은 build 스크립트 페이로드를 고쳐 재생성하는 경로로만 한다. 재생성 후 `check_pptx.py`·`check_layout.py`로 양 덱 0 findings를 확인한다.
+
+---
+
 ## 코딩 컨벤션 (필수 준수)
 
 | 규칙 | 내용 |
@@ -321,9 +344,22 @@ const viewScope = scopeSel.kind === "company" ? [scopeSel.code] : baseScope; // 
 
 ```
 axplatform/
-├── docker-compose.yml       # 컨테이너·DB 명명은 axplatform 계열(舊 techhub — 마이그레이션 노트)
+├── docker-compose.yml       # 컨테이너·DB 명명은 axplatform 계열
 ├── .env / .env.example      # POSTGRES_DB=axplatform
 ├── STRUCTURE.md              ← 이 문서
+│
+├── docs/                    # 설계 문서 정본 (위 [설계 문서 체계] 참조)
+│   ├── AX-Platform-화면별-기획설명서.md   # 화면 기획 정본 v4
+│   ├── api-db-spec.md                     # API·DB 명세 정본 v1.2
+│   └── screen-specs/
+│       ├── spec_common.py        # 덱 공용 헬퍼(확정 템플릿)
+│       ├── _deck_base.pptx       # 덱 베이스 템플릿
+│       ├── build_user.py         # user-screens.pptx 빌드
+│       ├── build_admin.py        # admin-screens.pptx 빌드
+│       ├── check_pptx.py         # 자가 점검 4항
+│       ├── check_layout.py       # 기하·규칙 감사 9축
+│       ├── user-screens.pptx     # 화면정의서 — 사용자
+│       └── admin-screens.pptx    # 화면정의서 — 관리자
 │
 ├── backend/
 │   ├── Dockerfile
@@ -351,7 +387,7 @@ axplatform/
         ├── lib/
         │   ├── api.ts        # 백엔드 연동 대비 스텁 (현재 미사용)
         │   ├── dataSource.ts # 데이터 접근 계층(동기, DEMO) — 페이지·훅↔mocks 유일 경유 지점
-        │   └── statsDerive.ts # 통계 파생 계층(순수 함수) — 자산 SSOT·후기에서 통계 수치 계산(합성 테이블 없음) + 기간(월 범위) 계약·해석(resolvePeriodRange·deriveMonthlySeries·filterByMonthRange)
+        │   └── statsDerive.ts # 통계 파생 계층(순수 함수) — 자산 SSOT·후기에서 통계 수치 계산(합성 테이블 없음) + 기간(월 범위) 규격·해석(resolvePeriodRange·deriveMonthlySeries·filterByMonthRange)
         ├── config/
         │   ├── shareMode.ts  # IS_SHARE_MODE 단일 참조점
         │   └── operations.ts # TEAMS_CHANNEL_URL 단일 상수 (운영 설정 참조점)
@@ -699,7 +735,6 @@ AuthProvider
 | `ApprovalRecord` | `{ slot?, action, at, by, note? }` — 승인/반려 이력 1건 |
 | `DeletionRecord` | CompanyAdmin 삭제 이력 |
 | `AssetReview` | `{ id, itemId, itemTitle, itemKind, author, dept, text, createdAt, likes }` |
-| `EditorsPick` | 금주의 발견 `{ itemId, reason, pickedAt, pickedBy }` |
 | `AssetItem` | AX 항목 공용 타입. `company?: string[]`, `ownerCompany?`(등록 주체 관계사 — 노출 범위와 별개 축, 관리자 배지·판정용), `createdAt?`("YYYY.MM.DD", ≤ `updatedAt`), `expectedTimeSaved?`, `domain?`, `usageMode?`, 카테고리별 전용 필드 포함 |
 | `CATEGORY_ICON_PATH` | 플랫폼 아이콘 SVG path 매핑 (6키, ICON_PRESETS 기존 6종과 동일 path) |
 
@@ -770,7 +805,7 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 
 ### `lib/statsDerive.ts` (舊 `mocks/statsMockData.ts`·`mocks/adminDashboardMockData.ts` 대체)
 
-> **[FIX-3]** 합성 관계사 더미(50 vs 120 불일치의 원인)를 **전량 폐기**하고, 통계·대시보드 수치를 자산 SSOT(`MOCK_ASSET_ITEMS`)·후기(`MOCK_REVIEWS_BY_ITEM`)에서 계산하는 **순수 파생 함수 계층**으로 대체했다. 삭제 대상: `mocks/statsMockData.ts`(전체 — `MONTH_SERIES_BY_COMPANY`·`SOURCE_TOTAL_BY_COMPANY`·`DOMAIN_BY_COMPANY`·`DEPT/DIFFICULTY/COST/ML_TYPE/KEYWORD/TIME_SAVED_BY_COMPANY`·`TOP5_REVIEWS_ALL`·`aggregate*`), `mocks/adminDashboardMockData.ts`(전체 — `PENDING_ALL`·`RECENT_APPROVED_ALL`·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`). 소비 화면은 `dataSource.getStatsByScope`·`getDashboardData` 경유. 범위(scope)는 `ownerCompany` 기준(=서버 `?company=` 계약).
+> **[FIX-3]** 합성 관계사 더미(50 vs 120 불일치의 원인)를 **전량 폐기**하고, 통계·대시보드 수치를 자산 SSOT(`MOCK_ASSET_ITEMS`)·후기(`MOCK_REVIEWS_BY_ITEM`)에서 계산하는 **순수 파생 함수 계층**으로 대체했다. 삭제 대상: `mocks/statsMockData.ts`(전체 — `MONTH_SERIES_BY_COMPANY`·`SOURCE_TOTAL_BY_COMPANY`·`DOMAIN_BY_COMPANY`·`DEPT/DIFFICULTY/COST/ML_TYPE/KEYWORD/TIME_SAVED_BY_COMPANY`·`TOP5_REVIEWS_ALL`·`aggregate*`), `mocks/adminDashboardMockData.ts`(전체 — `PENDING_ALL`·`RECENT_APPROVED_ALL`·`ACTIVE_TOOLS_BY_COMPANY`·`REVIEW_COUNT_BY_COMPANY`). 소비 화면은 `dataSource.getStatsByScope`·`getDashboardData` 경유. 범위(scope)는 `ownerCompany` 기준(=서버 `?company=` 규격).
 
 | 항목 | 설명 |
 |---|---|
@@ -780,10 +815,10 @@ PREFIX: n8n=N8N / pa=PA / assistant=AST / ai-orchestration=AIO / ml=ML / vibe=VI
 | `deriveSourceTotal` / `deriveMonthly` / `deriveDomain` / `deriveDept` / `deriveDeptCount` | 카테고리별 등록·월별 추이(createdAt)·도메인(6종)·부서 전량(내림차순, TOP5 절단은 화면 표시 계층)·참여 부서 수 |
 | `deriveDifficulty` / `deriveCost` / `deriveMlType` | 난이도(n8n)·비용 등급(AI Model)·ML 유형 — 표시 축 인덱스 사상 |
 | `deriveCompanyTotals` / `deriveNewThisMonth` / `deriveTimeSaved` / `deriveTagFrequency` / `deriveTopReviews` | 관계사 합계(ownerCompany)·당월 신규·절감 효과(연간 환산·집계 가능/추정 불가)·태그 빈도(SSOT tags)·후기 TOP5(후기 누적) |
-| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 계약 — **확정 4종**(최근 3개월·최근 6개월·올해 전체·범위 지정), 이 중 범위 지정=`kind:"range"`, 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 24개월. 전 기간 프리셋 없음 — 레거시(2024) 구간은 범위 지정 전용 |
+| `PeriodSelection` / `PeriodPreset` / `MonthRange` · `PERIOD_PRESETS` · `MAX_RANGE_MONTHS` | 기간 선택 규격 — **확정 4종**(최근 3개월·최근 6개월·올해 전체·범위 지정), 이 중 범위 지정=`kind:"range"`, 유효 범위 `{from,to}`("YYYY-MM" inclusive), 최대 24개월. 전 기간 프리셋 없음 — 레거시(2024) 구간은 범위 지정 전용 |
 | `currentMonthKey` / `dataMonthBounds` / `resolvePeriodRange` / `filterByMonthRange` / `deriveMonthlySeries` · `addMonths`·`monthSpan`·`enumerateMonths` | 기준월(시스템 현재월 파생, 하드코딩 금지)·데이터 월 경계·선택→유효 범위 환원·기간 집계 소스 필터(createdAt)·연속 월축 0-fill · "YYYY-MM" 월키 산술 |
 
-- 함수별 `// TODO: 실제 연동 시 GET /api/v1/stats/...&from=YYYY-MM&to=YYYY-MM 응답으로 교체` 주석이 곧 서버 stats 계약 초안(기간 파라미터 포함).
+- 함수별 `// TODO: 실제 연동 시 GET /api/v1/stats/...&from=YYYY-MM&to=YYYY-MM 응답으로 교체` 주석이 곧 서버 stats 규격 초안(기간 파라미터 포함).
 - 타입 import 주의: `SourceKey`, `MonthPoint` 등은 `import type` 분리 필수. 순수 함수라 mocks·dataSource 역참조 없음(순환 없음).
 
 ### `mocks/companyAdminMockData.ts`
@@ -900,35 +935,40 @@ api.get<T>(path) / api.post<T>(path, body) / api.put<T>(path, body) / api.delete
 
 ### 주요 예정 엔드포인트
 
+> **정본은 `docs/api-db-spec.md` §4 엔드포인트 카탈로그**다. 아래는 화면↔리소스 대응만 추린 요약이며,
+> 요청·응답 형태·권한·오류 코드는 명세서를 따른다. 카드(자산)의 정본 리소스는 **`/api/v1/assets`**(D2)다.
+
 | 메서드 | 경로 | 대응 페이지 |
 |--------|------|------------|
-| `GET` | `/api/v1/platform-items` | ProjectListPage |
-| `POST` | `/api/v1/platform-items` | ProjectRegisterPage |
-| `GET` | `/api/v1/platforms/:platformId/items/:itemId` | AssetItemDetailPage |
-| `POST` | `/api/v1/platform-items/:id/reviews` | AssetItemDetailPage (후기 등록) |
-| `GET` | `/api/v1/my/platform-items` / `/api/v1/my/reviews` | MyStatusPage |
+| `GET` | `/api/v1/assets` | ProjectListPage |
+| `POST` | `/api/v1/assets` | ProjectRegisterPage |
+| `GET` | `/api/v1/assets/:id` | AssetItemDetailPage |
+| `GET` / `POST` | `/api/v1/assets/:id/reviews` · `/posts` | AssetItemDetailPage (후기·게시글) |
+| `GET` | `/api/v1/assets/mine` / `/api/v1/reviews/mine` | MyStatusPage |
+| `POST` | `/api/v1/edit-requests` | EditRequestPage (수정 요청 제출) |
 | `GET` | `/api/v1/admin/review-queue` | AdminReview |
-| `PATCH` | `/api/v1/admin/platform-items/:id/approve-slot` | AdminReview (슬롯별 승인) |
-| `PATCH` | `/api/v1/admin/platform-items/:id/reject` | AdminReview |
-| `GET` / `PUT` | `/api/v1/admin/platform-items(/:id)` | AdminProjectManage |
-| `GET` | `/api/v1/admin/companies` | AdminOrg / AdminScopeSelect |
-| `GET` / `PUT` | `/api/v1/admin/company-admins` | AdminUsers (관리자 지정) |
-| `GET` | `/api/v1/admin/users` | AdminUsers |
-| `GET` | `/api/v1/admin/stats/*` | AdminStatistics, AdminDashboard |
-| `GET` / `POST` / `PUT` | `/api/v1/admin/platforms(/:id)` | AdminCategories |
+| `POST` | `/api/v1/admin/review-queue/:id/slots/:slotKey/approve` · `/cancel` | AdminReview (슬롯별 승인·승인 취소) |
+| `POST` | `/api/v1/admin/review-queue/:id/reject` | AdminReview (반려) |
+| `GET` / `PATCH` / `DELETE` | `/api/v1/admin/assets(/:id)` | AdminProjectManage |
+| `POST` | `/api/v1/admin/assets/:id/suspend` · `/unsuspend` | 중지·중지 해제 (화면 도입은 백로그) |
+| `GET` / `PATCH` | `/api/v1/admin/companies(/:code)` · `/departments` | AdminOrg / AdminScopeSelect |
+| `GET` | `/api/v1/admin/company-admins` | AdminUsers (관리자 지정) |
+| `GET` | `/api/v1/admin/users` · `/sso-search` | AdminUsers |
+| `GET` | `/api/v1/stats/*` · `/api/v1/admin/dashboard` | AdminStatistics, AdminDashboard |
+| `GET` | `/api/v1/admin/taxonomy` | AdminTaxonomy |
+| `GET` / `POST` / `PATCH` | `/api/v1/admin/categories(/:id)` | AdminCategories |
 | `GET` | `/api/v1/notices` | LandingPage(최신소식), NoticesPage (공개, visible만) |
-| `GET` / `POST` / `PUT` / `DELETE` | `/api/v1/admin/notices(/:id)` | AdminNotices (관리, 비노출 포함) |
-| `GET` | `/api/v1/admin/settings` | AdminOrg (문의 채널 등) |
-| `PUT` / `DELETE` | `/api/v1/scraps/:itemId` | 스크랩 토글 (멱등) — 상세 헤더·목록/랜딩 카드·패널 |
-| `PUT` | `/api/v1/me/interests` | SettingsPage (관심 카테고리·도메인 저장) |
-| `GET` | `/api/v1/me/recommendations` | 개인화 패널 추천 (관심사 매칭) |
+| `GET` / `POST` / `PUT` / `PATCH` / `DELETE` | `/api/v1/admin/notices(/:id)` | AdminNotices (관리, 비노출 포함) |
+| `GET` / `PUT` | `/api/v1/admin/settings` | AdminOrg (문의 채널 등) |
+| `GET` / `PUT` / `DELETE` | `/api/v1/me/scraps(/:assetId)` | 스크랩 토글 (멱등) — 상세 헤더·목록/랜딩 카드·패널 |
+| `GET` / `PUT` | `/api/v1/me/interests` | SettingsPage (관심 카테고리·도메인 저장) |
 | `GET` / `PATCH` | `/api/v1/notifications` | NotificationBell·패널 알림 현황 (목록·읽음 처리) |
 | `GET` | `/api/v1/auth/me` | AuthContext (role·managedCompanies) |
 | `POST` | `/api/v1/auth/logout` | AuthContext |
 
 > **개편 반영 사항**
-> - **`PATCH /platform-items/:id/status` 삭제** — 운영 상태 폐기로 상태 변경 엔드포인트 없음.
-> - **승인(`approve-slot`)·수정 요청(`edit-requests`) body에서 `company`·`companyScope` 제거** — 전 항목 전사 공용, 관계사 지정 흐름 폐기. 두 필드는 승인 권한 가드 데이터로만 잔존.
+> - **자산 상태 변경 엔드포인트 없음** — 운영 상태 폐기로 상태 축 자체가 스키마에 없다(api-db-spec DN-01).
+> - **슬롯 승인(`/slots/:slotKey/approve`)·수정 요청(`/edit-requests`) body에서 `company`·`companyScope` 제거** — 전 항목 전사 공용, 관계사 지정 흐름 폐기. 두 필드는 승인 권한 가드 데이터로만 잔존.
 > - **등록·수정 body에 `images: string[]`(최대 10장, 데모는 data URL) 추가.** AI Model만 `agentAvailability`·모델 접속 `specificUrl` 유지.
 
 ---
@@ -940,7 +980,7 @@ Kolmar AX Platform은 그룹 전체 AX(AI 전환) 확산 활동의 산출물을 
 - **7대 AX 플랫폼 유형**: n8n(업무 자동화), Power Automate(플로우 자동화·RPA), 나만의 비서(HK GPT 커스텀), AI Model(AI 오케스트레이션·HK GPT 게이트웨이), ML 모델, Vibe Coding, AI 프로젝트(팀에서 구축한 AI 시스템·서비스 사례를 블로그 형식으로 소개)
 - **`etc` 표시 라벨 = "AI 프로젝트"**: 내부 식별자(`CategoryId` 값 `"etc"`, ID 접두어 `ETC`, 라우트 `/etc`)는 **불변**. 사용자 노출 라벨만 "기타" → "AI 프로젝트"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영).
 - **`ai-orchestration` 표시 라벨 = "AI Model"**: 내부 식별자(`CategoryId` 값 `"ai-orchestration"`, ID 접두어 `AIO`, 라우트 `/ai-orchestration`, `agentAvailability` 필드명)는 **불변**. 사용자 노출 라벨만 "AI Agent" → "AI Model"로 변경(`CATEGORIES`의 name이 단일 소스이며 파생 라벨은 자동 반영). 외부 실행 환경 실명 "HK GPT"는 유지.
-- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, TODO API 경로(`/api/v1/platforms/...`·`/api/v1/platform-items`), URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭. (`PlatformItemStatus` 계열은 rename이 아니라 **삭제 완료** — 위 [운영 상태 폐기] 참조.) 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
+- **표시 용어·코드 심볼 모두 카테고리/자산(Asset) 체계로 통일**: 7개 자산 유형을 가리키는 **사용자 노출 문구는 "카테고리"**(예: "카테고리별 등록 현황"). **코드 내부 식별자도 category/asset 계열로 rename 완료**(`AssetItem`·`categoryId`·`companyScope`·`CATEGORIES`·`CategoryId`·`AssetReview`·`AssetItemDetailPage`·`AdminCategories`·`CATEGORY_ICON_PATH`·`categoryTypes.ts` 등, 동작 변경 없는 순수 rename). **단, 다음은 현행 유지**: 라우트 `/admin/platforms`, URL 쿼리 키 `?platform=`, ID 접두어(`ID_PREFIX`)·카테고리 값 문자열(`"n8n"`…`"etc"`), 제품명 "AX Platform / AX 플랫폼"과 외부 실행 환경(n8n 서버·HK GPT) 지칭. **API 리소스 경로는 예외** — 카드(자산)의 정본 리소스는 `/api/v1/assets`이며(api-db-spec D2), 코드 TODO 주석도 이 표기를 따른다. (`PlatformItemStatus` 계열은 rename이 아니라 **삭제 완료** — 위 [운영 상태 폐기] 참조.) 로컬 헬퍼 심볼도 asset/category 체계로 rename 완료(`CategoryIcon`·`AssetItemRef`·`categoryPathOf`·`ManagedAssetItem`·`ReviewAssetItem` 등).
 - **AI Model 표기 규칙**: 항목 **제목은 모델명 단독**(예: `Claude Opus 4.8`) — 제공사 괄호 병기 없음. 제공사는 상세 설명/세부 모델명 등 자유 텍스트에 기재.
 - **빌더-카탈로그 계층 분리**: 도구를 만드는 빌더 활동과 발견·재사용하는 카탈로그 계층을 구분.
 - **정량적 성과 가시화**: 예상 절감 시간 등 정량 지표를 표면화하여 도구의 실효 가치를 드러냄.
