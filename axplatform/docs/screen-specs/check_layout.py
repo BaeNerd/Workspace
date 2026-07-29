@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""화면정의서 pptx 기하·규칙 감사 7축.
+"""화면정의서 pptx 기하·규칙 감사 9축.
 
 실행: python check_layout.py user-screens.pptx admin-screens.pptx   (0 findings = 통과)
 
-감사 7축
+감사 9축
   1) 경계          모든 도형이 콘텐츠 영역(MARGIN 기준 상자) 안에 있는가
   2) 마커 지름      빨간 번호 마커가 정원이며 규격 지름(1자리 0.26/0.24, 2자리 0.30/0.28)인가
   3) 마커 충돌      같은 슬라이드의 마커끼리 겹치지 않는가
@@ -11,11 +11,25 @@
   5) 마커·설명 번호 일치  와이어프레임 마커 번호 집합 = 우측 Description 마커 번호 집합인가
   6) 프레임 소속    와이어 마커는 브라우저 프레임 안에, 설명 마커는 Description 열 안에 있는가
   7) 톤다운 테두리  선 색이 흑·백·회색 팔레트 + 마커 빨강(#DC2626)으로만 구성되는가
+  8) 행 정렬       동일 행으로 판정되는 도형군의 top이 일치하는가 (허용오차 ALIGN_TOL)
+  9) 열 정렬       동일 열로 판정되는 도형군의 left가 일치하는가 (허용오차 ALIGN_TOL)
+
+8·9축의 "동일 행/열" 판정 — 우연한 크기 일치와 의도적 오프셋을 배제하기 위해 아래를 모두 요구한다.
+  · 대상: 네이티브 도형(AUTO_SHAPE)만. 텍스트 상자·커넥터·표는 제외한다
+          (본문 텍스트와 실루엣 선은 좌표가 아니라 흐름으로 배치되므로 정렬 대상이 아니다).
+  · 장식 제외: 흐름도 화살표(ARROW_SHAPES), 번호 마커, 최소 변 MIN_SIDE 미만의 점·닷.
+  · 합동 요구: 두 도형의 폭·높이가 모두 SIZE_TOL 이내로 같아야 한다 — 반복 셀(카드·레인·
+    스텝 노드)만 하나의 행/열로 본다. 컨테이너와 그 자식, 크기가 다른 이웃은 짝짓지 않는다.
+  · 행 판정: 가로로 겹치지 않고(나란히), 세로로 OVERLAP_MIN 이상 겹치며, top 차이가
+    ROW_BAND 이내. 열 판정은 축을 바꾼 대칭 조건.
+  · ROW_BAND/COL_BAND는 허용오차가 아니라 **판정 근접 기준**이다. 이보다 크게 벌어진 좌표는
+    의도적으로 다른 행/열에 놓인 것으로 보고 대조하지 않는다. 따라서 본 축이 잡는 결함은
+    (ALIGN_TOL, ROW_BAND] 구간의 **근접 어긋남**이며, 그 이상은 배치 설계의 영역이다.
 """
 import sys
 import math
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE, MSO_SHAPE
 
 EMU = 914400
 SW, SH = 13.333, 7.5
@@ -34,6 +48,15 @@ ADJ_MAX = 0.30            # 마커–실루엣 요소 최대 이격 (실측 최�
 LEAF_AREA_RATIO = 0.35    # 이 비율을 넘는 도형은 컨테이너로 보고 인접성 기준에서 제외
 PALETTE = {"111111", "333333", "666666", "999999",
            "CCCCCC", "DDDDDD", "EEEEEE", "F7F7F7", "FFFFFF", "DC2626"}
+
+ALIGN_TOL = 0.01          # 행/열 좌표 허용오차
+ROW_BAND = 0.06           # 동일 행 판정: top 근접 기준
+COL_BAND = 0.06           # 동일 열 판정: left 근접 기준
+SIZE_TOL = 0.01           # 합동 판정: 폭·높이 일치 기준
+OVERLAP_MIN = 0.6         # 동일 행/열 판정: 교차 축 겹침 최소 비율
+MIN_SIDE = 0.12           # 이보다 작은 변의 도형은 장식(점·닷)으로 보고 제외
+ARROW_SHAPES = {MSO_SHAPE.RIGHT_ARROW, MSO_SHAPE.LEFT_ARROW,
+                MSO_SHAPE.UP_ARROW, MSO_SHAPE.DOWN_ARROW}
 
 
 class Box:
@@ -91,6 +114,59 @@ def _line_rgb(sh):
 
 def _label(bx):
     return (bx.text.replace("\n", " ")[:22] or str(bx.kind))
+
+
+def _span_overlap(a0, a1, b0, b1):
+    return min(a1, b1) - max(a0, b0)
+
+
+def _align_targets(pairs):
+    """8·9축 대상 도형. 텍스트 상자·커넥터·표·화살표·마커·미세 장식을 걸러낸다."""
+    out = []
+    for sh, b in pairs:
+        if b.kind != MSO_SHAPE_TYPE.AUTO_SHAPE or b.marker:
+            continue
+        try:
+            if sh.auto_shape_type in ARROW_SHAPES:
+                continue
+        except (AttributeError, ValueError):
+            pass
+        if b.w < MIN_SIDE or b.h < MIN_SIDE:
+            continue
+        out.append(b)
+    return out
+
+
+def _congruent(a, b):
+    """반복 셀 여부 — 폭·높이가 모두 일치해야 하나의 행/열 구성원으로 본다."""
+    return abs(a.w - b.w) <= SIZE_TOL and abs(a.h - b.h) <= SIZE_TOL
+
+
+def _align_issues(idx, targets):
+    """(8) 행 정렬 · (9) 열 정렬."""
+    issues = []
+    for i in range(len(targets)):
+        for j in range(i + 1, len(targets)):
+            a, b = targets[i], targets[j]
+            if not _congruent(a, b):
+                continue
+            # (8) 행: 나란히 놓이고 세로로 겹치는 합동 도형 → top 일치
+            if (_span_overlap(a.x, a.r, b.x, b.r) <= 0.0
+                    and _span_overlap(a.y, a.b, b.y, b.b) >= OVERLAP_MIN * min(a.h, b.h)
+                    and abs(a.y - b.y) <= ROW_BAND
+                    and abs(a.y - b.y) > ALIGN_TOL):
+                issues.append(f"[S{idx}] ROW-ALIGN '{_label(a)}'<->'{_label(b)}' "
+                              f"top={a.y:.3f} vs {b.y:.3f} (Δ{abs(a.y - b.y):.3f}in "
+                              f"> {ALIGN_TOL}in)")
+            # (9) 열: 겹겹이 쌓이고 가로로 겹치는 합동 도형 → left 일치
+            if (_span_overlap(a.y, a.b, b.y, b.b) <= 0.0
+                    and _span_overlap(a.x, a.r, b.x, b.r) >= OVERLAP_MIN * min(a.w, b.w)
+                    and abs(a.x - b.x) <= COL_BAND
+                    and abs(a.x - b.x) > ALIGN_TOL):
+                issues.append(f"[S{idx}] COL-ALIGN '{_label(a)}'<->'{_label(b)}' "
+                              f"left={a.x:.3f} vs {b.x:.3f} (Δ{abs(a.x - b.x):.3f}in "
+                              f"> {ALIGN_TOL}in)")
+    return issues
 
 
 def check(path):
@@ -171,6 +247,9 @@ def check(path):
             for m in desc_mk:
                 if m.x < DESC_X - BOUND_TOL or m.r > CONTENT_R + BOUND_TOL:
                     issues.append(f"[S{idx}] FRAME-MEMBER '{m.text}' 설명 마커가 Description 열 밖")
+
+        # (8) 행 정렬 · (9) 열 정렬
+        issues.extend(_align_issues(idx, _align_targets(pairs)))
     return issues
 
 

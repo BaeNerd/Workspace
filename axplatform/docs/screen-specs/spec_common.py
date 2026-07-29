@@ -43,6 +43,101 @@ _TEMPLATE = os.environ.get(
 )
 
 
+# ============================================================
+# 12컬럼 그리드
+# ============================================================
+class _Grid:
+    """콘텐츠 폭(CONTENT_W) 기준 12컬럼 · 12행 그리드.
+
+    **신규 덱 작도는 수기 좌표 금지 — 그리드 함수 경유.**
+    자유 좌표는 축이 어긋나도 눈으로만 드러나고 감사(check_layout 8·9축)에
+    걸리지 않는다. 신규 명세서 덱은 좌표를 직접 쓰지 말고 아래 함수로 얻는다.
+
+        x, y, w, h = GRID.box(0, 1, cspan=6, rspan=3)   # 좌상단 6컬럼×3행 블록
+        rect(slide, x, y, w, h)
+
+    - 원점·범위: 좌상단 (CONTENT_X, MARGIN), 폭 CONTENT_W, 높이 CONTENT_BOTTOM - MARGIN
+    - 거터·마진 고정: 컬럼 거터 GUTTER, 행 거터 ROW_GUTTER, 바깥 마진은 MARGIN 단일값
+    - col(n)/row(n)은 **인치 좌표**를 돌려준다. EMU 변환이 필요하면 emu()·emu_box()만
+      쓴다 — 인치→EMU 환산은 emu() 한 지점에만 있다.
+    - 기존 build_user/build_admin 덱은 본 그리드를 쓰지 않는다(회귀 방지). 신규 덱부터 적용.
+    """
+
+    COLS = 12
+    ROWS = 12
+    GUTTER = 0.14        # 컬럼 사이 고정 거터(in)
+    ROW_GUTTER = 0.10    # 행 사이 고정 거터(in)
+
+    @property
+    def x0(self):
+        return CONTENT_X
+
+    @property
+    def y0(self):
+        return MARGIN
+
+    @property
+    def w(self):
+        return CONTENT_W
+
+    @property
+    def h(self):
+        return CONTENT_BOTTOM - MARGIN
+
+    @property
+    def cw(self):
+        """1컬럼 폭(in)."""
+        return (self.w - self.GUTTER * (self.COLS - 1)) / self.COLS
+
+    @property
+    def rh(self):
+        """1행 높이(in)."""
+        return (self.h - self.ROW_GUTTER * (self.ROWS - 1)) / self.ROWS
+
+    def col(self, n):
+        """컬럼 n(0-based)의 좌측 x 좌표(in)."""
+        if not 0 <= n <= self.COLS:
+            raise ValueError(f"col index {n} out of range 0..{self.COLS}")
+        return self.x0 + n * (self.cw + self.GUTTER)
+
+    def row(self, n):
+        """행 n(0-based)의 상단 y 좌표(in)."""
+        if not 0 <= n <= self.ROWS:
+            raise ValueError(f"row index {n} out of range 0..{self.ROWS}")
+        return self.y0 + n * (self.rh + self.ROW_GUTTER)
+
+    def col_w(self, span=1):
+        """span 컬럼을 덮는 폭(in) — 내부 거터를 포함한다."""
+        if not 1 <= span <= self.COLS:
+            raise ValueError(f"col span {span} out of range 1..{self.COLS}")
+        return span * self.cw + (span - 1) * self.GUTTER
+
+    def row_h(self, span=1):
+        """span 행을 덮는 높이(in) — 내부 거터를 포함한다."""
+        if not 1 <= span <= self.ROWS:
+            raise ValueError(f"row span {span} out of range 1..{self.ROWS}")
+        return span * self.rh + (span - 1) * self.ROW_GUTTER
+
+    def box(self, c, r, cspan=1, rspan=1):
+        """(x, y, w, h) 인치 튜플. rect()·textbox() 인자로 그대로 넘긴다."""
+        if c + cspan > self.COLS:
+            raise ValueError(f"col {c}+{cspan} exceeds {self.COLS}")
+        if r + rspan > self.ROWS:
+            raise ValueError(f"row {r}+{rspan} exceeds {self.ROWS}")
+        return self.col(c), self.row(r), self.col_w(cspan), self.row_h(rspan)
+
+    def emu(self, inches):
+        """인치→EMU 환산 단일 지점. 그리드 좌표를 EMU로 쓸 일이 있으면 반드시 경유한다."""
+        return int(round(inches * EMU))
+
+    def emu_box(self, c, r, cspan=1, rspan=1):
+        """box()와 동일하되 EMU 정수 튜플."""
+        return tuple(self.emu(v) for v in self.box(c, r, cspan, rspan))
+
+
+GRID = _Grid()
+
+
 def new_deck():
     prs = Presentation(_TEMPLATE) if os.path.exists(_TEMPLATE) else Presentation()
     prs.slide_width = Inches(SW)
@@ -570,6 +665,6 @@ def def_slide(prs, screen_id, screen_name, tree, flow, sections, flow_branch=Non
     if notes:
         _flow_note(s, left_x + 0.05, flow_cap_y + 0.3 + flow_block + 0.14, left_w - 0.1, notes)
 
-    # 우측: 톤다운 5단 (정의·역할 / 목적 / 기획 의도 / 지켜야 할 룰 / 개발 연동 노트)
+    # 우측: 톤다운 5단 (정의·역할 / 목적 / 기획 의도 / 준수 규칙 / 개발 연동 노트)
     p0_side(s, right_x, top, right_w, CONTENT_BOTTOM - top, sections)
     return s
