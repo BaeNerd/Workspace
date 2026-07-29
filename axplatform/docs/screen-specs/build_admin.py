@@ -1,290 +1,594 @@
 # -*- coding: utf-8 -*-
-"""PHASE 2 v3 — 관리자 영역 화면정의서 → admin-screens.pptx
-확정 템플릿: 무언어 실루엣 + 우측 Description + 하단 '화면 룰·기획 근거' 박스.
-p0 = 좌[구조 트리 / 사용자 흐름 + 설계 근거 주석] · 우[5단]. ADM-02는 병렬 2-슬롯 분기·합류 흐름도."""
+"""V4 / SPEC-RENDER v2-ADM — 관리자 영역 화면정의서 → admin-screens.pptx
+확정 템플릿: 무언어 실루엣 와이어프레임 + 우측 Description + 하단 '화면 룰·기획 근거' 박스.
+p0 = 좌[구조 트리 / 사용자 흐름 + 설계 근거 주석] · 우[정의·역할/목적/기획 의도/룰/개발 연동 노트 5단].
+
+렌더 규약(v2 — 사용자 덱과 동일)
+ 1) 실루엣 배치는 LAYOUT 정본을 그대로 옮긴다 — 자동 구성 금지.
+ 2) 텍스트(마커 라벨·설명·rule_box)는 payload 정본 — 변형 금지.
+    LAYOUT의 [rule_box 추가] 표기만 해당 rule_box에 문장으로 덧붙인다.
+ 3) 마커 지름: 1자리 0.26in / 2자리 0.30in (spec_common.marker 자동 처리).
+ 4) 마커는 대상 실루엣의 좌상단에 인접 배치 — 행 끝 배치 금지.
+ 5) LAYOUT의 들여쓰기(└)는 컨테이너 '내부'를 뜻한다 — 소속 관계를 도형으로 지킨다.
+
+공통 서두(PAYLOAD-META)
+ · 관리자 화면은 AdminNavbar(상단) + AdminSidebar(좌) 콘솔 레이아웃 — chrome()이 전 화면 공통 렌더.
+ · 폭 표준 1320 / 마스터 300 / 패딩 32 → MASTER_R = 300/1320, PAD = 0.11in.
+ · 사이드바 승인 대기 건수는 본인 권한 기준 고정(조회 범위 선택과 무관) — 사이드바 뱃지 실루엣.
+
+마스터·디테일 분할 규칙(v2-ADM 신설)
+ · 마스터-디테일 화면(ADM-02·03)의 분할 2페이지는 양쪽 모두 좌우 2열 골격을 그린다.
+ · 해당 페이지의 마커 영역만 정상 톤, 반대편은 톤다운(무마커) + 빨간 점선 테두리(기존 관례).
+
+수록 화면: ADM-01 대시보드 · 02 등록 신청 검토 · 03 카드 관리 · 04 통계 · 05 분류체계 ·
+          06 자동화·AI 도구 관리 · 07 부서·조직 관리 · 08 사용자·권한·로그 · 09 공지·업데이트"""
 import os
-from pptx.enum.text import PP_ALIGN
+import spec_common
 from spec_common import (
-    new_deck, def_slide, screen, sil_box, sil_button, sil_input, sil_lines,
-    sil_grid, sil_bars, sil_linechart, sil_pill, sil_circle, tiny, seg,
-    G33, G66, G99, GCC, GDD, GEE, GF7, WHITE, INK,
+    new_deck, def_slide, screen, rect, sil_box, sil_button, sil_input, sil_lines,
+    sil_grid, sil_pill, sil_circle, tiny, seg,
+    G33, G66, G99, GCC, GDD, GEE, GF7, WHITE, RED,
 )
 
+spec_common.AUTHOR = "배상혁"
 prs = new_deck()
+
+PAD = 0.11                # 콘솔 패딩 32 → 0.11in
+MASTER_R = 300.0 / 1320.0  # 마스터 컬럼 폭 표준(1320 기준 300)
+
+
+# ============================================================
+# 공용 실루엣 조각
+# ============================================================
+def hline(s, x, y, w, active, weight=1.1):
+    """단일 가로 텍스트 라인 실루엣."""
+    seg(s, x, y, x + w, y, color=(G66 if active else GDD), w=weight)
+
+
+def dashed_box(s, x, y, w, h, active):
+    """점선 안내/추가 박스."""
+    from pptx.enum.dml import MSO_LINE_DASH_STYLE
+    sp = rect(s, x, y, w, h, fill=WHITE, line=(G99 if active else GDD), line_w=1.1)
+    sp.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+    return sp
+
+
+def ghost_frame(s, x, y, w, h):
+    """분할 2페이지 규약 — 반대편(톤다운) 영역을 빨간 점선으로 두른다."""
+    from pptx.enum.dml import MSO_LINE_DASH_STYLE
+    sp = rect(s, x, y, w, h, fill=None, line=RED, line_w=1.0)
+    sp.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+    return sp
+
+
+def toggle(s, x, y, active, w=0.40, h=0.20):
+    """ON/OFF 토글 실루엣."""
+    sil_pill(s, x, y, w, h, active)
+    sil_circle(s, x + w - h + 0.02, y + 0.02, h - 0.04, active)
+
+
+def xmark(s, x, y, d, active):
+    """이미지 캐러셀의 삭제 X 표시."""
+    col = G66 if active else GDD
+    sil_circle(s, x, y, d, active)
+    seg(s, x + d * 0.26, y + d * 0.26, x + d * 0.74, y + d * 0.74, color=col, w=1.0)
+    seg(s, x + d * 0.74, y + d * 0.26, x + d * 0.26, y + d * 0.74, color=col, w=1.0)
+
+
+def hbar(s, x, y, w, h, frac, active):
+    """가로 막대."""
+    rect(s, x, y, max(0.05, w * frac), h, fill=(GCC if active else GEE),
+         line=(G66 if active else GDD), line_w=0.75)
+
+
+def segbar(s, x, y, w, h, fracs, active):
+    """전폭 스택바(카테고리 구성비)."""
+    cx = x
+    for i, f in enumerate(fracs):
+        sw = w * f
+        rect(s, cx, y, sw, h, fill=((GCC if i % 2 == 0 else GEE) if active else (GEE if i % 2 == 0 else WHITE)),
+             line=(G66 if active else GDD), line_w=0.75)
+        cx += sw
+
+
+def stacked_cols(s, x, y, w, h, active, cols=7, heights=None, segs=(0.42, 0.33, 0.25)):
+    """카테고리 스택 막대(월별 등록 추이)."""
+    hs = heights or [0.55, 0.80, 0.45, 0.95, 0.62, 0.75, 0.50]
+    seg(s, x, y + h, x + w, y + h, color=(G33 if active else GDD), w=1.3)
+    step = w / cols
+    bw = step * 0.54
+    for i in range(cols):
+        bx = x + i * step + (step - bw) / 2
+        total = h * hs[i % len(hs)]
+        cy = y + h
+        for j, fr in enumerate(segs):
+            sh = total * fr
+            cy -= sh
+            fill = (GCC, GEE, GF7)[j % 3] if active else (GEE, GF7, WHITE)[j % 3]
+            rect(s, bx, cy, bw, sh, fill=fill, line=(G66 if active else GDD), line_w=0.7)
 
 
 def chrome(s, R):
-    """AdminNavbar(top) + AdminSidebar(left) 실루엣. 콘텐츠 rect 반환."""
+    """AdminNavbar(상단) + AdminSidebar(좌) 콘솔 실루엣. 콘텐츠 rect 반환.
+    사이드바 뱃지 = 승인 대기 건수(본인 권한 기준 고정)."""
     x, y, w, h = R["x"], R["y"], R["w"], R["h"]
     sil_box(s, x, y, w, 0.28, True, lw=1.3, fill=GF7)
-    sil_pill(s, x + 0.08, y + 0.07, 0.7, 0.14, True)
-    sil_circle(s, x + w - 0.28, y + 0.04, 0.2, True)
-    sw = 1.05
+    sil_pill(s, x + 0.08, y + 0.07, 0.72, 0.14, True)          # 브랜드
+    sil_circle(s, x + w - 0.28, y + 0.04, 0.20, True)          # 계정
+    sw = 1.00
     sil_box(s, x, y + 0.34, sw, h - 0.34, True, lw=1.3, fill=GF7)
-    for i in range(6):
-        sil_pill(s, x + 0.1, y + 0.46 + i * 0.32, sw - 0.2, 0.16, True)
+    for i in range(9):
+        sil_pill(s, x + 0.09, y + 0.46 + i * 0.30, sw - 0.18, 0.16, True)
+    sil_circle(s, x + sw - 0.28, y + 0.75, 0.14, True)         # 승인 대기 건수 뱃지
     cx = x + sw + 0.16
     return {"x": cx, "y": y + 0.38, "w": x + w - cx, "h": y + h - (y + 0.38)}
 
 
+def split(C):
+    """마스터(300) / 디테일 컬럼 분해."""
+    mw = C["w"] * MASTER_R
+    dx = C["x"] + mw + 0.16
+    return mw, dx, C["x"] + C["w"] - dx
+
+
+class Tone:
+    """분할 2페이지 톤 제어 — live 페이지만 정상 톤·마커 표시, 반대편은 톤다운·무마커."""
+    def __init__(self, ctx, live):
+        self.ctx = ctx
+        self.live = live
+
+    def on(self, n):
+        return self.live and self.ctx.on(n)
+
+    def mk(self, s, n, x, y):
+        if self.live:
+            self.ctx.mk(s, n, x, y)
+
+
 # ============================================================
-# ADM-01 관리자 대시보드
+# ADM-01 대시보드
 # ============================================================
 def_slide(
-    prs, "ADM-01", "관리자 대시보드 (Dashboard)",
+    prs, "ADM-01", "대시보드 (Dashboard)",
     tree=[
         (0, "대시보드 (/admin)"),
-        (1, "헤더 (타이틀·조회 범위 선택기)"),
-        (1, "KPI 카드 ×5"),
-        (1, "승인 대기 · 최근 승인 (2열)"),
-        (1, "월별 등록 추이 · 카테고리별 구성"),
-        (1, "비즈니스 도메인 분포"),
+        (1, "헤더 (조회 범위)"),
+        (1, "KPI 3종"),
+        (1, "처리 대기 (승인·수정 요청)"),
+        (1, "현황 (최근 게시·최근 활동)"),
+        (1, "통계 링크"),
     ],
-    flow=["범위 선택", "KPI 집계", "대기·최근 검토", "검토/상세 이동"],
+    flow=["진입", "처리 대기 확인", "위젯 클릭", "해당 관리 화면"],
+    flow_branch=[(0, "담당 미지정 → 안내 배너"), (1, "companyAdmin → 담당 범위 부분집합")],
     flow_note=[
-        "핵심은 권한 범위와 조회 범위의 분리 — 조회는 유연하게, 처리 책임(대기 건수)은 고정으로.",
-        "관계사 관리자도 전사 현황을 조망하되, 사이드바 대기 건수는 자기 권한 범위로 고정된다.",
+        "대시보드=운영(지금 처리할 것)·통계=분석(확산 여부)의 질문 축을 분리해 화면 역할을 겹치지 않게 한다.",
+        "스냅숏 화면이므로 기간 필터를 두지 않고, 전 위젯이 해당 관리 화면의 진입점을 겸한다.",
     ],
     sections=[
-        ("정의·역할", ["전사·관계사 관리자 공용 관리 진입점",
-                    "KPI 5 + 승인 대기·최근 승인 목록 + 등록 추이·카테고리·도메인 분포"]),
-        ("목적", ["로그인 직후 '지금 처리할 것(승인 대기)'과 '어떻게 크고 있나(추이)'를 즉시 파악"]),
-        ("기획 의도", ["권한 범위(처리 책임)와 조회 범위(맥락 파악)를 분리",
-                    "'게시된 도구'는 게시 여부라는 유일한 객관 기준 — 상태 기반 지표는 성립하지 않음"]),
-        ("지켜야 할 룰", ["KPI 5종: 전체 등록물·승인 대기(부분 승인 포함)·이번 달 신규·게시된 도구·누적 활용 후기",
-                     "카테고리별 분포의 색·라벨은 CATEGORIES 파생(7종)",
-                     "사이드바 대기 건수는 권한 범위 기준 고정(조회 선택과 무관)"]),
-        ("개발 연동 노트", ["대기·최근 승인·통계 API는 범위 파라미터 수신",
-                      "범위 한정은 서버 사이드 필터링 원칙(클라이언트 필터 금지 — 권한 신뢰 경계)"]),
+        ("정의·역할", ["접근: admin · companyAdmin",
+                    "관리자 시작 화면 — '지금 처리할 일' 요약 운영 콕핏"]),
+        ("목적", ["처리 대기 업무 확인 + 관리 화면 즉시 진입"]),
+        ("기획 의도", ["대시보드=운영(지금 처리할 것)·통계=분석(확산 여부)의 질문 축 분리",
+                    "분석 차트는 통계로 일원화, 전 위젯이 진입점 겸임",
+                    "스냅숏 화면이므로 기간 필터 없음"]),
+        ("지켜야 할 룰", ["기간 필터 없음",
+                     "누적=전체 기간, 이번 달 신규=당월 실측",
+                     "companyAdmin 수치는 ownerCompany 담당 범위 부분집합(0.6)"]),
+        ("개발 연동 노트", ["getDashboardData(scope) — 검토 큐·카탈로그·활동 피드 파생",
+                      "연동 시 기존 자원 조합 우선(활동 피드 GET /activity 후보), 가시성 서버 재검증"]),
     ],
 )
 
 
 def draw_adm01(s, R, ctx):
+    """LAYOUT ADM-01
+    행1 2열: 좌 제목+①조회 범위 선택기 | 우 여백 / 행2: ②KPI 3열
+    행3 2열(55:45): 좌 ③승인 대기 큐(헤더+행 5+링크) | 우 ④수정 요청 대기(건수+빈/최근 상태)
+    행4 2열(50:50): 좌 ⑤최근 게시된 카드(행 4) | 우 ⑥최근 활동(행 5) / 행5: ⑦통계 링크(우측 정렬)"""
     C = chrome(s, R)
     x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    sil_box(s, x, y, w * 0.6, 0.28, ctx.on(1), lw=1.2)
-    sil_button(s, x + w - 1.6, y, 1.5, 0.26, ctx.on(1)); tiny(s, x + w - 1.6, y, 1.5, "범위", ctx.on(1)); ctx.mk(s, 1, x - 0.02, y - 0.02)
-    cy = y + 0.4
+
+    # 행1 — 좌 제목 + ① 조회 범위 선택기 (우 여백)
+    hline(s, x, y + 0.14, w * 0.20, True, 1.8)
+    selx = x + w * 0.26
+    sil_button(s, selx, y, 1.30, 0.30, ctx.on(1))
+    tiny(s, selx, y + 0.02, 1.30, "범위", ctx.on(1))
+    ctx.mk(s, 1, selx - 0.02, y - 0.02)
+
+    # 행2 — ② KPI 3열
+    r2 = y + 0.42
+    kw = (w - 2 * PAD) / 3
+    for i in range(3):
+        kx = x + i * (kw + PAD)
+        sil_box(s, kx, r2, kw, 0.60, ctx.on(2), lw=1.3, fill=GF7)
+        hline(s, kx + 0.12, r2 + 0.18, kw * 0.52, ctx.on(2))
+        hline(s, kx + 0.12, r2 + 0.40, kw * 0.72, ctx.on(2), 2.0)
+    ctx.mk(s, 2, x - 0.02, r2 - 0.02)
+
+    # 행3 — 2열(55:45)
+    r3, r3h = r2 + 0.72, 1.42
+    aw = (w - PAD) * 0.55
+    bx = x + aw + PAD
+    bw = w - aw - PAD
+    # ③ 승인 대기 큐 (헤더 + 행 5 + 링크)
+    sil_box(s, x, r3, aw, r3h, ctx.on(3), lw=1.3)
+    hline(s, x + PAD, r3 + 0.18, aw * 0.42, ctx.on(3), 1.8)
     for i in range(5):
-        sil_box(s, x + i * (w / 5), cy, (w / 5) - 0.08, 0.6, ctx.on(2), lw=1.3, fill=GF7)
-    ctx.mk(s, 2, x - 0.02, cy - 0.02)
-    cy += 0.74
-    half = (w - 0.2) / 2
-    sil_box(s, x, cy, half, 1.0, ctx.on(3), lw=1.3)
+        ry = r3 + 0.32 + i * 0.19
+        sil_pill(s, x + PAD, ry, 0.30, 0.12, ctx.on(3))            # 단계 칩
+        sil_pill(s, x + PAD + 0.34, ry, 0.26, 0.12, ctx.on(3))     # 등록 관계사 뱃지
+        hline(s, x + PAD + 0.66, ry + 0.07, aw - 2 * PAD - 0.66, ctx.on(3))
+    hline(s, x + aw - PAD - 0.80, r3 + r3h - 0.18, 0.80, ctx.on(3))
+    ctx.mk(s, 3, x - 0.02, r3 - 0.02)
+    # ④ 수정 요청 대기 (건수 + 최근 건)
+    sil_box(s, bx, r3, bw, r3h, ctx.on(4), lw=1.3)
+    hline(s, bx + PAD, r3 + 0.18, bw * 0.42, ctx.on(4), 1.8)
+    sil_box(s, bx + PAD, r3 + 0.32, bw - 2 * PAD, 0.46, ctx.on(4), lw=1.2, fill=GF7)
     for i in range(3):
-        sil_lines(s, x + 0.1, cy + 0.14 + i * 0.28, half - 0.2, ctx.on(3), n=1)
-    ctx.mk(s, 3, x - 0.02, cy - 0.02)
-    sil_box(s, x + half + 0.2, cy, half, 1.0, ctx.on(4), lw=1.3)
-    for i in range(3):
-        sil_lines(s, x + half + 0.3, cy + 0.14 + i * 0.28, half - 0.2, ctx.on(4), n=1)
-    ctx.mk(s, 4, x + half + 0.2 - 0.02, cy - 0.02)
-    cy += 1.14
-    third = (w - 0.3) / 2
-    sil_bars(s, x, cy, third, 0.9, ctx.on(5)); tiny(s, x, cy - 0.02, third, "추이", ctx.on(5)); ctx.mk(s, 5, x - 0.02, cy - 0.02)
-    sil_box(s, x + third + 0.3, cy, third, 0.9, ctx.on(6), lw=1.3); sil_bars(s, x + third + 0.4, cy + 0.15, third - 0.2, 0.6, ctx.on(6), pattern=[0.9, 0.7, 0.5, 0.3])
-    ctx.mk(s, 6, x + third + 0.3 - 0.02, cy - 0.02)
-    cy += 1.02
-    sil_box(s, x, cy, w, y + h - cy - 0.02, ctx.on(7), lw=1.3)
-    sil_bars(s, x + 0.1, cy + 0.1, w - 0.2, y + h - cy - 0.22, ctx.on(7), pattern=[0.6, 0.9, 0.5, 0.7, 0.4, 0.55])
-    ctx.mk(s, 7, x - 0.02, cy - 0.02)
+        hline(s, bx + PAD, r3 + 0.94 + i * 0.17, (bw - 2 * PAD) * (1.0 if i < 2 else 0.55), ctx.on(4))
+    ctx.mk(s, 4, bx - 0.02, r3 - 0.02)
+
+    # 행4 — 2열(50:50)
+    r4, r4h = r3 + r3h + 0.12, 1.42
+    cw = (w - PAD) / 2
+    x2 = x + cw + PAD
+    # ⑤ 최근 게시된 카드 (행 4)
+    sil_box(s, x, r4, cw, r4h, ctx.on(5), lw=1.3)
+    hline(s, x + PAD, r4 + 0.18, cw * 0.44, ctx.on(5), 1.8)
+    for i in range(4):
+        ry = r4 + 0.34 + i * 0.24
+        sil_pill(s, x + PAD, ry, 0.28, 0.13, ctx.on(5))
+        hline(s, x + PAD + 0.34, ry + 0.07, cw - 2 * PAD - 0.34, ctx.on(5))
+    ctx.mk(s, 5, x - 0.02, r4 - 0.02)
+    # ⑥ 최근 활동 (행 5)
+    sil_box(s, x2, r4, cw, r4h, ctx.on(6), lw=1.3, fill=GF7)
+    hline(s, x2 + PAD, r4 + 0.18, cw * 0.40, ctx.on(6), 1.8)
+    for i in range(5):
+        ry = r4 + 0.34 + i * 0.20
+        sil_circle(s, x2 + PAD, ry, 0.14, ctx.on(6))
+        hline(s, x2 + PAD + 0.22, ry + 0.07, cw - 2 * PAD - 0.22, ctx.on(6))
+    ctx.mk(s, 6, x2 - 0.02, r4 - 0.02)
+
+    # 행5 — ⑦ 통계 링크 (텍스트 링크 수준, 우측 정렬)
+    r5 = r4 + r4h + 0.10
+    lx5 = x + w - 1.10
+    hline(s, lx5, r5 + 0.13, 1.10, ctx.on(7), 1.4)
+    ctx.mk(s, 7, lx5 - 0.30, r5 - 0.02)
 
 
-screen(prs, ("관리자 대시보드", "대시보드", "ADM-01", "/admin"), draw_adm01, [
-    (1, "헤더·조회 범위 선택기", "타이틀 '대시보드' + 조회 범위 선택기(전사 관리자 항상 · 관계사 관리자 담당 2곳↑), 1곳=배지", "0곳: '담당 관계사가 지정되지 않았습니다. 전사관리자에게 문의하세요.'"),
-    (2, "KPI 카드 ×5", "전체 등록물 · 승인 대기(부분 승인 N건 포함) · 이번 달 신규 · 게시된 도구 · 누적 활용 후기"),
-    (3, "승인 대기 패널", "미종결 대기 항목(소스·제목·부서·유형·신청일) + [전체 보기 →] + 항목별 [검토]"),
-    (4, "최근 승인 패널", "최근 승인건(소스·제목·부서·승인일·'승인' 배지) + [전체 보기 →], 행 클릭→상세"),
-    (5, "월별 등록 추이", "카테고리별 7유형 스택 막대(CATEGORIES 색)"),
-    (6, "카테고리별 구성", "누적 N건 구성비"),
-    (7, "비즈니스 도메인 분포", "AX 플랫폼 기준 도메인 분포"),
+screen(prs, ("대시보드", "대시보드", "ADM-01", "/admin  (admin·companyAdmin)"), draw_adm01, [
+    (1, "헤더", "조회 범위 선택기[admin]·담당 범위 뱃지[companyAdmin]"),
+    (2, "KPI 3종", "총 카드 수·이번 달 신규·승인 대기 총계[부분 승인 병기]"),
+    (3, "승인 대기 큐", "상위 5건: 카드 ID·제목·단계 칩·등록 관계사 뱃지 → 검토 화면"),
+    (4, "수정 요청 대기", "건수·최근 건 → 검토 화면"),
+    (5, "최근 게시된 카드", "→ 카드 관리"),
+    (6, "최근 활동", "후기·게시글 최신 5 → 카드 상세"),
+    (7, "통계 링크", "\"상세 분석은 통계에서 보기\""),
 ], rule_box=(
-    ["관계사 관리자도 전사 현황을 조망하되 처리 책임(대기 건수)은 자기 권한 범위로 고정 — 조회는 유연, 책임은 고정.",
-     "'게시된 도구'는 게시 여부라는 유일한 객관 기준 — 운영 상태가 없어 상태 기반 지표는 성립하지 않는다.",
-     "카테고리별 분포 색·라벨은 CATEGORIES 단일 소스 파생으로 목록·통계와 항상 일치한다."],
-    "통계 API의 범위 한정은 서버 사이드 필터링 원칙(권한 신뢰 경계).",
+    ["기간 필터를 두지 않는다(고정 스냅숏)",
+     "담당 관계사 미지정 companyAdmin에게 안내 배너"],
+    "getDashboardData(scope) — 검토 큐·카탈로그·활동 피드 파생. 연동 시 기존 자원 조합 우선(활동 피드 GET /activity 후보), 가시성 서버 재검증.",
 ))
 
 # ============================================================
-# ADM-02 등록 검토 (병렬 2-슬롯)
+# ADM-02 등록 신청 검토
 # ============================================================
 def_slide(
-    prs, "ADM-02", "등록 검토 (병렬 2-슬롯 승인)",
+    prs, "ADM-02", "등록 신청 검토 (Review)",
     tree=[
-        (0, "등록 검토 (/admin/review)"),
-        (1, "요약 스트립 필터 4칩"),
-        (1, "등록 신청 목록 (진행 필)"),
-        (1, "상세 검토 패널"),
-        (2, "슬롯 카드 2 (관계사/전사)"),
-        (2, "검토 필드 · 승인 이력"),
-        (2, "반려 (사유 필수)"),
+        (0, "검토 (/admin/review)"),
+        (1, "좌 신청 목록 (요약 칩·필터·행)"),
+        (1, "우 상세 (이력·편집 폼·슬롯 2·반려)"),
     ],
-    flow=[],
-    flow_slots=("신청 접수", ("관계사 관리자 승인", "전사 관리자 승인"), "2/2 완료 → 게시", "반려 → 종결"),
+    flow=["목록 선택", "내용 확인·보완 편집", "슬롯 승인(관계사/전사)", "2/2 게시"],
+    flow_branch=[(0, "companyAdmin → 담당 등록 건만 가시"),
+                 (1, "반려(사유 필수)"),
+                 (2, "승인 취소(게시 전)")],
     flow_note=[
-        "두 슬롯은 순서 없이 병렬 — 어느 쪽이 먼저 승인해도 되고, 두 슬롯이 모두 채워지는 순간 게시된다.",
-        "순서를 강제하면 앞 단계가 병목이 되므로, 병렬 구조로 두 검토자가 서로를 기다리지 않게 한다.",
+        "검토 중 편집을 허용해 경미한 보완 때문에 반려-재신청을 반복하는 비용을 줄인다.",
+        "한 슬롯 오승인 후 상대가 승인하면 즉시 게시되므로, 승인 취소를 실수 복구 경로로 남긴다.",
     ],
     sections=[
-        ("정의·역할", ["등록 신청·수정 요청을 검토해 슬롯 승인 또는 반려하는 화면",
-                    "승인 워크플로우의 실행 지점 — 관계사 슬롯 / 전사 슬롯을 개별 처리"]),
-        ("목적", ["검토자가 신청 내용 전체를 한 화면에서 확인",
-                "자기 권한에 해당하는 슬롯을 처리"]),
-        ("기획 의도", ["병렬 2-슬롯의 목적은 승인 병목 제거 — 두 관리자가 서로를 기다리지 않음",
-                    "검토 표시 필드는 등록 폼과 같은 체계 — 어긋나면 반려 사유가 엉뚱해짐"]),
-        ("지켜야 할 룰", ["두 슬롯 모두 승인→게시됨, 어느 한쪽 반려→반려(종결). 일괄 게시 버튼 없음",
-                     "전사 공용 항목은 관계사 슬롯도 전사 관리자만 승인. 자격 판정은 원본 항목 기준",
-                     "반려 사유 필수·원문 전달, 승인 이력(누가·어느 슬롯·언제·사유) 표시"]),
-        ("개발 연동 노트", ["승인/반려 API body에 슬롯 식별 포함(company·companyScope는 서버 내부 데이터)",
-                      "이력 기록+슬롯 갱신+게시 전환(2/2)은 트랜잭션으로 묶고 슬롯 자격은 서버 재검증"]),
+        ("정의·역할", ["접근: admin · companyAdmin",
+                    "등록 신청의 검토·승인·반려 — 병렬 2-슬롯 승인 실행 지점"]),
+        ("목적", ["내용 확인·보완 후 슬롯 승인 또는 사유 반려"]),
+        ("기획 의도", ["검토 중 편집 허용 — 경미 보완의 반려-재신청 반복 비용 축소",
+                    "승인 취소는 실수 복구 경로(한 슬롯 오승인 후 상대 승인 시 즉시 게시되므로)",
+                    "companyAdmin에겐 자격 있는 건만 표시 — 권한 혼란 방지"]),
+        ("지켜야 할 룰", ["가시성·승인 자격 = ownerCompany 단일 축 · 전사 슬롯 admin 전용",
+                     "취소는 게시 전·본인 슬롯·확인 절차(0.7)",
+                     "반려 사유 필수"]),
+        ("개발 연동 노트", ["getReviewQueue·deriveStage. companyAdmin 필터 서버 적용",
+                      "승인·취소·반려 = 슬롯+이력(approve/reject/cancel)+게시 판정 단일 트랜잭션, 각각 알림 발송(0.10)"]),
     ],
 )
 
 
-def draw_adm02(s, R, ctx):
-    C = chrome(s, R)
-    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    for i in range(4):
-        sil_box(s, x + i * (w / 4), y, (w / 4) - 0.08, 0.42, ctx.on(1), lw=1.3, fill=GF7)
-    ctx.mk(s, 1, x - 0.02, y - 0.02)
-    cy = y + 0.52
-    lw = w * 0.36; rx = x + lw + 0.16; rw = w - lw - 0.16
-    sil_input(s, x, cy, lw, 0.2, ctx.on(2)); tiny(s, x, cy, lw, "필터", ctx.on(2)); ctx.mk(s, 2, x - 0.02, cy - 0.02)
-    ly = cy + 0.3
-    for i in range(4):
-        sil_box(s, x, ly + i * 0.5, lw, 0.42, ctx.on(3), lw=1.2)
-        sil_pill(s, x + 0.06, ly + 0.06 + i * 0.5, lw * 0.4, 0.12, ctx.on(3))
-        sil_box(s, x + lw - 1.0, ly + 0.14 + i * 0.5, 0.9, 0.16, ctx.on(3), lw=1.0)  # SlotPill
-    ctx.mk(s, 3, x - 0.02, ly - 0.02)
-    # 상세 패널
-    sil_box(s, rx, cy, rw, 0.26, ctx.on(8), lw=1.1, fill=GF7); ctx.mk(s, 8, rx - 0.02, cy - 0.02)  # 게시 배너
-    dy = cy + 0.34
-    sil_lines(s, rx, dy, rw * 0.7, ctx.on(4), n=1); ctx.mk(s, 4, rx - 0.02, dy - 0.02)
-    dy += 0.24
-    sil_box(s, rx, dy, rw * 0.48, 0.6, ctx.on(4), lw=1.3); sil_box(s, rx + rw * 0.52, dy, rw * 0.48, 0.6, ctx.on(4), lw=1.3)
-    sil_button(s, rx + 0.1, dy + 0.38, rw * 0.3, 0.16, ctx.on(4)); sil_button(s, rx + rw * 0.52 + 0.1, dy + 0.38, rw * 0.3, 0.16, ctx.on(4))
-    dy += 0.7
-    sil_button(s, rx, dy, 0.7, 0.2, ctx.on(5)); tiny(s, rx, dy, 0.7, "반려", ctx.on(5)); ctx.mk(s, 5, rx - 0.02, dy - 0.02)
-    dy += 0.3
-    sil_box(s, rx, dy, rw, 0.7, ctx.on(6), lw=1.3, fill=GF7); sil_lines(s, rx + 0.1, dy + 0.12, rw - 0.2, ctx.on(6), n=4); ctx.mk(s, 6, rx - 0.02, dy - 0.02)
-    dy += 0.82
-    sil_box(s, rx, dy, rw, y + h - dy - 0.02, ctx.on(7), lw=1.2); sil_lines(s, rx + 0.1, dy + 0.1, rw - 0.2, ctx.on(7), n=2); ctx.mk(s, 7, rx - 0.02, dy - 0.02)
-
-
-_adm02 = [
-    (1, "요약 스트립 필터", "전체 · 승인 대기 · 부분 승인 · 처리완료 4칩(카운트 겸 필터)", "부분 승인 건수>0 시 '관계사만 N · 전사만 N' 서브라인"),
-    (2, "소스 필터 · 목록 필터", "카테고리(전체+7유형) 선택 + 역할 배너(관계사/전사 승인 담당)"),
-    (3, "등록 신청 목록", "소스·단계 배지·제목·부서·신청자 + 진행 필(관계사|전사 2분할, 승인 시 초록 ✓)", "빈 목록 '해당하는 신청 건이 없습니다.'"),
-    (4, "상세 헤더·슬롯 카드", "카테고리·단계 배지·ID·신청일 + 슬롯 카드 2장(관계사 관리자 승인 / 전사 관리자 승인, [이 슬롯 승인])"),
-    (5, "반려", "'반려' → 사유 필수 → 반려 확정 시 종결(신청자에 그대로 전달)"),
-    (6, "검토 필드", "공통(이미지·제목·요약·상세·도메인·태그) + 유형별(n8n 다이어그램·난이도·절감시간 / 비서 프롬프트·모델 / AI Agent 가용·강점·접속 URL·모델명·글분량·비용 / ML 유형·데이터·도구 / vibe·AI 프로젝트 공통만)"),
-    (7, "승인 이력", "슬롯·액션·처리자·일시·사유 이력"),
-    (8, "게시 배너", "'내용을 직접 수정한 후 승인할 수 있습니다. 두 승인이 모두 완료되면 게시됩니다.'"),
-]
-_adm02_rule = (
-    ["병렬 2-슬롯의 목적은 승인 병목 제거 — 순서를 강제하면 앞 사람의 응답 속도에 전체가 묶인다.",
-     "두 슬롯은 순서 없이 병렬로 진행되고, 두 슬롯이 모두 채워지는 순간 게시로 파생 전환된다(일괄 게시 버튼 없음).",
-     "검토 표시 필드는 등록 폼과 같은 체계로 맞춘다 — 신청자가 쓴 것과 검토자가 보는 것이 어긋나면 안 되기 때문.",
-     "슬롯 자격은 원본 항목 기준으로 판정하고, 반려 사유는 신청자에게 원문 그대로 전달한다."],
-    "승인/반려 body에 슬롯 식별 포함, 이력+슬롯+게시 전환은 트랜잭션으로 묶고 자격은 서버 재검증.",
-)
-screen(prs, ("등록 검토 (병렬 2-슬롯)", "등록 신청 목록", "ADM-02", "/admin/review"), draw_adm02,
-       _adm02, active={1, 2, 3, 4, 5, 8}, page_no=1, page_total=2, subtitle="목록·슬롯 승인", rule_box=_adm02_rule)
-screen(prs, ("등록 검토 (병렬 2-슬롯)", "검토 필드·이력", "ADM-02", "/admin/review"), draw_adm02,
-       _adm02, active={6, 7}, page_no=2, page_total=2, subtitle="검토 필드·이력", rule_box=_adm02_rule)
-
-# ============================================================
-# ADM-03 항목 관리
-# ============================================================
-def_slide(
-    prs, "ADM-03", "항목 관리 (Project Manage)",
-    tree=[
-        (0, "항목 관리 (/admin/projects)"),
-        (1, "좌 통합 목록"),
-        (2, "전체 항목·직접 등록/담당 배지"),
-        (2, "검색·소스 필터"),
-        (2, "항목 리스트"),
-        (1, "우 상세/편집"),
-        (2, "헤더·액션(하이라이트·금주의 발견·수정·삭제)"),
-        (2, "기본·유형별·신청자·담당자"),
-    ],
-    flow=["항목 선택", "수정/토글", "저장", "게시본 반영"],
-    flow_branch=(1, "삭제 → 확인"),
-    flow_note=[
-        "사용자 주도 수정 요청과 별개로 관리자 직접 편집 경로가 필요 — 퇴사자 담당자 교체처럼 원 등록자가 신청 못 하는 케이스가 있다.",
-        "편집 가능 필드는 등록 폼과 같은 체계로 제한 — 관리자 편집이라도 데이터가 스키마를 벗어나면 안 된다.",
-    ],
-    sections=[
-        ("정의·역할", ["게시·반려 포함 전체 항목의 조회·편집·삭제 관리 화면",
-                    "좌 목록 + 우 상세/편집 마스터-디테일"]),
-        ("목적", ["담당자 변경·오기 수정·정책 위반 항목 처리 등 게시 후 운영 이슈를 관리자가 직접 해결"]),
-        ("기획 의도", ["원 등록자가 신청할 수 없는 케이스(퇴사자 교체 등)를 위한 직접 편집 경로",
-                    "편집 필드는 등록 폼 체계로 제한해 데이터가 스키마를 벗어나지 않게 함"]),
-        ("지켜야 할 룰", ["관계사 관리자는 담당 관계사 항목만, 전사 공용은 전사 관리자만(판정은 원본 기준, 이중 가드)",
-                     "편집 필드는 등록 폼 체계와 동일 — 운영 상태·관계사 편집 UI 없음",
-                     "삭제는 확인 절차 필수"]),
-        ("개발 연동 노트", ["편집 API body에서 company·companyScope 제외",
-                      "편집 이력 로깅 권장(감사 대응), 예상 효과는 저장 시 표준 문자열로 직렬화"]),
-    ],
-)
-
-
-def draw_adm03(s, R, ctx):
-    C = chrome(s, R)
-    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    lw = w * 0.34; rx = x + lw + 0.16; rw = w - lw - 0.16
-    sil_box(s, x, y, lw, 0.28, ctx.on(1), lw=1.2); sil_button(s, x + lw - 1.0, y + 0.02, 0.95, 0.22, ctx.on(1)); ctx.mk(s, 1, x - 0.02, y - 0.02)
-    sil_input(s, x, y + 0.36, lw, 0.2, ctx.on(2))
-    for i in range(4):
-        sil_pill(s, x + i * (lw / 4), y + 0.62, (lw / 4) - 0.05, 0.14, ctx.on(2))
-    ctx.mk(s, 2, x - 0.02, y + 0.32)
-    ly = y + 0.86
+def adm02_master(s, C, t):
+    """LAYOUT ADM-02 p1 좌 300 상당:
+    ①요약 칩 2×2 그리드 → ②유형 필터 드롭다운 → ③신청 행들 → ④더보기"""
+    x, y = C["x"], C["y"]
+    mw = C["w"] * MASTER_R
+    # ① 요약 칩 4종 (2×2)
+    chw = (mw - 0.06) / 2
+    for r in range(2):
+        for c in range(2):
+            sil_box(s, x + c * (chw + 0.06), y + r * 0.28, chw, 0.24, t.on(1), lw=1.1, fill=GF7, round=True)
+    t.mk(s, 1, x - 0.02, y - 0.02)
+    # ② 유형 필터 드롭다운
+    fy = y + 0.62
+    sil_input(s, x, fy, mw, 0.22, t.on(2))
+    t.mk(s, 2, x - 0.02, fy - 0.02)
+    # ③ 신청 행들 (pill·뱃지 2·제목·부서·슬롯 2미니칩)
+    ly = y + 0.96
     for i in range(5):
-        sil_box(s, x, ly + i * 0.42, lw, 0.36, ctx.on(3), lw=1.2)
-        sil_pill(s, x + 0.06, ly + 0.05 + i * 0.42, lw * 0.35, 0.1, ctx.on(3)); sil_lines(s, x + 0.06, ly + 0.19 + i * 0.42, lw * 0.8, ctx.on(3), n=1)
-    ctx.mk(s, 3, x - 0.02, ly - 0.02)
-    # 우 상세/편집
-    sil_lines(s, rx, y, rw * 0.5, ctx.on(4), n=1)
-    for i in range(4):
-        sil_button(s, rx + rw - 1.9 + i * 0.48, y - 0.02, 0.44, 0.22, ctx.on(4))
-    ctx.mk(s, 4, rx - 0.02, y - 0.04)
-    dy = y + 0.36
-    sil_box(s, rx, dy, rw, 1.3, ctx.on(5), lw=1.3)
-    sil_box(s, rx + 0.1, dy + 0.1, rw - 0.2, 0.4, ctx.on(5), lw=1.1, fill=GF7)
-    sil_input(s, rx + 0.1, dy + 0.6, rw - 0.2, 0.18, ctx.on(5)); sil_input(s, rx + 0.1, dy + 0.88, rw - 0.2, 0.18, ctx.on(5))
-    ctx.mk(s, 5, rx - 0.02, dy - 0.02)
-    dy += 1.42
-    sil_box(s, rx, dy, rw, 0.85, ctx.on(6), lw=1.3, fill=GF7); sil_lines(s, rx + 0.1, dy + 0.12, rw - 0.2, ctx.on(6), n=3); ctx.mk(s, 6, rx - 0.02, dy - 0.02)
-    dy += 0.97
-    sil_box(s, rx, dy, rw, 0.28, ctx.on(7), lw=1.1); ctx.mk(s, 7, rx - 0.02, dy - 0.02)
-    dy += 0.36
-    sil_box(s, rx, dy, rw, y + h - dy - 0.02, ctx.on(8), lw=1.2)
-    for i in range(4):
-        sil_input(s, rx + 0.1 + i * ((rw - 0.2) / 4), dy + 0.1, (rw - 0.4) / 4, 0.16, ctx.on(8))
-    ctx.mk(s, 8, rx - 0.02, dy - 0.02)
+        ry = ly + i * 0.62
+        sil_box(s, x, ry, mw, 0.56, t.on(3), lw=1.2)
+        sil_pill(s, x + 0.05, ry + 0.05, 0.26, 0.11, t.on(3))
+        sil_pill(s, x + 0.34, ry + 0.05, 0.22, 0.11, t.on(3))
+        sil_pill(s, x + 0.59, ry + 0.05, 0.22, 0.11, t.on(3))
+        hline(s, x + 0.05, ry + 0.28, mw - 0.16, t.on(3))
+        hline(s, x + 0.05, ry + 0.44, mw * 0.40, t.on(3))
+        sil_pill(s, x + mw - 0.39, ry + 0.36, 0.16, 0.12, t.on(3))
+        sil_pill(s, x + mw - 0.20, ry + 0.36, 0.16, 0.12, t.on(3))
+    t.mk(s, 3, x - 0.02, ly - 0.02)
+    # ④ 더보기
+    by = ly + 5 * 0.62 + 0.06
+    sil_button(s, x, by, mw, 0.26, t.on(4))
+    t.mk(s, 4, x - 0.02, by - 0.02)
 
 
-_adm03 = [
-    (1, "목록 헤더", "'전체 항목' N + 전사 관리자 전용 [+ 직접 등록] / 관계사 관리자 '…담당' 배지"),
-    (2, "검색·소스 필터", "항목명·부서 검색 + 소스(전체+7유형) 칩 필터", "빈 목록 '검색 결과가 없습니다.'"),
-    (3, "항목 리스트", "카테고리 배지·ID·제목·부서·수정일, 선택 행 강조"),
-    (4, "상세 헤더·액션", "전사 관리자: ★/☆ 하이라이트 토글·✦ 금주의 발견(단일)·수정·삭제 / 관계사 관리자: 삭제만(담당+전사 공용만 표시)"),
-    (5, "기본 정보", "첨부 사진·제목·요약·상세·업무 도메인·등록 부서·태그(쉼표 구분)"),
-    (6, "유형별 세부", "n8n/PA=다이어그램·절감시간·난이도 / 비서=프롬프트·모델 / AI Agent=가용·강점·URL·모델명·글분량·비용 / ML=유형·데이터·도구"),
-    (7, "등록 신청자 정보", "등록자 이메일 직접 수정('퇴사·인사이동 시 직접 수정')"),
-    (8, "담당자", "이름·부서·이메일·역할 + [+ 담당자 추가]"),
-]
-_adm03_rule = (
-    ["사용자 수정 요청과 별개인 관리자 직접 편집 경로 — 원 등록자가 신청 못 하는 케이스용.",
-     "편집 필드는 등록 폼과 같은 체계로 제한 — 관리자 편집도 스키마를 벗어나지 않게 한다.",
-     "권한 판정은 항상 원본 항목 기준 — 편집 값으로 판정하면 값을 고쳐 우회할 수 있다.",
-     "운영 상태·관계사 편집 UI는 없음, 삭제는 확인 절차 필수."],
-    "편집 API body에서 company·companyScope 제외, 편집 이력 로깅 권장.",
+def adm02_detail(s, C, t):
+    """LAYOUT ADM-02 p2 우측:
+    ⑤승인 이력 스트립 → ⑥안내 배너+편집 폼(섹션 2) → ⑦슬롯 카드 2열 → ⑧반려 박스"""
+    _, dx, dw = split(C)
+    y = C["y"]
+    # ⑤ 승인 이력 스트립 (상단)
+    sil_box(s, dx, y, dw, 0.50, t.on(5), lw=1.2, fill=GF7)
+    for i in range(2):
+        sil_circle(s, dx + PAD, y + 0.09 + i * 0.19, 0.14, t.on(5))
+        hline(s, dx + PAD + 0.22, y + 0.16 + i * 0.19, dw * 0.62, t.on(5))
+    t.mk(s, 5, dx - 0.02, y - 0.02)
+    # ⑥ 안내 배너 + 편집 폼(섹션 2)
+    b = y + 0.62
+    sil_box(s, dx, b, dw, 0.26, t.on(6), lw=1.2, fill=GF7)
+    hline(s, dx + PAD, b + 0.14, dw * 0.66, t.on(6))
+    f = b + 0.34
+    for k in range(2):
+        fy = f + k * 0.92
+        sil_box(s, dx, fy, dw, 0.84, t.on(6), lw=1.3)
+        hline(s, dx + PAD, fy + 0.16, dw * 0.30, t.on(6), 1.6)
+        sil_input(s, dx + PAD, fy + 0.32, dw * 0.44, 0.18, t.on(6))
+        sil_input(s, dx + PAD + dw * 0.50, fy + 0.32, dw * 0.44 - PAD, 0.18, t.on(6))
+        sil_input(s, dx + PAD, fy + 0.58, dw - 2 * PAD, 0.18, t.on(6))
+    t.mk(s, 6, dx - 0.02, b - 0.02)
+    # ⑦ 슬롯 카드 2열 (라벨·상태·버튼)
+    sy = y + 2.84
+    sw2 = (dw - PAD) / 2
+    for k in range(2):
+        sx = dx + k * (sw2 + PAD)
+        sil_box(s, sx, sy, sw2, 0.78, t.on(7), lw=1.3, fill=GF7)
+        hline(s, sx + PAD, sy + 0.16, sw2 * 0.50, t.on(7), 1.6)
+        hline(s, sx + PAD, sy + 0.32, sw2 * 0.36, t.on(7))
+        sil_button(s, sx + PAD, sy + 0.44, sw2 - 2 * PAD, 0.24, t.on(7))
+    t.mk(s, 7, dx - 0.02, sy - 0.02)
+    # ⑧ 반려 박스 (사유 입력 + 버튼)
+    ry = y + 3.74
+    sil_box(s, dx, ry, dw, 0.76, t.on(8), lw=1.3)
+    hline(s, dx + PAD, ry + 0.16, dw * 0.30, t.on(8), 1.6)
+    sil_input(s, dx + PAD, ry + 0.32, dw - 2 * PAD - 0.92, 0.20, t.on(8))
+    sil_button(s, dx + dw - PAD - 0.80, ry + 0.30, 0.80, 0.24, t.on(8))
+    t.mk(s, 8, dx - 0.02, ry - 0.02)
+
+
+def draw_adm02_p1(s, R, ctx):
+    """p1 = 좌 목록 정상 · 우 디테일 골격 톤다운(점선)."""
+    C = chrome(s, R)
+    adm02_detail(s, C, Tone(ctx, False))
+    _, dx, dw = split(C)
+    ghost_frame(s, dx - 0.05, C["y"] - 0.05, dw + 0.10, C["h"] + 0.06)
+    adm02_master(s, C, Tone(ctx, True))
+
+
+def draw_adm02_p2(s, R, ctx):
+    """p2 = 우 상세 정상 · 좌 마스터 골격 톤다운(점선)."""
+    C = chrome(s, R)
+    adm02_master(s, C, Tone(ctx, False))
+    mw, _, _ = split(C)
+    ghost_frame(s, C["x"] - 0.05, C["y"] - 0.05, mw + 0.10, C["h"] + 0.06)
+    adm02_detail(s, C, Tone(ctx, True))
+
+
+_adm02_be = ("getReviewQueue·deriveStage. companyAdmin 필터 서버 적용, 승인·취소·반려 = "
+             "슬롯+이력(approve/reject/cancel)+게시 판정 단일 트랜잭션, 각각 알림 발송(0.10).")
+screen(prs, ("등록 신청 검토", "등록 신청 검토", "ADM-02", "/admin/review  (admin·companyAdmin)"),
+       draw_adm02_p1, [
+           (1, "요약 칩 4종", "전체·승인 대기·부분 승인[관계사만/전사만 세분]·처리완료"),
+           (2, "유형 필터", "카테고리 선택"),
+           (3, "신청 행", "카테고리·단계·등록 관계사 뱃지·제목·부서·슬롯 표시"),
+           (4, "더보기", "증분 로드"),
+       ], page_no=1, page_total=2, subtitle="좌 목록", rule_box=(
+           ["companyAdmin은 담당 관계사 등록 건만 표시",
+            "빈 상태 \"담당 관계사의 승인 대기 신청이 없습니다\""],
+           _adm02_be,
+       ))
+
+screen(prs, ("등록 신청 검토", "등록 신청 검토", "ADM-02", "/admin/review  (admin·companyAdmin)"),
+       draw_adm02_p2, [
+           (5, "승인 이력", "approve/reject/cancel 기록"),
+           (6, "편집 안내·폼", "\"내용을 직접 수정한 후 승인할 수 있습니다\" — 기본 정보·유형별·담당자"),
+           (7, "슬롯 카드 2개", "관계사/전사 — 승인·승인 취소[게시 전·확인 절차]"),
+           (8, "반려", "사유 필수 — \"신청자에게 그대로 전달됩니다\""),
+       ], page_no=2, page_total=2, subtitle="우 상세", rule_box=(
+           ["두 슬롯 승인 완료 시 게시(0.7)",
+            "게시 후 정정은 별도 경로"],
+           _adm02_be,
+       ))
+
+# ============================================================
+# ADM-03 카드 관리
+# ============================================================
+def_slide(
+    prs, "ADM-03", "카드 관리 (Cards)",
+    tree=[
+        (0, "카드 관리 (/admin/projects)"),
+        (1, "좌 목록 (검색·유형 칩·카테고리 아코디언)"),
+        (1, "우 상세·편집 (이미지·유형별·신청자·담당자)"),
+    ],
+    flow=["카드 선택", "조회", "수정(admin)/삭제", "저장"],
+    flow_branch=[(0, "companyAdmin → 담당 등록 건만·삭제만"), (2, "직접 등록(admin)")],
+    flow_note=[
+        "카테고리 아코디언(기본 접힘·검색 자동 펼침)으로 카드 수가 늘어도 목록이 무너지지 않게 한다.",
+        "편집 항목을 등록 폼과 같은 체계로 두어 관리자의 학습 비용을 없앤다.",
+    ],
+    sections=[
+        ("정의·역할", ["접근: admin · companyAdmin",
+                    "게시된 전체 카드의 관리(조회·수정·삭제·직접 등록)"]),
+        ("목적", ["게시본 품질 유지"]),
+        ("기획 의도", ["카테고리 아코디언(기본 접힘·검색 자동 펼침)으로 카드 증가에 대비",
+                    "편집 항목은 등록 폼과 동일 체계(이미지 포함) — 학습 비용 제거",
+                    "수정·직접 등록=admin, 삭제=담당 companyAdmin 허용 — 관계사 차원 품질 관리"]),
+        ("지켜야 할 룰", ["가시성·삭제 권한 = ownerCompany 축(검토와 동일 판정)",
+                     "삭제는 확인+복구 불가 고지",
+                     "직접 등록도 ID 규칙(0.3)"]),
+        ("개발 연동 노트", ["getManagedAssetItems(카탈로그 파생). 수정 PATCH·삭제 DELETE·직접 등록 POST, 권한 서버 검증",
+                      "이미지는 스토리지 선정 연동(부록 B)"]),
+    ],
 )
-screen(prs, ("항목 관리", "항목 관리 — 목록·액션", "ADM-03", "/admin/projects"), draw_adm03,
-       _adm03, active={1, 2, 3, 4}, page_no=1, page_total=2, subtitle="목록·액션", rule_box=_adm03_rule)
-screen(prs, ("항목 관리", "항목 관리 — 편집 필드", "ADM-03", "/admin/projects"), draw_adm03,
-       _adm03, active={5, 6, 7, 8}, page_no=2, page_total=2, subtitle="편집 필드", rule_box=_adm03_rule)
+
+
+def adm03_master(s, C, t):
+    """LAYOUT ADM-03 p1 좌:
+    ①헤더 → ②검색+유형 칩 → ③아코디언 그룹 헤더 3(첫 그룹만 펼침) → └④카드 행들(펼친 그룹 내부)"""
+    x, y = C["x"], C["y"]
+    mw = C["w"] * MASTER_R
+    # ① 헤더 (건수 + 직접 등록 버튼)
+    hline(s, x, y + 0.12, mw * 0.38, t.on(1), 1.8)
+    sil_button(s, x + mw - 0.60, y, 0.60, 0.24, t.on(1))
+    t.mk(s, 1, x - 0.02, y - 0.02)
+    # ② 검색 박스 + 유형 칩 줄
+    sy = y + 0.36
+    sil_input(s, x, sy, mw, 0.22, t.on(2))
+    cw = (mw - 2 * 0.05) / 3
+    for i in range(3):
+        sil_pill(s, x + i * (cw + 0.05), sy + 0.30, cw, 0.15, t.on(2))
+    t.mk(s, 2, x - 0.02, sy - 0.02)
+    # ③ 카테고리 아코디언 그룹 헤더 (dot·카테고리명·건수)
+    gy = y + 0.94
+
+    def group(gyy):
+        sil_box(s, x, gyy, mw, 0.26, t.on(3), lw=1.2, fill=GF7)
+        sil_circle(s, x + 0.06, gyy + 0.07, 0.12, t.on(3))
+        hline(s, x + 0.24, gyy + 0.15, mw * 0.40, t.on(3))
+        hline(s, x + mw - 0.26, gyy + 0.15, 0.20, t.on(3))
+
+    group(gy)                       # 그룹 1 — 펼침
+    t.mk(s, 3, x - 0.02, gy - 0.02)
+    # └ ④ 카드 행들 — 펼친 그룹 '내부' 컨테이너(들여쓰기)
+    ix, iw = x + 0.09, mw - 0.09
+    cy = gy + 0.26
+    box_h = 4 * 0.46 + 0.10
+    sil_box(s, ix, cy, iw, box_h, t.on(4), lw=1.0)
+    for i in range(4):
+        ry = cy + 0.06 + i * 0.46
+        hline(s, ix + 0.07, ry + 0.10, iw * 0.70, t.on(4))         # 제목
+        hline(s, ix + 0.07, ry + 0.26, iw * 0.38, t.on(4))         # 카드 ID·부서
+        sil_pill(s, ix + iw - 0.36, ry + 0.20, 0.28, 0.12, t.on(4))  # 등록 관계사 뱃지
+    t.mk(s, 4, ix - 0.02, cy + 0.02)
+    gy2 = cy + box_h + 0.10
+    group(gy2)                      # 그룹 2·3 — 접힘
+    group(gy2 + 0.34)
+
+
+def adm03_detail(s, C, t):
+    """LAYOUT ADM-03 p2 우측:
+    ⑤헤더 행 → ⑥기본 정보 카드(캐러셀·삭제 X·추가 버튼 → 필드들) → ⑦유형별 섹션 → ⑧신청자 → ⑨담당자"""
+    _, dx, dw = split(C)
+    y = C["y"]
+    # ⑤ 헤더 행 (제목 좌 | 수정·삭제 버튼 우)
+    hline(s, dx, y + 0.14, dw * 0.32, t.on(5), 1.8)
+    sil_button(s, dx + dw - 1.22, y, 0.58, 0.26, t.on(5))
+    sil_button(s, dx + dw - 0.58, y, 0.58, 0.26, t.on(5))
+    t.mk(s, 5, dx - 0.02, y - 0.02)
+    # ⑥ 기본 정보 카드
+    b, bh = y + 0.38, 1.62
+    sil_box(s, dx, b, dw, bh, t.on(6), lw=1.3)
+    hline(s, dx + PAD, b + 0.16, dw * 0.24, t.on(6), 1.6)
+    thw = 0.54
+    for i in range(3):
+        tx = dx + PAD + i * (thw + 0.08)
+        sil_box(s, tx, b + 0.28, thw, 0.42, t.on(6), lw=1.1, fill=GF7)
+        xmark(s, tx + thw - 0.16, b + 0.31, 0.13, t.on(6))
+    dashed_box(s, dx + PAD + 3 * (thw + 0.08), b + 0.28, 0.42, 0.42, t.on(6))
+    for i in range(3):
+        sil_input(s, dx + PAD, b + 0.84 + i * 0.24, dw - 2 * PAD, 0.18, t.on(6))
+    t.mk(s, 6, dx - 0.02, b - 0.02)
+    # ⑦ 유형별 섹션 카드
+    c, ch = b + bh + 0.12, 0.82
+    sil_box(s, dx, c, dw, ch, t.on(7), lw=1.3, fill=GF7)
+    hline(s, dx + PAD, c + 0.16, dw * 0.28, t.on(7), 1.6)
+    sil_input(s, dx + PAD, c + 0.32, dw * 0.44, 0.18, t.on(7))
+    sil_input(s, dx + PAD + dw * 0.50, c + 0.32, dw * 0.44 - PAD, 0.18, t.on(7))
+    sil_input(s, dx + PAD, c + 0.58, dw - 2 * PAD, 0.18, t.on(7))
+    t.mk(s, 7, dx - 0.02, c - 0.02)
+    # ⑧ 등록 신청자 정보 카드
+    d, dh = c + ch + 0.12, 0.58
+    sil_box(s, dx, d, dw, dh, t.on(8), lw=1.3)
+    hline(s, dx + PAD, d + 0.16, dw * 0.26, t.on(8), 1.6)
+    sil_input(s, dx + PAD, d + 0.32, dw * 0.60, 0.18, t.on(8))
+    t.mk(s, 8, dx - 0.02, d - 0.02)
+    # ⑨ 담당자 카드
+    e, eh = d + dh + 0.12, 0.74
+    sil_box(s, dx, e, dw, eh, t.on(9), lw=1.3)
+    hline(s, dx + PAD, e + 0.16, dw * 0.22, t.on(9), 1.6)
+    fw = (dw - 2 * PAD) / 3
+    for i in range(3):
+        sil_input(s, dx + PAD + i * fw, e + 0.32, fw - 0.06, 0.18, t.on(9))
+    hline(s, dx + PAD, e + 0.62, dw * 0.38, t.on(9))
+    t.mk(s, 9, dx - 0.02, e - 0.02)
+
+
+def draw_adm03_p1(s, R, ctx):
+    C = chrome(s, R)
+    adm03_detail(s, C, Tone(ctx, False))
+    _, dx, dw = split(C)
+    ghost_frame(s, dx - 0.05, C["y"] - 0.05, dw + 0.10, C["h"] + 0.06)
+    adm03_master(s, C, Tone(ctx, True))
+
+
+def draw_adm03_p2(s, R, ctx):
+    C = chrome(s, R)
+    adm03_master(s, C, Tone(ctx, False))
+    mw, _, _ = split(C)
+    ghost_frame(s, C["x"] - 0.05, C["y"] - 0.05, mw + 0.10, C["h"] + 0.06)
+    adm03_detail(s, C, Tone(ctx, True))
+
+
+_adm03_be = ("getManagedAssetItems(카탈로그 파생). 수정 PATCH·삭제 DELETE·직접 등록 POST, "
+             "권한 서버 검증. 이미지는 스토리지 선정 연동(부록 B).")
+screen(prs, ("카드 관리", "카드 관리", "ADM-03", "/admin/projects  (admin·companyAdmin)"),
+       draw_adm03_p1, [
+           (1, "헤더", "전체 카드 수·직접 등록[admin]·담당 뱃지[companyAdmin]"),
+           (2, "검색·유형 칩", "카드명·부서 검색+카테고리 필터"),
+           (3, "카테고리 아코디언", "그룹 헤더: 색 dot·카테고리명·건수 — 기본 접힘·검색 시 자동 펼침"),
+           (4, "카드 행", "제목·카드 ID·부서·등록 관계사 뱃지"),
+       ], page_no=1, page_total=2, subtitle="좌 목록", rule_box=(
+           ["미선택 시 우측에 총 건수·카테고리 분포 안내"],
+           _adm03_be,
+       ))
+
+screen(prs, ("카드 관리", "카드 관리", "ADM-03", "/admin/projects  (admin·companyAdmin)"),
+       draw_adm03_p2, [
+           (5, "헤더 액션", "수정[admin]·삭제[확인 절차]"),
+           (6, "기본 정보", "수정 모드에서 이미지 추가/삭제 포함 — 등록 폼과 동일 구성"),
+           (7, "유형별 섹션", "대상 카드 유형에 따름"),
+           (8, "등록 신청자 정보", "신청자 이메일 등"),
+           (9, "담당자", "조회·편집"),
+       ], page_no=2, page_total=2, subtitle="우 상세·편집", rule_box=(
+           ["수정·직접 등록은 admin 전용",
+            "삭제된 카드 복구 불가 고지"],
+           _adm03_be,
+       ))
 
 # ============================================================
 # ADM-04 통계
@@ -293,473 +597,857 @@ def_slide(
     prs, "ADM-04", "통계 (Statistics)",
     tree=[
         (0, "통계 (/admin/statistics)"),
-        (1, "헤더·조회 범위 선택기"),
-        (1, "상단 카드 ×4"),
-        (1, "기간 프리셋 · 월 지정"),
-        (1, "등록 추이 · 카테고리별 현황"),
-        (1, "도메인·부서 · 절감 효과"),
-        (1, "3-col 분석 · TOP5 · 키워드"),
+        (1, "헤더 (조회 범위·기간 프리셋)"),
+        (1, "요약 4카드"),
+        (1, "등록 추이"),
+        (1, "카테고리 현황"),
+        (1, "도메인·부서 (상위 5)"),
+        (1, "절감 효과"),
+        (1, "3축 분석"),
+        (1, "후기·태그"),
     ],
-    flow=["범위·기간 선택", "지표 집계", "차트·표 분석"],
+    flow=["기간·범위 선택", "전 차트 갱신", "차트 펼치기(상위 5→전체)"],
+    flow_branch=[(0, "범위 지정 → 시작~종료 월(최대 24개월)"), (1, "companyAdmin → 담당 범위 집계")],
     flow_note=[
-        "'성과가 숫자로 보여야 확산이 굴러간다'는 타사 벤치마킹 교훈을 반영한 화면.",
-        "환산 불가한 값은 부풀리지 않고 '추정 불가'로 분리 표기 — 경영 보고 수치의 신뢰가 이 정직함에서 나온다.",
-        "분석 축은 실제로 입력받는 데이터에만 둔다 — 입력 없는 축을 만들면 빈 차트만 남는다.",
+        "전 수치를 카탈로그 단일 소스에서 파생한다 — 화면 간 수치 불일치는 보고 신뢰를 해치기 때문(0.9).",
     ],
     sections=[
-        ("정의·역할", ["등록·활용 현황의 집계 리포트 화면(운영 성과 보고 근거 자료)",
-                    "조회 범위 선택기 노출(승인 대기 건수 없음)"]),
-        ("목적", ["'카탈로그가 실제로 확산되고 있는가, 얼마나 절감 효과를 내는가'를 정량으로 제시"]),
-        ("기획 의도", ["절감 시간은 연간 환산하되 원본 텍스트 보존, 환산 불가는 '추정 불가'로 분리",
-                    "분석 축은 입력이 실제로 있는 데이터에만 — 난이도=n8n, 비용=AI Agent, 모델 유형=ML"]),
-        ("지켜야 할 룰", ["절감 효과 3종(연간 환산·집계 가능·추정 불가) 유지",
-                     "축: 카테고리(7)·도메인·난이도(n8n)·비용 등급(AI Agent)·모델 유형(ML). 운영 상태 축 없음",
-                     "집계 데이터는 성과 평가 용도가 아님(워딩에도 반영)"]),
-        ("개발 연동 노트", ["서버 집계 API(범위 파라미터), 카테고리 색·라벨은 CATEGORIES 파생",
-                      "절감 시간 환산 로직은 서버 이관 시 동일 규칙 유지(주기별 배수)"]),
+        ("정의·역할", ["접근: admin · companyAdmin",
+                    "등록·활용 현황의 기간 분석 리포트 — 성과 보고 근거"]),
+        ("목적", ["확산 추이·절감 효과를 기간·범위로 정량 확인"]),
+        ("기획 의도", ["전 수치를 카탈로그 단일 소스 파생(0.9) — 화면 간 수치 불일치는 보고 신뢰를 해침",
+                    "절감은 연간 환산+추정 불가 분리(0.8). 분석 축은 실입력 데이터만",
+                    "부서·도메인은 상위 5+펼치기 — SSO 후 부서 급증 대비"]),
+        ("지켜야 할 룰", ["프리셋 4종 고정(최근3·6개월/올해 전체/범위 지정 최대 24개월, 서버 재검증)",
+                     "전 기간 프리셋 없음(과거는 범위 지정) · 운영 상태·검색 키워드 축 없음",
+                     "성과 평가 아님 문구 유지(0.1)"]),
+        ("개발 연동 노트", ["getStatsByScope(scope,range)·statsDerive 함수군 = 통계 API 계약 기준(GET /stats/*, ?company=&from=&to=)",
+                      "parseTimeSaved 규칙 서버 이관 시 동일. 검증: 데모 총량 50 전 축 일치"]),
     ],
 )
 
 
-def draw_adm04(s, R, ctx):
+def draw_adm04_p1(s, R, ctx):
+    """LAYOUT ADM-04 p1
+    행1 2열: 좌 제목+조회 범위 | 우 ①기간 프리셋 4pill+월 select 2(같은 행 유지) / 행2: ②요약 4카드
+    행3: ③등록 추이(스택 막대 7개 상당+범례 줄) / 행4: ④카테고리 현황(전폭 스택바 → 카드 3열×2행)"""
     C = chrome(s, R)
     x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    sil_box(s, x, y, w * 0.55, 0.26, ctx.on(1), lw=1.2); sil_button(s, x + w - 1.6, y, 1.5, 0.24, ctx.on(1)); tiny(s, x + w - 1.6, y, 1.5, "범위", ctx.on(1)); ctx.mk(s, 1, x - 0.02, y - 0.02)
-    cy = y + 0.36
+
+    # 행1 — 좌 제목·조회 범위 | 우 ① 기간 프리셋 + 월 select (같은 행)
+    hline(s, x, y + 0.14, 0.56, True, 1.8)
+    sil_button(s, x + 0.66, y + 0.02, 0.66, 0.26, True)
+    gw = 2.78
+    gx = x + w - gw
     for i in range(4):
-        sil_box(s, x + i * (w / 4), cy, (w / 4) - 0.08, 0.5, ctx.on(2), lw=1.3, fill=GF7)
-    ctx.mk(s, 2, x - 0.02, cy - 0.02)
-    cy += 0.62
+        sil_pill(s, gx + i * 0.48, y + 0.04, 0.44, 0.22, ctx.on(1))
+    for i in range(2):
+        sil_input(s, gx + 1.98 + i * 0.42, y + 0.04, 0.38, 0.22, ctx.on(1))
+    ctx.mk(s, 1, gx - 0.02, y - 0.02)
+
+    # 행2 — ② 요약 4카드
+    r2 = y + 0.42
+    kw = (w - 3 * PAD) / 4
     for i in range(4):
-        sil_button(s, x + i * 0.9, cy, 0.82, 0.2, ctx.on(3))
-    sil_button(s, x + w - 0.9, cy, 0.85, 0.2, ctx.on(3)); ctx.mk(s, 3, x - 0.02, cy - 0.02)
-    cy += 0.32
-    half = (w - 0.2) / 2
-    sil_bars(s, x, cy, half, 0.75, ctx.on(4)); tiny(s, x, cy - 0.02, half, "추이", ctx.on(4)); ctx.mk(s, 4, x - 0.02, cy - 0.02)
-    sil_grid(s, x + half + 0.2, cy, half, 0.75, ctx.on(5), 3, 1); ctx.mk(s, 5, x + half + 0.2 - 0.02, cy - 0.02)
-    cy += 0.88
-    sil_box(s, x, cy, half, 0.7, ctx.on(6), lw=1.3); sil_bars(s, x + 0.1, cy + 0.12, half - 0.2, 0.45, ctx.on(6), pattern=[0.6, 0.9, 0.5, 0.7])
-    ctx.mk(s, 6, x - 0.02, cy - 0.02)
-    sil_box(s, x + half + 0.2, cy, half, 0.7, ctx.on(7), lw=1.3, fill=GF7); sil_lines(s, x + half + 0.3, cy + 0.12, half - 0.2, ctx.on(7), n=3)
-    ctx.mk(s, 7, x + half + 0.2 - 0.02, cy - 0.02)
-    cy += 0.82
-    third = (w - 0.4) / 3
+        kx = x + i * (kw + PAD)
+        sil_box(s, kx, r2, kw, 0.56, ctx.on(2), lw=1.3, fill=GF7)
+        hline(s, kx + 0.10, r2 + 0.16, kw * 0.55, ctx.on(2))
+        hline(s, kx + 0.10, r2 + 0.36, kw * 0.72, ctx.on(2), 2.0)
+    ctx.mk(s, 2, x - 0.02, r2 - 0.02)
+
+    # 행3 — ③ 등록 추이 (카테고리 스택 막대 + 범례 줄)
+    r3, r3h = r2 + 0.68, 1.50
+    sil_box(s, x, r3, w, r3h, ctx.on(3), lw=1.3)
+    hline(s, x + PAD, r3 + 0.16, w * 0.20, ctx.on(3), 1.6)
+    stacked_cols(s, x + PAD + 0.10, r3 + 0.34, w - 2 * PAD - 0.10, 0.82, ctx.on(3), cols=7)
+    for i in range(7):
+        sil_circle(s, x + PAD + i * 0.44, r3 + 1.24, 0.10, ctx.on(3))
+        hline(s, x + PAD + 0.14 + i * 0.44, r3 + 1.30, 0.24, ctx.on(3))
+    ctx.mk(s, 3, x - 0.02, r3 - 0.02)
+
+    # 행4 — ④ 카테고리별 현황 (전폭 스택바 → 카드 3열×2행)
+    r4 = r3 + r3h + 0.12
+    r4h = h - (r4 - y) - 0.02
+    sil_box(s, x, r4, w, r4h, ctx.on(4), lw=1.3)
+    segbar(s, x + PAD, r4 + 0.16, w - 2 * PAD, 0.22, [0.24, 0.18, 0.16, 0.13, 0.11, 0.10, 0.08], ctx.on(4))
+    gw2 = (w - 2 * PAD - 2 * 0.10) / 3
+    gh2 = (r4h - 0.52 - 0.10) / 2
+    for r in range(2):
+        for c in range(3):
+            gx2 = x + PAD + c * (gw2 + 0.10)
+            gy2 = r4 + 0.50 + r * (gh2 + 0.10)
+            sil_box(s, gx2, gy2, gw2, gh2, ctx.on(4), lw=1.1, fill=GF7, round=True)
+            hline(s, gx2 + 0.08, gy2 + 0.14, gw2 * 0.50, ctx.on(4))
+            hline(s, gx2 + 0.08, gy2 + 0.32, gw2 * 0.70, ctx.on(4))
+    ctx.mk(s, 4, x - 0.02, r4 - 0.02)
+
+
+def draw_adm04_p2(s, R, ctx):
+    """LAYOUT ADM-04 p2
+    행1 2열(50:50): 좌 ⑤도메인·부서(막대 5행+"전체 보기" 버튼) | 우 동일 구조 카드
+    행2: ⑥절감 3카드 가로 / 행3: ⑦3열 분석 / 행4 2열: 좌 ⑧후기 상위 5 | 우 ⑨태그 빈도"""
+    C = chrome(s, R)
+    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+
+    # 행1 — ⑤ 도메인·부서 (좌우 동일 구조, 마커는 좌측 카드에)
+    r1h = 1.44
+    cw = (w - PAD) / 2
+    fracs = [0.95, 0.78, 0.60, 0.44, 0.30]
+    for k in range(2):
+        cx = x + k * (cw + PAD)
+        sil_box(s, cx, y, cw, r1h, ctx.on(5), lw=1.3)
+        hline(s, cx + PAD, y + 0.16, cw * 0.34, ctx.on(5), 1.6)
+        for i in range(5):
+            ry = y + 0.32 + i * 0.15
+            hline(s, cx + PAD, ry + 0.06, 0.40, ctx.on(5))
+            hbar(s, cx + PAD + 0.46, ry, cw - 2 * PAD - 0.46, 0.11, fracs[i], ctx.on(5))
+        sil_button(s, cx + PAD, y + r1h - 0.32, cw * 0.46, 0.24, ctx.on(5))
+    ctx.mk(s, 5, x - 0.02, y - 0.02)
+
+    # 행2 — ⑥ 절감 효과 3카드 가로
+    r2 = y + r1h + 0.12
+    tw = (w - 2 * PAD) / 3
     for i in range(3):
-        sil_box(s, x + i * (third + 0.2), cy, third, y + h - cy - 0.02, ctx.on(8 if i < 2 else 9), lw=1.2)
-        sil_bars(s, x + i * (third + 0.2) + 0.08, cy + 0.1, third - 0.16, y + h - cy - 0.22, ctx.on(8 if i < 2 else 9), pattern=[0.7, 0.4, 0.9])
-    ctx.mk(s, 8, x - 0.02, cy - 0.02); ctx.mk(s, 9, x + 2 * (third + 0.2) - 0.02, cy - 0.02)
-    ctx.mk(s, 10, x + w - 0.28, cy - 0.02)
+        tx = x + i * (tw + PAD)
+        sil_box(s, tx, r2, tw, 0.62, ctx.on(6), lw=1.3, fill=GF7)
+        hline(s, tx + 0.10, r2 + 0.18, tw * 0.56, ctx.on(6))
+        hline(s, tx + 0.10, r2 + 0.40, tw * 0.72, ctx.on(6), 2.0)
+    ctx.mk(s, 6, x - 0.02, r2 - 0.02)
+
+    # 행3 — ⑦ 3열 분석 (난이도 | 비용 | 모델 유형)
+    r3, r3h = r2 + 0.74, 0.90
+    for i in range(3):
+        tx = x + i * (tw + PAD)
+        sil_box(s, tx, r3, tw, r3h, ctx.on(7), lw=1.3)
+        hline(s, tx + 0.10, r3 + 0.16, tw * 0.44, ctx.on(7), 1.6)
+        for j in range(3):
+            ry = r3 + 0.30 + j * 0.18
+            hline(s, tx + 0.10, ry + 0.06, 0.26, ctx.on(7))
+            hbar(s, tx + 0.42, ry, tw - 0.52, 0.11, [0.9, 0.62, 0.38][j], ctx.on(7))
+    ctx.mk(s, 7, x - 0.02, r3 - 0.02)
+
+    # 행4 — 2열: ⑧ 후기 상위 5 | ⑨ 태그 빈도
+    r4 = r3 + r3h + 0.12
+    r4h = h - (r4 - y) - 0.02
+    sil_box(s, x, r4, cw, r4h, ctx.on(8), lw=1.3)
+    hline(s, x + PAD, r4 + 0.16, cw * 0.32, ctx.on(8), 1.6)
+    for i in range(5):
+        ry = r4 + 0.32 + i * 0.16
+        sil_pill(s, x + PAD, ry, 0.16, 0.12, ctx.on(8))
+        hline(s, x + PAD + 0.22, ry + 0.07, cw - 2 * PAD - 0.22, ctx.on(8))
+    ctx.mk(s, 8, x - 0.02, r4 - 0.02)
+    x2 = x + cw + PAD
+    sil_box(s, x2, r4, cw, r4h, ctx.on(9), lw=1.3, fill=GF7)
+    hline(s, x2 + PAD, r4 + 0.16, cw * 0.30, ctx.on(9), 1.6)
+    for i in range(6):
+        ry = r4 + 0.32 + i * 0.14
+        hline(s, x2 + PAD, ry + 0.05, 0.34, ctx.on(9))
+        hbar(s, x2 + PAD + 0.40, ry, cw - 2 * PAD - 0.40, 0.10, [0.95, 0.82, 0.68, 0.52, 0.4, 0.28][i], ctx.on(9))
+    ctx.mk(s, 9, x2 - 0.02, r4 - 0.02)
 
 
-_adm04 = [
-    (1, "헤더·조회 범위 선택기", "타이틀 '통계 대시보드' + 조회 범위 선택기(승인 대기 건수 미표시), 담당 1곳=배지·0곳=안내"),
-    (2, "상단 카드 ×4", "전체 등록물 · 이번 달 신규 · 참여 부서 · 참여 관계사"),
-    (3, "기간 컨트롤", "프리셋(이번 달·최근 3개월·최근 6개월·올해 전체) + [월 지정](연/월 select)"),
-    (4, "등록 추이", "7유형 스택 막대(CATEGORIES 색), 기간 라벨 표기"),
-    (5, "카테고리별 등록 현황", "3-col 카테고리별 건수·비율"),
-    (6, "도메인·부서", "비즈니스 도메인 분포 + 부서별 현황", "빈 상태 '해당 범위의 부서 데이터가 없습니다.'"),
-    (7, "절감 효과 요약", "n8n·PA 예상 절감 시간 연간 환산 + 집계 가능/추정 불가 건수"),
-    (8, "3-col 분석", "난이도 분포(n8n 전용) · 비용 구간(AI Agent) · ML 모델 유형"),
-    (9, "후기 많은 항목 TOP 5", "누적 후기 수 기준 상위 5(제목·ID·평균 ♥)", "빈 상태 '해당 범위의 후기 데이터가 없습니다.'"),
-    (10, "탐색 키워드 빈도", "사용자 탐색 상위 키워드 막대"),
-]
-_adm04_rule = (
-    ["'성과가 숫자로 보여야 확산이 굴러간다'는 벤치마킹 교훈을 반영한 정량 리포트다.",
-     "절감 시간은 연간 환산하되 원본 자유 텍스트를 보존하고, 환산 불가한 값은 부풀리지 않고 '추정 불가'로 분리 표기한다.",
-     "분석 축은 실제로 입력받는 데이터에만 둔다(난이도=n8n, 비용=AI Agent, 모델 유형=ML) — 입력 없는 축은 빈 차트만 남긴다.",
-     "집계 데이터는 개인·부서 성과 평가용이 아님을 화면 워딩에도 반영한다."],
-    "서버 집계 API는 범위 파라미터 수신, 카테고리 색·라벨은 CATEGORIES 파생으로 목록·상세와 일치.",
-)
-screen(prs, ("통계", "통계 대시보드 — 카드·추이", "ADM-04", "/admin/statistics"), draw_adm04,
-       _adm04, active={1, 2, 3, 4, 5}, page_no=1, page_total=2, subtitle="카드·추이", rule_box=_adm04_rule)
-screen(prs, ("통계", "통계 대시보드 — 분석", "ADM-04", "/admin/statistics"), draw_adm04,
-       _adm04, active={6, 7, 8, 9, 10}, page_no=2, page_total=2, subtitle="분석", rule_box=_adm04_rule)
+_adm04_be = ("getStatsByScope(scope,range)·statsDerive 함수군 = 통계 API 계약 기준(GET /stats/*, "
+             "?company=&from=&to=). parseTimeSaved 규칙 서버 이관 시 동일. 검증: 데모 총량 50 전 축 일치.")
+screen(prs, ("통계", "통계", "ADM-04", "/admin/statistics  (admin·companyAdmin)"), draw_adm04_p1, [
+    (1, "조회 범위·기간", "프리셋 4종+범위 지정[시작~종료 월·최대 24개월]"),
+    (2, "요약 4카드", "전체 등록물·이번 달 신규·참여 부서·참여 관계사"),
+    (3, "등록 추이", "카테고리 스택 막대 — 선택 기간 연속 표시·빈 월 0"),
+    (4, "카테고리별 현황", "7종 건수·비율"),
+], page_no=1, page_total=2, subtitle="헤더·추이", rule_box=(
+    ["올해 전체 = 당해 1월~현재 월",
+     "24개월 초과 선택 불가"],
+    _adm04_be,
+))
+
+screen(prs, ("통계", "통계", "ADM-04", "/admin/statistics  (admin·companyAdmin)"), draw_adm04_p2, [
+    (5, "도메인·부서", "상위 5 + \"전체 보기 (N)\" 펼치기·접기"),
+    (6, "절감 효과 3종", "연간 환산·집계 가능·추정 불가 분리"),
+    (7, "3축 분석", "난이도[n8n]·비용[AI Model]·모델 유형[ML]"),
+    (8, "후기 상위 5", "누적 후기 기준"),
+    (9, "태그 빈도", "상위 태그 막대"),
+], page_no=2, page_total=2, subtitle="분석", rule_box=(
+    ["집계는 성과 평가 용도가 아님을 화면 문구에 유지",
+     "companyAdmin은 담당 범위 집계"],
+    _adm04_be,
+))
 
 # ============================================================
-# ADM-05 분류 체계 관리
+# ADM-05 분류체계 관리
 # ============================================================
 def_slide(
-    prs, "ADM-05", "분류 체계 관리 (Taxonomy)",
+    prs, "ADM-05", "분류체계 관리 (Taxonomy)",
     tree=[
         (0, "분류체계 (/admin/taxonomy)"),
-        (1, "탭 (도메인·난이도·비용·ML) | 자유 태그"),
-        (1, "고정 분류 탭"),
-        (2, "좌 분류 카드·항목 리스트"),
-        (2, "우 항목 추가"),
+        (1, "고정 분류 4탭"),
         (1, "자유 태그 탭"),
-        (2, "목록·출처 필터·표준화"),
-        (1, "운영 유의사항"),
+        (1, "좌 값·태그 목록"),
+        (1, "우 추가·편입 패널 · 운영 유의사항"),
     ],
-    flow=["탭 선택", "값 추가/수정/삭제", "저장"],
-    flow_branch=(1, "자유 태그 → 고정 분류 편입"),
+    flow=["탭 선택", "값 추가/수정/삭제"],
+    flow_branch=[(1, "자유 태그 → 출처 필터·선택 삭제·고정 분류 편입(AI Model→비용 / ML→모델 유형만)")],
     flow_note=[
-        "분류 설계 원칙은 '고정 분류 위주' — 검색·필터·향후 RAG 모두 통제된 어휘가 있어야 품질이 나온다.",
-        "자유 태그는 등록 문턱을 낮추는 보조 수단이고, 반복되는 태그는 관리자가 고정 분류로 승격한다.",
+        "검색·필터·통계·향후 RAG의 품질은 통제 어휘에서 나오므로 고정 분류를 축으로 삼는다.",
+        "자유 태그는 등록 문턱을 낮추는 보조 수단이며, 반복 태그를 고정 분류로 편입하는 운영 순환을 상정한다.",
     ],
     sections=[
-        ("정의·역할", ["고정 분류(통제 어휘)와 자유 태그를 관리하는 화면",
-                    "검색·필터·통계 축이 되는 분류 값을 표준화"]),
-        ("목적", ["분류 값을 표준화하고 자유 태그의 난립을 관리"]),
-        ("기획 의도", ["고정 분류 위주 — 검색·필터·RAG 품질을 위해 통제 어휘가 필요",
-                    "관리 대상 분류는 등록 폼에서 실제 입력받는 축과 정확히 일치(입력 없는 분류는 부담만 남김)"]),
-        ("지켜야 할 룰", ["탭 4종: 업무 도메인·구성 난이도(n8n 전용)·비용 등급(AI Agent)·ML 모델 유형 + 자유 태그",
-                     "삭제 시 사용 중인 항목 수 확인 안내(고정 분류 삭제 시 기존 항목 공란 처리 가능)",
-                     "자유 태그 출처는 AI 프로젝트 포함 7개 카테고리 대응"]),
-        ("개발 연동 노트", ["분류 마스터 테이블 + 항목-분류 참조",
-                      "삭제 시 참조 무결성 정책(공란 처리)을 서버에서 일관 적용"]),
+        ("정의·역할", ["접근: admin 전용",
+                    "고정 분류(도메인·난이도·비용·ML 유형)와 자유 태그 관리"]),
+        ("목적", ["검색·필터·통계 축의 분류 표준화 + 자유 태그 누적 관리"]),
+        ("기획 의도", ["고정 분류 위주 — 검색·필터·통계·향후 RAG의 품질은 통제 어휘에서 나옴",
+                    "자유 태그는 등록 문턱을 낮추는 보조 수단, 반복 태그는 고정 분류로 편입하는 운영 순환",
+                    "편입은 실입력 축 2종으로 제한 — 대응 축 없는 편입은 정합 훼손"]),
+        ("지켜야 할 룰", ["고정 분류 삭제 시 기존 카드 공란 처리 가능 안내(참조 무결성은 서버 일관)",
+                     "자유 태그 출처 7카테고리 대응",
+                     "편입 조합 2종 한정"]),
+        ("개발 연동 노트", ["getCategoryTaxonomy·getFreeTags. 분류 마스터+카드-분류 참조",
+                      "편입은 태그→분류 전환+카드 참조 갱신 동시 처리"]),
     ],
 )
 
 
-def draw_adm05_fixed(s, R, ctx):
+def draw_adm05_p1(s, R, ctx):
+    """LAYOUT ADM-05 p1
+    행1: ①탭 pill 5(분류 4+자유 태그) / 행2 2열(65:35): 좌 ②값 목록 카드(값·사용 N건·③수정/삭제) |
+    우 추가 패널(입력+버튼) / 행3: ④유의사항 박스"""
     C = chrome(s, R)
     x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+
+    # 행1 — ① 탭 pill 5
+    tw = 0.78
     for i in range(5):
-        sil_pill(s, x + i * 1.0, y, 0.9, 0.2, ctx.on(1) if i < 4 else False)
+        sil_pill(s, x + i * (tw + 0.06), y, tw, 0.26, ctx.on(1) and i < 4)
     ctx.mk(s, 1, x - 0.02, y - 0.02)
-    cy = y + 0.34
-    lw = w * 0.6; rx = x + lw + 0.2; rw = w - lw - 0.2
-    sil_box(s, x, cy, lw, y + h - cy - 0.5, ctx.on(2), lw=1.3)
-    sil_lines(s, x + 0.12, cy + 0.12, lw * 0.5, ctx.on(2), n=1)
+
+    # 행2 — 2열(65:35)
+    r2 = y + 0.38
+    r2h = h - 0.38 - 0.12 - 0.62
+    lw = (w - PAD) * 0.65
+    rx, rw = x + lw + PAD, w - lw - PAD
+    # ② 값 목록 카드
+    sil_box(s, x, r2, lw, r2h, ctx.on(2), lw=1.3)
+    hline(s, x + PAD, r2 + 0.18, lw * 0.32, ctx.on(2), 1.8)
+    seg(s, x + PAD, r2 + 0.34, x + lw - PAD, r2 + 0.34, color=(GCC if ctx.on(2) else GEE), w=1.0)
+    ctx.mk(s, 2, x - 0.02, r2 - 0.02)
+    # ③ 값 행 (값 · 사용 N건 · 수정/삭제 버튼)
+    btnx = x + lw - PAD - 0.92
     for i in range(6):
-        sil_box(s, x + 0.12, cy + 0.42 + i * 0.36, lw - 0.24, 0.3, ctx.on(3), lw=1.1)
-        sil_button(s, x + lw - 1.0, cy + 0.48 + i * 0.36, 0.4, 0.18, ctx.on(3)); sil_button(s, x + lw - 0.55, cy + 0.48 + i * 0.36, 0.4, 0.18, ctx.on(3))
-    ctx.mk(s, 2, x - 0.02, cy - 0.02); ctx.mk(s, 3, x + lw - 1.05, cy + 0.42)
-    sil_box(s, rx, cy, rw, 1.0, ctx.on(4), lw=1.3, fill=GF7); sil_input(s, rx + 0.1, cy + 0.4, rw - 0.2, 0.2, ctx.on(4)); sil_button(s, rx + 0.1, cy + 0.7, rw - 0.2, 0.2, ctx.on(4))
-    ctx.mk(s, 4, rx - 0.02, cy - 0.02)
-    sil_box(s, x, y + h - 0.42, w, 0.42, ctx.on(5), lw=1.1, fill=GF7); ctx.mk(s, 5, x - 0.02, y + h - 0.44)
+        ry = r2 + 0.44 + i * 0.44
+        hline(s, x + PAD, ry + 0.14, lw * 0.32, ctx.on(3))
+        hline(s, x + PAD + lw * 0.38, ry + 0.14, lw * 0.16, ctx.on(3))
+        sil_button(s, btnx, ry, 0.44, 0.24, ctx.on(3))
+        sil_button(s, btnx + 0.48, ry, 0.44, 0.24, ctx.on(3))
+    ctx.mk(s, 3, btnx - 0.02, r2 + 0.42)
+    # 우 추가 패널 (입력 + 버튼)
+    sil_box(s, rx, r2, rw, 1.10, ctx.on(3), lw=1.3, fill=GF7)
+    hline(s, rx + PAD, r2 + 0.18, rw * 0.44, ctx.on(3), 1.6)
+    sil_input(s, rx + PAD, r2 + 0.44, rw - 2 * PAD, 0.22, ctx.on(3))
+    sil_button(s, rx + PAD, r2 + 0.76, rw - 2 * PAD, 0.26, ctx.on(3))
+
+    # 행3 — ④ 운영 유의사항 박스
+    r3 = r2 + r2h + 0.12
+    sil_box(s, x, r3, w, 0.62, ctx.on(4), lw=1.2, fill=GF7)
+    hline(s, x + PAD, r3 + 0.22, w * 0.62, ctx.on(4))
+    hline(s, x + PAD, r3 + 0.40, w * 0.42, ctx.on(4))
+    ctx.mk(s, 4, x - 0.02, r3 - 0.02)
 
 
-def draw_adm05_free(s, R, ctx):
+def draw_adm05_p2(s, R, ctx):
+    """LAYOUT ADM-05 p2 (자유 태그 탭 활성)
+    행1: ⑤탭 pill(자유 태그 활성+건수 뱃지) / 행2: ⑥출처 필터 칩 8 / 행3: ⑦태그 행들 4 /
+    행4 2열: 좌 ⑧선택 삭제 버튼 | 우 ⑨편입 패널(분류 선택+확정)"""
     C = chrome(s, R)
     x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+
+    # 행1 — ⑤ 탭 pill (자유 태그 활성 + 건수 뱃지)
+    tw = 0.78
     for i in range(5):
-        sil_pill(s, x + i * 1.0, y, 0.9, 0.2, i == 4)
-    ctx.mk(s, 1, x + 4.0 - 0.02, y - 0.02)
-    cy = y + 0.34
-    sil_lines(s, x, cy, w * 0.5, ctx.on(6), n=1)
-    for i in range(7):
-        sil_pill(s, x + i * 0.62, cy + 0.24, 0.54, 0.14, ctx.on(6))
-    ctx.mk(s, 6, x - 0.02, cy - 0.02)
-    ly = cy + 0.5
-    for i in range(5):
-        sil_box(s, x, ly + i * 0.4, w, 0.34, ctx.on(7), lw=1.2)
-        sil_circle(s, x + 0.06, ly + 0.08 + i * 0.4, 0.16, ctx.on(7)); sil_pill(s, x + 0.3, ly + 0.09 + i * 0.4, 0.5, 0.14, ctx.on(7)); sil_lines(s, x + 0.86, ly + 0.1 + i * 0.4, w * 0.4, ctx.on(7), n=1)
-        sil_button(s, x + w - 1.4, ly + 0.08 + i * 0.4, 0.6, 0.16, ctx.on(8)); sil_button(s, x + w - 0.75, ly + 0.08 + i * 0.4, 0.6, 0.16, ctx.on(8))
-    ctx.mk(s, 7, x - 0.02, ly - 0.02); ctx.mk(s, 8, x + w - 1.42, ly - 0.02)
-    sil_box(s, x, y + h - 0.5, w, 0.42, ctx.on(9), lw=1.2, fill=GF7); ctx.mk(s, 9, x - 0.02, y + h - 0.52)
+        sil_pill(s, x + i * (tw + 0.06), y, tw, 0.26, ctx.on(5) and i == 4)
+    fx = x + 4 * (tw + 0.06)
+    sil_circle(s, fx + tw - 0.24, y + 0.05, 0.16, ctx.on(5))
+    ctx.mk(s, 5, fx - 0.02, y - 0.02)
+
+    # 행2 — ⑥ 출처 필터 칩 8
+    r2 = y + 0.38
+    cw = (w - 7 * 0.05) / 8
+    for i in range(8):
+        sil_pill(s, x + i * (cw + 0.05), r2, cw, 0.22, ctx.on(6))
+    ctx.mk(s, 6, x - 0.02, r2 - 0.02)
+
+    # 행3 — ⑦ 태그 행들 4 (체크박스·pill·#태그·건수·제안자)
+    r3 = y + 0.76
+    for i in range(4):
+        ry = r3 + i * 0.60
+        sil_box(s, x, ry, w, 0.54, ctx.on(7), lw=1.2)
+        sil_box(s, x + PAD, ry + 0.19, 0.16, 0.16, ctx.on(7), lw=1.0)
+        sil_pill(s, x + PAD + 0.24, ry + 0.18, 0.44, 0.18, ctx.on(7))
+        hline(s, x + PAD + 0.74, ry + 0.28, w * 0.26, ctx.on(7))
+        hline(s, x + w * 0.56, ry + 0.28, w * 0.14, ctx.on(7))
+        hline(s, x + w * 0.74, ry + 0.28, w * 0.20, ctx.on(7))
+    ctx.mk(s, 7, x - 0.02, r3 - 0.02)
+
+    # 행4 — 2열: ⑧ 선택 삭제 | ⑨ 편입 패널
+    r4 = y + 3.22
+    r4h = h - 3.22 - 0.02
+    hw = (w - PAD) / 2
+    sil_button(s, x, r4, hw * 0.70, 0.30, ctx.on(8))
+    ctx.mk(s, 8, x - 0.02, r4 - 0.02)
+    px, pw = x + hw + PAD, w - hw - PAD
+    sil_box(s, px, r4, pw, r4h, ctx.on(9), lw=1.3, fill=GF7)
+    hline(s, px + PAD, r4 + 0.18, pw * 0.44, ctx.on(9), 1.6)
+    sil_input(s, px + PAD, r4 + 0.44, pw - 2 * PAD, 0.22, ctx.on(9))
+    sil_button(s, px + PAD, r4 + 0.78, pw - 2 * PAD, 0.28, ctx.on(9))
+    ctx.mk(s, 9, px - 0.02, r4 - 0.02)
 
 
-screen(prs, ("분류 체계 관리", "분류체계 관리 — 고정 분류", "ADM-05", "/admin/taxonomy"), draw_adm05_fixed, [
-    (1, "탭", "업무 도메인·구성 난이도·비용 등급·ML 모델 유형 | 자유 태그(카운트 배지)"),
-    (2, "분류 카드·설명", "분류명 + 'AX 플랫폼 항목 전용' 배지 + 설명(난이도=n8n 전용·비용=AI Agent 전용)"),
-    (3, "항목 리스트", "행별 [수정][삭제](인라인 편집/삭제 확인 '\"{label}\" 삭제할까요?')"),
-    (4, "항목 추가", "항목명 입력 + [추가]", "안내 '새 항목 입력 후 Enter 또는 추가'"),
-    (5, "운영 유의사항", "'고정 분류 항목을 삭제하면 기존 항목이 공란으로 처리될 수 있습니다. 삭제 전 사용 중인 항목 수를 확인하세요.'"),
+_adm05_be = ("getCategoryTaxonomy·getFreeTags. 분류 마스터+카드-분류 참조, "
+             "편입은 태그→분류 전환+카드 참조 갱신 동시 처리.")
+screen(prs, ("분류체계 관리", "분류체계 관리", "ADM-05", "/admin/taxonomy  (admin 전용)"), draw_adm05_p1, [
+    (1, "분류 탭 4종", "업무 도메인·구성 난이도·비용 등급·ML 모델 유형"),
+    (2, "값 목록", "값·사용 건수"),
+    (3, "값 액션", "추가·수정·삭제[확인 절차]"),
+    (4, "운영 유의사항", "삭제 시 공란 처리 안내"),
 ], page_no=1, page_total=2, subtitle="고정 분류", rule_box=(
-    ["분류 설계는 '고정 분류 위주' — 검색·필터·향후 RAG 모두 통제 어휘가 있어야 품질이 나온다.",
-     "자유 태그는 등록 문턱을 낮추는 보조 수단이며, 반복되는 태그는 관리자가 고정 분류로 승격한다.",
-     "관리 대상 분류는 등록 폼에서 실제 입력받는 축과 정확히 일치시킨다 — 입력 없는 분류는 관리 부담만 남긴다.",
-     "구성 난이도는 n8n 전용, 비용 등급은 AI Agent 대상으로 한정한다."],
-    "분류 마스터 테이블 + 항목-분류 참조, 삭제 시 공란 처리 정책을 서버에서 일관 적용.",
+    ["난이도=n8n 전용, 비용=AI Model 전용, ML 유형=ML 전용 — 실입력 축만 관리",
+     "고정 분류 4탭은 동일 구조 — 대표 1탭 표기"],
+    _adm05_be,
 ))
 
-screen(prs, ("분류 체계 관리", "분류체계 관리 — 자유 태그", "ADM-05", "/admin/taxonomy"), draw_adm05_free, [
-    (1, "자유 태그 탭", "'자유 태그 누적 목록' + 설명(7유형 등록에서 수집)"),
-    (6, "출처 필터", "전체 + 카테고리별 칩 필터"),
-    (7, "태그 행", "체크박스·출처 배지·#태그·'사용 N건'·제안자·사용 항목 컨텍스트"),
-    (8, "행 액션", "[고정 분류 편입](AI Agent→비용, ML→모델 유형만)·[삭제]·[선택 삭제 (N)]"),
-    (9, "고정 분류 편입 / 빈 상태", "편입 분류 선택 + [편입 확정]", "빈 상태 '누적된 자유 태그가 없습니다.'"),
+screen(prs, ("분류체계 관리", "분류체계 관리", "ADM-05", "/admin/taxonomy  (admin 전용)"), draw_adm05_p2, [
+    (5, "자유 태그 탭", "누적 건수 표시"),
+    (6, "출처 필터", "전체+카테고리 7종 칩"),
+    (7, "태그 행", "#태그·사용 N건·제안자·사용 카드"),
+    (8, "선택 삭제", "다중 선택 일괄"),
+    (9, "고정 분류 편입", "대상 분류 선택 → 확정 — AI Model→비용/ML→모델 유형만"),
 ], page_no=2, page_total=2, subtitle="자유 태그", rule_box=(
-    ["자유 태그는 등록 문턱을 낮추는 보조 수단 — 유의미하게 반복되는 태그를 고정 분류로 승격하는 운영 루프를 상정한다.",
-     "편입 대상은 비용 등급(AI Agent)·ML 모델 유형처럼 실제 입력 축이 있는 분류로 한정한다.",
-     "자유 태그의 출처는 AI 프로젝트 포함 7개 카테고리에 대응한다.",
-     "고정 분류가 검색·필터·통계·RAG의 품질 기반이라는 원칙을 유지한다."],
-    "태그 빈도 집계 + 편입 시 항목-분류 참조 갱신, 참조 무결성은 서버에서 보장.",
+    ["편입 가능 조합 2종 한정",
+     "더보기 증분"],
+    _adm05_be,
 ))
 
 # ============================================================
-# ADM-06 카테고리 관리
+# ADM-06 자동화·AI 도구 관리
 # ============================================================
 def_slide(
-    prs, "ADM-06", "카테고리 관리 (Platforms)",
+    prs, "ADM-06", "자동화·AI 도구 관리 (Platforms)",
     tree=[
-        (0, "카테고리 관리 (/admin/platforms)"),
-        (1, "좌 카테고리 목록 (7)"),
-        (1, "우 상세/편집"),
-        (2, "기본 정보 (ID·표시명·설명)"),
-        (2, "경로·연결 (라우트·접속 URL)"),
-        (2, "표시 스타일 (아이콘·색상)"),
-        (2, "노출 상태 · 액션"),
+        (0, "도구 관리 (/admin/platforms)"),
+        (1, "좌 카테고리 목록"),
+        (1, "우 기본 정보·경로·연결·표시 스타일·노출 상태·액션"),
     ],
-    flow=["카테고리 선택", "메타 수정", "저장", "카탈로그 반영"],
-    flow_branch=(0, "추가 → 신규"),
+    flow=["카테고리 선택", "메타 수정", "저장", "전 화면 파생 반영"],
+    flow_branch=[(0, "신규 추가 → id·경로 중복 검사"), (2, "삭제 대신 비활성화 권장")],
     flow_note=[
-        "카테고리 메타는 CATEGORIES 단일 소스 — 목록 필터·뱃지·통계 범례가 전부 여기서 파생된다.",
-        "이 화면의 편집은 전 화면에 파급되므로 전사 관리자 전용이며, 색·아이콘은 프리셋 안에서만 고르게 한다.",
+        "카테고리 메타는 단일 소스라 편집이 목록 필터·뱃지·통계 범례로 파급된다 — 그래서 전사 관리자 전용이다.",
+        "아이콘 21종·파스텔 프리셋 8종 안에서만 고르게 해 톤 일관을 유지하고 유사색 배정을 피한다.",
     ],
     sections=[
-        ("정의·역할", ["7개 카테고리의 메타(표시명·설명·색·아이콘·외부 환경 URL)를 편집하는 화면",
-                    "전사 관리자 전용"]),
-        ("목적", ["신규 카테고리 추가나 명칭·브랜딩 변경을 개발 배포 없이 운영에서 처리"]),
-        ("기획 의도", ["카테고리 메타는 CATEGORIES 단일 소스라 편집이 전 화면에 파급됨 → 전사 관리자 전용",
-                    "아이콘·색상은 프리셋 안에서만 선택, 카테고리 간 유사색은 회피"]),
-        ("지켜야 할 룰", ["표시 용어는 '카테고리', 파일·심볼은 AdminCategories·CategoryIcon(신규 명칭)",
-                     "라우트 /admin/platforms·쿼리 키 ?platform=·카테고리 값 문자열은 현행 유지",
-                     "내부 id는 편집 불가, accessUrl은 외부 실행 환경 주소(항목 URL 아님)"]),
-        ("개발 연동 노트", ["미등록 아이콘 키는 폴백으로 방어(서버 비정상 값 대비)",
-                      "연동 후 CATEGORIES를 서버 마스터로 이관(현재는 코드 상수·화면은 시뮬레이션)"]),
+        ("정의·역할", ["접근: admin 전용",
+                    "카테고리 7종 메타(식별자·표시명·설명·경로·외부 주소·아이콘·색·노출) 관리"]),
+        ("목적", ["명칭·브랜딩 변경과 신규 추가를 운영 단계에서 처리"]),
+        ("기획 의도", ["카테고리 메타는 단일 소스 — 목록 필터·뱃지·통계 범례가 전부 파생되므로 편집이 전 화면에 파급 → 전사 관리자 전용",
+                    "아이콘 21종·파스텔 프리셋 8종 안에서만 선택해 톤 일관 유지, 유사색 배정 회피",
+                    "삭제보다 비활성화 권장 — 기존 카드 참조 보존"]),
+        ("지켜야 할 룰", ["내부 식별자는 생성 후 변경 불가",
+                     "신규는 중복 검사 통과 필수",
+                     "외부 도구 주소 미설정 허용(소비 지점 미구현 — 백로그)"]),
+        ("개발 연동 노트", ["카테고리 마스터 CRUD API. 편집 파급 고려 캐시 무효화 전략 필요",
+                      "비활성 카테고리의 기존 카드 정책은 명세서 확정(부록 B)"]),
     ],
 )
 
 
 def draw_adm06(s, R, ctx):
+    """LAYOUT ADM-06 (마스터·디테일 단일 페이지)
+    좌 300: ①카테고리 행 7(아이콘·명·id) | 우: ②기본 정보 → ③경로·연결 → ④표시 스타일 →
+    ⑤노출 토글 행 → ⑥헤더 우측 액션 3버튼(우측 상단)"""
     C = chrome(s, R)
-    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    lw = w * 0.34; rx = x + lw + 0.16; rw = w - lw - 0.16
-    sil_box(s, x, y, lw, 0.26, ctx.on(1), lw=1.2); sil_button(s, x + lw - 0.7, y + 0.02, 0.65, 0.2, ctx.on(1))
+    x, y = C["x"], C["y"]
+    mw, dx, dw = split(C)
+
+    # ① 카테고리 행 7
     for i in range(7):
-        sil_box(s, x, y + 0.34 + i * 0.42, lw, 0.36, ctx.on(1), lw=1.2)
-        sil_circle(s, x + 0.08, y + 0.4 + i * 0.42, 0.24, ctx.on(1)); sil_lines(s, x + 0.42, y + 0.44 + i * 0.42, lw * 0.5, ctx.on(1), n=1)
+        ry = y + i * 0.50
+        sil_box(s, x, ry, mw, 0.44, ctx.on(1), lw=1.2)
+        sil_circle(s, x + 0.06, ry + 0.09, 0.22, ctx.on(1))
+        hline(s, x + 0.34, ry + 0.16, mw - 0.44, ctx.on(1))
+        hline(s, x + 0.34, ry + 0.30, mw * 0.42, ctx.on(1))
     ctx.mk(s, 1, x - 0.02, y - 0.02)
-    # 우
-    dy = y
-    sil_box(s, rx, dy, rw, 1.05, ctx.on(3), lw=1.3)
-    sil_input(s, rx + 0.1, dy + 0.2, rw - 0.2, 0.18, ctx.on(3)); sil_input(s, rx + 0.1, dy + 0.5, rw - 0.2, 0.18, ctx.on(3)); sil_input(s, rx + 0.1, dy + 0.8, rw - 0.2, 0.18, ctx.on(3))
-    ctx.mk(s, 3, rx - 0.02, dy - 0.02)
-    dy += 1.17
-    sil_box(s, rx, dy, rw, 0.7, ctx.on(4), lw=1.3); sil_input(s, rx + 0.1, dy + 0.18, rw - 0.2, 0.18, ctx.on(4)); sil_input(s, rx + 0.1, dy + 0.46, rw - 0.2, 0.18, ctx.on(4))
-    ctx.mk(s, 4, rx - 0.02, dy - 0.02)
-    dy += 0.82
-    sil_box(s, rx, dy, rw, 0.95, ctx.on(5), lw=1.3, fill=GF7)
-    sil_grid(s, rx + 0.1, dy + 0.14, rw * 0.5, 0.6, ctx.on(5), 3, 2)
-    sil_button(s, rx + rw * 0.6, dy + 0.2, rw * 0.35, 0.2, ctx.on(5)); sil_button(s, rx + rw * 0.6, dy + 0.5, rw * 0.35, 0.2, ctx.on(5))
-    ctx.mk(s, 5, rx - 0.02, dy - 0.02)
-    dy += 1.07
-    sil_box(s, rx, dy, rw, y + h - dy - 0.02, ctx.on(6), lw=1.2)
-    sil_button(s, rx + rw - 1.4, dy + 0.1, 0.65, 0.22, ctx.on(6)); sil_button(s, rx + rw - 0.7, dy + 0.1, 0.65, 0.22, ctx.on(6))
-    ctx.mk(s, 6, rx - 0.02, dy - 0.02)
+
+    # ⑥ 헤더 우측 액션 3버튼 (우측 상단)
+    bw = 0.62
+    b0 = dx + dw - 3 * bw - 2 * 0.06
+    for i in range(3):
+        sil_button(s, b0 + i * (bw + 0.06), y, bw, 0.26, ctx.on(6))
+    ctx.mk(s, 6, b0 - 0.02, y - 0.02)
+    hline(s, dx, y + 0.14, dw * 0.24, True, 1.8)
+
+    # ② 기본 정보 카드
+    a, ah = y + 0.38, 1.10
+    sil_box(s, dx, a, dw, ah, ctx.on(2), lw=1.3)
+    hline(s, dx + PAD, a + 0.16, dw * 0.24, ctx.on(2), 1.6)
+    for i in range(3):
+        sil_input(s, dx + PAD, a + 0.34 + i * 0.24, dw - 2 * PAD, 0.18, ctx.on(2))
+    ctx.mk(s, 2, dx - 0.02, a - 0.02)
+
+    # ③ 경로·연결 카드
+    b, bh = a + ah + 0.12, 0.74
+    sil_box(s, dx, b, dw, bh, ctx.on(3), lw=1.3)
+    hline(s, dx + PAD, b + 0.16, dw * 0.24, ctx.on(3), 1.6)
+    sil_input(s, dx + PAD, b + 0.30, dw - 2 * PAD, 0.18, ctx.on(3))
+    sil_input(s, dx + PAD, b + 0.52, dw - 2 * PAD, 0.18, ctx.on(3))
+    ctx.mk(s, 3, dx - 0.02, b - 0.02)
+
+    # ④ 표시 스타일 카드 (아이콘 그리드 축약 + 색 dot 8 + 미리보기 pill)
+    c, ch = b + bh + 0.12, 1.30
+    sil_box(s, dx, c, dw, ch, ctx.on(4), lw=1.3, fill=GF7)
+    hline(s, dx + PAD, c + 0.16, dw * 0.26, ctx.on(4), 1.6)
+    sil_grid(s, dx + PAD, c + 0.32, dw * 0.52, 0.60, ctx.on(4), 7, 3, gap=0.06)
+    for i in range(8):
+        sil_circle(s, dx + dw * 0.60 + (i % 4) * 0.20, c + 0.34 + (i // 4) * 0.22, 0.16, ctx.on(4))
+    sil_pill(s, dx + dw * 0.60, c + 0.88, 0.80, 0.22, ctx.on(4))
+    ctx.mk(s, 4, dx - 0.02, c - 0.02)
+
+    # ⑤ 노출 상태 토글 행
+    d = c + ch + 0.12
+    sil_box(s, dx, d, dw, 0.38, ctx.on(5), lw=1.2)
+    hline(s, dx + PAD, d + 0.19, dw * 0.30, ctx.on(5))
+    toggle(s, dx + dw - PAD - 0.40, d + 0.09, ctx.on(5))
+    ctx.mk(s, 5, dx - 0.02, d - 0.02)
 
 
-screen(prs, ("카테고리 관리", "카테고리 메타 관리", "ADM-06", "/admin/platforms"), draw_adm06, [
-    (1, "카테고리 목록", "'카테고리' N + [+ 추가], 7종 카테고리 아이콘·이름·ID(비활성 '비활성' 배지)", "부제 '등록물의 출처가 되는 도구 종류를 관리합니다.'"),
-    (3, "기본 정보", "식별자(내부 id·저장 후 변경 불가) · 표시명 · 짧은 설명"),
-    (4, "경로·연결", "라우트 경로('/'로 시작) · 외부 환경 접속 URL(없으면 미설정)"),
-    (5, "표시 스타일", "아이콘 선택(프리셋 3열 그리드·폴백 방어) + 출처 색상(전경색/배경색·프리셋 8종)"),
-    (6, "노출 상태·액션", "활성/비활성 토글 + [수정][삭제] / [저장][취소]", "'삭제 대신 비활성화를 권장합니다.'"),
-], rule_box=(
-    ["카테고리 메타는 CATEGORIES 단일 소스라 목록 필터·뱃지·통계 범례가 전부 여기서 파생 — 편집이 전 화면에 파급된다.",
-     "그래서 전사 관리자 전용이며, 아이콘·색상은 프리셋 레지스트리 안에서만 골라 톤앤매너 일탈을 막는다.",
-     "카테고리 간 유사색은 피한다(뱃지·범례에서 구분이 무너지므로).",
-     "표시 용어는 '카테고리', 파일·심볼은 AdminCategories·CategoryIcon(신규) / 라우트 /admin/platforms·쿼리 ?platform=는 현행 유지."],
-    "연동 후 CATEGORIES를 서버 마스터로 이관(현재는 코드 상수, 화면은 시뮬레이션).",
-))
+screen(prs, ("자동화·AI 도구 관리", "자동화·AI 도구 관리", "ADM-06", "/admin/platforms  (admin 전용)"),
+       draw_adm06, [
+           (1, "카테고리 목록", "아이콘·표시명·비활성 뱃지·내부 id"),
+           (2, "기본 정보", "식별자[신규만]·표시명·한 줄 설명"),
+           (3, "경로·연결", "라우트 경로·외부 도구 주소[미설정 표기]"),
+           (4, "표시 스타일", "아이콘 선택기 21종·색 프리셋 8종·뱃지 미리보기"),
+           (5, "노출 상태", "ON/OFF 토글"),
+           (6, "액션", "추가·수정·비활성화·삭제[확인·비활성화 권장 안내]"),
+       ], rule_box=(
+           ["식별자 형식: 소문자·숫자·하이픈",
+            "id·경로 중복 검사"],
+           "카테고리 마스터 CRUD API. 편집 파급 고려 캐시 무효화 전략 필요. 비활성 카테고리의 기존 카드 정책은 명세서 확정(부록 B).",
+       ))
 
 # ============================================================
-# ADM-07 조직 관리
+# ADM-07 부서·조직 관리
 # ============================================================
 def_slide(
-    prs, "ADM-07", "조직 관리 (Org)",
+    prs, "ADM-07", "부서·조직 관리 (Org)",
     tree=[
-        (0, "부서/조직 관리 (/admin/org)"),
-        (1, "섹션1 관계사 노출 관리"),
-        (1, "섹션2 부서 관리"),
-        (2, "필터·부서 목록(아코디언)"),
-        (2, "부서 추가·Teams 연동"),
-        (1, "섹션3 관계사 관리자 현황(읽기 전용)"),
-        (1, "섹션4 문의 채널 설정"),
+        (0, "조직 관리 (/admin/org)"),
+        (1, "섹션1 관계사 노출"),
+        (1, "섹션2 부서 관리 (+Teams 연동)"),
+        (1, "섹션3 관계사 관리자 현황 (읽기)"),
+        (1, "섹션4 문의 채널"),
+        (1, "운영 유의사항"),
     ],
-    flow=["노출 설정", "부서 관리", "관리자 현황 확인", "문의 채널 설정"],
+    flow=["관계사 노출 토글", "목록 게이팅 즉시 반영", "부서 동기화·수동 관리"],
+    flow_branch=[(1, "관리자 지정·해제 → ADM-08로 이동"), (2, "부서 삭제 → 태깅 카드 경고")],
     flow_note=[
-        "항목에 관계사를 표시하지 않더라도 조직 마스터는 승인 자격 판정·담당자 부서 표기·집계 축의 근간이다.",
-        "관계사 노출 여부는 카탈로그 표시 범위를 통제하는 접근 게이트 — 비노출 관계사 항목은 소속 아닌 사용자에게 숨긴다.",
+        "관계사 노출은 준비된 관계사부터 단계적으로 개방하기 위한 게이트다.",
+        "관리자 현황을 읽기 전용으로 두고 편집은 ADM-08로 일원화한다 — 부여 지점이 분산되면 감사 추적이 어렵다.",
     ],
     sections=[
-        ("정의·역할", ["관계사·부서 조직 정보를 관리하는 화면(4개 섹션)",
-                    "관계사 노출·부서·관계사 관리자 현황·문의 채널 설정"]),
-        ("목적", ["담당자 소속 표기·승인 슬롯 자격 판정·통계 축(참여 부서)의 기준 데이터 정비"]),
-        ("기획 의도", ["항목에 관계사를 표시하지 않아도 조직 마스터는 승인 자격·부서 표기·집계 축의 근간",
-                    "관계사 노출 여부는 카탈로그 표시 범위를 통제하는 접근 게이트"]),
-        ("지켜야 할 룰", ["섹션1: 노출 관계사만 사용자 목록·필터·통계에 노출(그룹 전체보기 권한자는 예외)",
-                     "섹션3 관계사 관리자 현황은 읽기 전용 투영(지정·해제는 사용자 관리에서만)",
-                     "관계사 코드는 승인 슬롯 자격·담당 관계사와 동일 체계 유지"]),
-        ("개발 연동 노트", ["문의 채널은 Teams 채널 URL(config/operations.ts 연동 대상)",
-                      "조직 변경은 기존 항목 부서 표기 정합에 영향 — 변경 이력 관리 권장"]),
+        ("정의·역할", ["접근: admin 전용",
+                    "관계사 노출·부서 체계·관계사 관리자 현황·문의 채널의 조직 운영 화면"]),
+        ("목적", ["카탈로그의 조직 축과 운영 설정을 한 화면에서 관리"]),
+        ("기획 의도", ["관계사 노출은 준비된 관계사부터 단계적 개방 지원",
+                    "부서는 SSO(Entra/Teams) 동기화 기본+수동 보조 — 조직 개편 잦은 환경의 정합 유지",
+                    "관리자 현황은 읽기 전용, 편집은 ADM-08 일원화 — 부여 지점 분산 시 감사 추적 곤란"]),
+        ("지켜야 할 룰", ["비노출 전환에도 기존 데이터 유지 안내",
+                     "부서 삭제 시 태깅 카드 수 경고",
+                     "관리자 지정·해제는 이 화면에서 안 함"]),
+        ("개발 연동 노트", ["getOrgCompanies·getOrgDepts·getCompanyAdmins·getTeamsSyncSource·getAssetItemRefs",
+                      "부서 동기화=Entra/Teams 디렉터리 API(주기·수동 실행), 문의 채널=운영 설정 저장, 노출 토글은 목록 게이팅과 즉시 정합"]),
     ],
 )
 
 
-def draw_adm07(s, R, ctx):
+def draw_adm07_p1(s, R, ctx):
+    """LAYOUT ADM-07 p1
+    행1: ①섹션1 카드 — 관계사 행들 4(명·건수·토글) + 검색
+    행2: ②섹션2 카드 — 관계사 아코디언 2 └③Teams 연동 서브카드(섹션2 내부 하단)"""
     C = chrome(s, R)
     x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    # 섹션1
-    sil_box(s, x, y, w, 0.55, ctx.on(1), lw=1.3)
-    sil_button(s, x + 0.1, y + 0.15, w * 0.5, 0.24, ctx.on(1)); tiny(s, x + 0.1, y + 0.15, w * 0.5, "노출", ctx.on(1)); ctx.mk(s, 1, x - 0.02, y - 0.02)
-    sil_box(s, x, y + 0.62, w, 0.3, ctx.on(2), lw=1.1, fill=GF7); ctx.mk(s, 2, x - 0.02, y + 0.58)
-    cy = y + 1.0
-    # 섹션2
-    lw = w * 0.62; rx = x + lw + 0.2; rw = w - lw - 0.2
-    sil_box(s, x, cy, lw, 1.5, ctx.on(3), lw=1.3)
-    sil_input(s, x + 0.1, cy + 0.12, lw * 0.5, 0.18, ctx.on(3))
-    for i in range(3):
-        sil_box(s, x + 0.1, cy + 0.42 + i * 0.34, lw - 0.2, 0.28, ctx.on(3), lw=1.1)
-    ctx.mk(s, 3, x - 0.02, cy - 0.02)
-    sil_box(s, rx, cy, rw, 0.7, ctx.on(4), lw=1.3, fill=GF7); sil_input(s, rx + 0.1, cy + 0.2, rw - 0.2, 0.18, ctx.on(4)); sil_button(s, rx + 0.1, cy + 0.44, rw - 0.2, 0.18, ctx.on(4))
-    sil_box(s, rx, cy + 0.8, rw, 0.7, ctx.on(4), lw=1.3); sil_lines(s, rx + 0.1, cy + 0.92, rw - 0.2, ctx.on(4), n=3)
-    ctx.mk(s, 4, rx - 0.02, cy - 0.02)
-    cy += 1.62
-    # 섹션3
-    sil_box(s, x, cy, w, 0.75, ctx.on(5), lw=1.3)
-    for i in range(3):
-        sil_box(s, x + 0.1, cy + 0.12 + i * 0.2, w - 0.2, 0.16, ctx.on(5), lw=1.0)
-    ctx.mk(s, 5, x - 0.02, cy - 0.02)
-    cy += 0.87
-    # 섹션4
-    sil_box(s, x, cy, w, y + h - cy - 0.02, ctx.on(6), lw=1.3)
-    sil_input(s, x + 0.1, cy + 0.14, w - 1.2, 0.2, ctx.on(6)); sil_button(s, x + w - 0.9, cy + 0.14, 0.8, 0.2, ctx.on(6))
-    ctx.mk(s, 6, x - 0.02, cy - 0.02)
-    ctx.mk(s, 7, x + w - 0.28, cy + 0.1)
 
-
-_adm07 = [
-    (1, "섹션1 관계사 노출 관리", "관계사별 visible on/off(접근 게이트, CompanyVisibilityDropdown), '노출 N / 전체 29' 배지"),
-    (2, "섹션1 안내", "'비노출 관계사는 해당 소속 아닌 사용자에게 목록·필터·통계에서 숨김. 그룹 전체보기 권한자는 예외.'"),
-    (3, "섹션2 부서 관리", "부서명 검색 + 관계사/본부 필터 + [모두 펼치기/접기] + 관계사 아코디언·부서 행(수정·삭제, Teams 출처 배지)"),
-    (4, "섹션2 부서 추가·Teams", "부서 수동 추가(관계사 필수) + Microsoft Teams 연동(현황/설정/동기화 탭, 중복 병합)"),
-    (5, "섹션3 관계사 관리자 현황", "'읽기 전용' 투영 — 노출 관계사별 관리자 칩·'담당 N곳' 배지·'미지정'", "'지정·해제는 사용자 관리에서 관리' + [사용자 관리로 이동]"),
-    (6, "섹션4 문의 채널 설정", "랜딩 문의 카드 연결 Teams 채널 URL 편집(유효성 검사), operations.ts 연동"),
-    (7, "하단 운영 유의사항", "'관계사 비노출 전환해도 기존 AX 항목 데이터는 삭제되지 않습니다. 부서 삭제 시 태깅된 항목 영향 확인.'"),
-]
-_adm07_rule = (
-    ["항목에 관계사를 표시하지 않아도 조직 마스터는 승인 자격 판정·담당자 부서 표기·집계 축의 근간이다.",
-     "관계사 노출 여부는 카탈로그 표시 범위를 통제하는 접근 게이트 — 비노출 관계사 항목은 소속 아닌 일반 사용자에게 숨긴다.",
-     "편집 지점(사용자 관리)과 현황판(조직 관리)을 분리해 관리자 지정의 단일 소스를 유지한다.",
-     "비노출 처리해도 기존 항목 데이터는 삭제되지 않는다."],
-    "관계사 코드는 승인 슬롯 자격·담당 관계사와 동일 체계, 문의 채널은 operations.ts의 Teams 상수.",
-)
-screen(prs, ("조직 관리", "부서 / 조직 관리 — 섹션 1·2", "ADM-07", "/admin/org"), draw_adm07,
-       _adm07, active={1, 2, 3, 4}, page_no=1, page_total=2, subtitle="섹션 1·2", rule_box=_adm07_rule)
-screen(prs, ("조직 관리", "부서 / 조직 관리 — 섹션 3·4", "ADM-07", "/admin/org"), draw_adm07,
-       _adm07, active={5, 6, 7}, page_no=2, page_total=2, subtitle="섹션 3·4", rule_box=_adm07_rule)
-
-# ============================================================
-# ADM-08 사용자·권한 관리
-# ============================================================
-def_slide(
-    prs, "ADM-08", "사용자·권한 관리 (Users)",
-    tree=[
-        (0, "사용자/권한/로그 (/admin/users)"),
-        (1, "탭 4종"),
-        (1, "관리자 권한 탭"),
-        (2, "전사 관리자 / 관계사 관리자 목록"),
-        (2, "담당 관계사 칩 편집"),
-        (2, "권한 부여 패널"),
-        (1, "그룹 전체보기 · 등록자 · 활동 로그"),
-    ],
-    flow=["SSO 검색", "역할 지정", "담당 관계사 지정", "부여/회수"],
-    flow_branch=(3, "가드: 최소 1명/1곳"),
-    flow_note=[
-        "역할을 늘리는 대신 Admin의 범위(전사 global / 관계사 company)로 구분 — 권한 매트릭스 폭증을 막는다.",
-        "전사 관리자 최소 1명 가드는 '아무도 전체를 관리할 수 없는 상태'라는 최악의 사고를 UI에서 원천 차단한다.",
-    ],
-    sections=[
-        ("정의·역할", ["사용자 목록 조회와 관리자 권한(부여·회수·범위 지정) 관리. 탭 4종",
-                    "'관리자 권한' 탭이 관리자 지정의 유일한 편집 지점"]),
-        ("목적", ["2-tier 권한 체계(User / Admin)를 운영에서 안전하게 집행"]),
-        ("기획 의도", ["역할을 늘리는 대신 Admin의 범위(global 전사 / company 관계사)로 구분",
-                    "감사 로그는 책임 추적용 — 과거 로그는 당시 사실 그대로 보존(소급 수정 금지)"]),
-        ("지켜야 할 룰", ["2-tier: adminScope global(전사)·company(관계사), 관계사 관리자는 담당 관계사(managedCompanies) 복수 담당",
-                     "가드1: 전사 관리자 최소 1명 유지 — 마지막 global 권한 회수는 UI·서버 양쪽 차단",
-                     "가드2: 담당 관계사 최소 1곳(전체 해제는 권한 회수로 유도)"]),
-        ("개발 연동 노트", ["권한 변경 API는 최소 1명 가드를 서버에서 재검증",
-                      "user-company 관리 매핑은 N:M 테이블(관계사와 관리자는 N:M 관계)"]),
-    ],
-)
-
-
-def draw_adm08_perm(s, R, ctx):
-    C = chrome(s, R)
-    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+    # 행1 — ① 섹션1 관계사 노출 관리
+    r1h = 1.60
+    sil_box(s, x, y, w, r1h, ctx.on(1), lw=1.3)
+    hline(s, x + PAD, y + 0.18, w * 0.22, ctx.on(1), 1.8)
+    sil_input(s, x + w - PAD - 1.40, y + 0.10, 1.40, 0.22, ctx.on(1))
     for i in range(4):
-        sil_pill(s, x + i * 1.05, y, 0.95, 0.2, i == 0)
+        ry = y + 0.44 + i * 0.28
+        hline(s, x + PAD, ry + 0.12, w * 0.32, ctx.on(1))
+        hline(s, x + w * 0.48, ry + 0.12, w * 0.14, ctx.on(1))
+        toggle(s, x + w - PAD - 0.40, ry + 0.02, ctx.on(1))
     ctx.mk(s, 1, x - 0.02, y - 0.02)
-    cy = y + 0.34
-    lw = w * 0.6; rx = x + lw + 0.2; rw = w - lw - 0.2
-    sil_box(s, x, cy, lw, 0.28, ctx.on(2), lw=1.1); sil_input(s, x + lw - 1.6, cy + 0.04, 1.5, 0.18, ctx.on(2)); ctx.mk(s, 2, x - 0.02, cy - 0.02)
-    for i in range(2):
-        sil_box(s, x, cy + 0.4 + i * 0.62, lw, 0.55, ctx.on(3), lw=1.2)
-        sil_lines(s, x + 0.1, cy + 0.5 + i * 0.62, lw * 0.5, ctx.on(3), n=1); sil_button(s, x + lw - 1.0, cy + 0.5 + i * 0.62, 0.9, 0.18, ctx.on(3))
-    ctx.mk(s, 3, x - 0.02, cy + 0.36)
-    for i in range(2):
-        sil_box(s, x, cy + 1.7 + i * 0.62, lw, 0.55, ctx.on(4), lw=1.2)
-        sil_lines(s, x + 0.1, cy + 1.78 + i * 0.62, lw * 0.4, ctx.on(4), n=1)
+
+    # 행2 — ② 섹션2 부서 관리
+    r2 = y + r1h + 0.14
+    r2h = h - (r2 - y) - 0.02
+    sil_box(s, x, r2, w, r2h, ctx.on(2), lw=1.3)
+    hline(s, x + PAD, r2 + 0.18, w * 0.20, ctx.on(2), 1.8)
+    sil_input(s, x + w - PAD - 1.20, r2 + 0.10, 1.20, 0.22, ctx.on(2))
+    for k in range(2):
+        ay = r2 + 0.42 + k * 0.62
+        sil_box(s, x + PAD, ay, w - 2 * PAD, 0.56, ctx.on(2), lw=1.1, fill=GF7)
+        hline(s, x + PAD + 0.08, ay + 0.12, w * 0.24, ctx.on(2))
+        for j in range(2):
+            hline(s, x + PAD + 0.26, ay + 0.32 + j * 0.14, w * 0.36, ctx.on(2))
+            sil_button(s, x + w - PAD - 0.96, ay + 0.26 + j * 0.14, 0.42, 0.12, ctx.on(2))
+            sil_button(s, x + w - PAD - 0.50, ay + 0.26 + j * 0.14, 0.42, 0.12, ctx.on(2))
+    ctx.mk(s, 2, x - 0.02, r2 - 0.02)
+    # └ ③ Teams 연동 서브카드 — 섹션2 '내부' 하단
+    ty = r2 + 1.72
+    th = r2h - 1.72 - PAD
+    sil_box(s, x + PAD, ty, w - 2 * PAD, th, ctx.on(3), lw=1.2)
+    hline(s, x + PAD + 0.10, ty + 0.16, w * 0.22, ctx.on(3), 1.6)
+    hline(s, x + PAD + 0.10, ty + 0.32, w * 0.38, ctx.on(3))
+    sil_input(s, x + PAD + 0.10, ty + 0.44, w * 0.42, 0.18, ctx.on(3))
+    sil_input(s, x + PAD + 0.10, ty + 0.68, w * 0.42, 0.18, ctx.on(3))
+    sil_button(s, x + w - PAD - 0.92, ty + 0.58, 0.80, 0.26, ctx.on(3))
+    ctx.mk(s, 3, x + PAD - 0.02, ty - 0.02)
+
+
+def draw_adm07_p2(s, R, ctx):
+    """LAYOUT ADM-07 p2
+    행1: ④섹션3 카드 — 읽기 행들 3+우상단 이동 링크 / 행2: ⑤섹션4 카드 — URL 입력+저장 /
+    행3: ⑥유의사항 박스"""
+    C = chrome(s, R)
+    x, y, w = C["x"], C["y"], C["w"]
+
+    # 행1 — ④ 섹션3 관계사 관리자 현황 (읽기 전용)
+    r1h = 1.90
+    sil_box(s, x, y, w, r1h, ctx.on(4), lw=1.3)
+    hline(s, x + PAD, y + 0.20, w * 0.26, ctx.on(4), 1.8)
+    hline(s, x + w - PAD - 1.00, y + 0.20, 1.00, ctx.on(4))
+    for i in range(3):
+        ry = y + 0.48 + i * 0.44
+        sil_box(s, x + PAD, ry, w - 2 * PAD, 0.38, ctx.on(4), lw=1.1, fill=GF7)
+        hline(s, x + PAD + 0.10, ry + 0.14, w * 0.22, ctx.on(4))
         for j in range(3):
-            sil_pill(s, x + 0.1 + j * 0.6, cy + 2.0 + i * 0.62, 0.54, 0.14, ctx.on(4))
-    ctx.mk(s, 4, x - 0.02, cy + 1.66)
-    sil_box(s, rx, cy, rw, 1.6, ctx.on(5), lw=1.3, fill=GF7)
-    sil_input(s, rx + 0.1, cy + 0.16, rw - 0.8, 0.2, ctx.on(5)); sil_button(s, rx + rw - 0.65, cy + 0.16, 0.55, 0.2, ctx.on(5))
-    sil_button(s, rx + 0.1, cy + 0.55, rw * 0.45, 0.2, ctx.on(5)); sil_button(s, rx + rw * 0.5, cy + 0.55, rw * 0.45, 0.2, ctx.on(5))
-    sil_box(s, rx + 0.1, cy + 0.9, rw - 0.2, 0.3, ctx.on(5), lw=1.1)
-    sil_button(s, rx + 0.1, cy + 1.28, rw - 0.2, 0.24, ctx.on(5))
-    ctx.mk(s, 5, rx - 0.02, cy - 0.02)
-    sil_box(s, rx, cy + 1.72, rw, y + h - (cy + 1.72) - 0.02, ctx.on(6), lw=1.1, fill=GF7); ctx.mk(s, 6, rx - 0.02, cy + 1.7)
+            sil_pill(s, x + w * 0.40 + j * 0.52, ry + 0.11, 0.46, 0.16, ctx.on(4))
+    ctx.mk(s, 4, x - 0.02, y - 0.02)
 
+    # 행2 — ⑤ 섹션4 문의 채널 설정
+    r2, r2h = y + r1h + 0.14, 1.10
+    sil_box(s, x, r2, w, r2h, ctx.on(5), lw=1.3)
+    hline(s, x + PAD, r2 + 0.20, w * 0.22, ctx.on(5), 1.8)
+    hline(s, x + PAD, r2 + 0.42, w * 0.50, ctx.on(5))
+    sil_input(s, x + PAD, r2 + 0.62, w - 2 * PAD - 0.96, 0.24, ctx.on(5))
+    sil_button(s, x + w - PAD - 0.84, r2 + 0.60, 0.84, 0.28, ctx.on(5))
+    ctx.mk(s, 5, x - 0.02, r2 - 0.02)
 
-def draw_adm08_other(s, R, ctx):
-    C = chrome(s, R)
-    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
-    for i in range(4):
-        sil_pill(s, x + i * 1.05, y, 0.95, 0.2, i in (1, 2, 3))
-    ctx.mk(s, 1, x + 1.05 - 0.02, y - 0.02)
-    cy = y + 0.34
-    sil_box(s, x, cy, w, 1.0, ctx.on(7), lw=1.3)
-    sil_box(s, x + 0.1, cy + 0.12, w * 0.6, 0.24, ctx.on(7), lw=1.1, fill=GF7)
-    for i in range(2):
-        sil_box(s, x + 0.1, cy + 0.44 + i * 0.26, w - 0.2, 0.22, ctx.on(7), lw=1.0)
-    ctx.mk(s, 7, x - 0.02, cy - 0.02)
-    cy += 1.12
-    sil_box(s, x, cy, w, 1.0, ctx.on(8), lw=1.3)
-    seg(s, x + 0.1, cy + 0.28, x + w - 0.1, cy + 0.28, color=GCC if ctx.on(8) else GDD, w=1.2)
+    # 행3 — ⑥ 운영 유의사항 박스
+    r3 = r2 + r2h + 0.14
+    sil_box(s, x, r3, w, 0.90, ctx.on(6), lw=1.2, fill=GF7)
+    hline(s, x + PAD, r3 + 0.22, w * 0.30, ctx.on(6), 1.6)
     for i in range(3):
-        sil_lines(s, x + 0.1, cy + 0.42 + i * 0.2, w - 0.2, ctx.on(8), n=1)
-    ctx.mk(s, 8, x - 0.02, cy - 0.02)
-    cy += 1.12
-    sil_input(s, x, cy, w * 0.5, 0.2, ctx.on(9))
-    for i in range(5):
-        sil_pill(s, x + w * 0.55 + i * 0.4, cy, 0.36, 0.18, ctx.on(9))
-    sil_box(s, x, cy + 0.3, w, y + h - (cy + 0.3) - 0.02, ctx.on(9), lw=1.3)
-    seg(s, x + 0.1, cy + 0.56, x + w - 0.1, cy + 0.56, color=GCC if ctx.on(9) else GDD, w=1.2)
-    for i in range(3):
-        sil_lines(s, x + 0.1, cy + 0.68 + i * 0.2, w - 0.2, ctx.on(9), n=1)
-    ctx.mk(s, 9, x - 0.02, cy - 0.02)
+        hline(s, x + PAD, r3 + 0.44 + i * 0.16, w * (0.84 - i * 0.14), ctx.on(6))
+    ctx.mk(s, 6, x - 0.02, r3 - 0.02)
 
 
-screen(prs, ("사용자·권한 관리", "사용자 / 권한 / 로그 관리 — 관리자 권한", "ADM-08", "/admin/users"), draw_adm08_perm, [
-    (1, "탭 4종", "관리자 권한 · 그룹 전체보기 · 등록자 관리 · 활동 로그 (SSO 자동 관리 안내 배너)"),
-    (2, "목록 헤더·검색", "'관리자' + '전사 N · 관계사 N' 카운트 + 통합 검색(이름·부서·이메일)"),
-    (3, "전사 관리자 목록", "배지·메타 + [권한 회수]", "가드 '전사 관리자는 최소 1명 유지해야 합니다. 회수할 수 없습니다.'(본인 회수 불가)"),
-    (4, "관계사 관리자·담당 칩", "담당 관계사 칩(오렌지) × 제거 + [+ 관계사 추가]", "가드 '담당 관계사는 1곳 이상이어야 합니다. 담당을 모두 해제하려면 권한 회수를 사용하세요.'"),
-    (5, "관리자 권한 부여", "SSO 검색 → 역할 토글(전사/관계사 관리자) → 담당 관계사 다중 선택 → [지정]"),
-    (6, "운영 유의사항", "'전사 관리자는 전체 승인·관리, 관계사 관리자는 담당 범위만. 전사 관리자 최소 1명 유지, 본인 회수 불가.'"),
-], page_no=1, page_total=2, subtitle="관리자 권한", rule_box=(
-    ["역할 종류를 늘리면 권한 매트릭스가 폭증하므로, User/Admin 2-tier로 두고 Admin 안에서 범위(전사/관계사)로 구분한다.",
-     "전사 관리자 최소 1명 가드는 '아무도 전체를 관리할 수 없는 상태'라는 최악의 운영 사고를 UI에서 원천 차단한다.",
-     "담당 관계사 최소 1곳 가드 — 담당을 모두 해제하려면 권한 회수를 사용하도록 유도한다.",
-     "감사 로그는 권한 변경 책임 추적용이며 과거 로그는 소급 수정하지 않는다."],
-    "권한 변경 API는 최소 1명 가드를 서버에서 재검증, user-company 매핑은 N:M 테이블.",
+_adm07_be = ("getOrgCompanies·getOrgDepts·getCompanyAdmins·getTeamsSyncSource·getAssetItemRefs. "
+             "부서 동기화=Entra/Teams 디렉터리 API(주기·수동 실행), 문의 채널=운영 설정 저장, "
+             "노출 토글은 목록 게이팅과 즉시 정합.")
+screen(prs, ("부서·조직 관리", "부서·조직 관리", "ADM-07", "/admin/org  (admin 전용)"), draw_adm07_p1, [
+    (1, "관계사 노출 관리", "관계사별 토글·검색·보유 카드 수"),
+    (2, "부서 관리", "관계사 아코디언·부서 행 수정/삭제[태깅 경고]·수동 추가[중복 검사]"),
+    (3, "Teams 연동 카드", "연동 현황/설정[테넌트·자동 동기화·주기]/미리보기·지금 동기화"),
+], page_no=1, page_total=2, subtitle="노출·부서", rule_box=(
+    ["비노출 전환해도 기존 데이터 삭제되지 않음 안내"],
+    _adm07_be,
 ))
 
-screen(prs, ("사용자·권한 관리", "사용자 / 권한 / 로그 관리 — 권한·로그", "ADM-08", "/admin/users"), draw_adm08_other, [
-    (1, "탭 4종", "그룹 전체보기·등록자 관리·활동 로그 탭"),
-    (7, "그룹 전체보기 탭", "권한자 목록 + SSO 검색 부여(부여 사유 필수), 비노출 관계사도 조회 가능·조회 전용"),
-    (8, "등록자 관리 탭", "읽기 전용 표 — 이름/부서·이메일·등록 수·승인·대기/반려·최근 신청"),
-    (9, "활동 로그 탭", "사용자·대상·액션 검색 + 카테고리 필터(전체·등록물·권한·분류체계·조직) + 표(일시·사용자·액션·대상)"),
-], page_no=2, page_total=2, subtitle="권한·로그", rule_box=(
-    ["그룹 전체보기는 비노출 관계사도 조회 가능한 조회 전용 권한 — 부여 시 사유를 필수로 남긴다.",
-     "등록자 관리는 읽기 전용 현황이고, 활동 로그는 권한·분류·조직 변경의 책임 추적 기록이다.",
-     "감사 로그는 당시 사실 그대로 보존하며 현행 체계와 표기가 달라도 소급 수정하지 않는다.",
-     "관리자 지정의 유일한 편집 지점은 '관리자 권한' 탭(조직 관리는 읽기 전용 투영)."],
-    "그룹 전체보기·활동 로그는 감사 대응 로깅 필요, 권한 매핑은 N:M 테이블로 관리.",
+screen(prs, ("부서·조직 관리", "부서·조직 관리", "ADM-07", "/admin/org  (admin 전용)"), draw_adm07_p2, [
+    (4, "관계사 관리자 현황", "읽기 전용 — \"사용자 관리로 이동\" 링크"),
+    (5, "문의 채널 설정", "Teams 채널 URL 편집·형식 검증"),
+    (6, "운영 유의사항", "조직 관리 주의점 안내"),
+], page_no=2, page_total=2, subtitle="현황·설정", rule_box=(
+    ["권한 편집은 ADM-08 소관(현황판은 읽기 전용)"],
+    _adm07_be,
+))
+
+# ============================================================
+# ADM-08 사용자·권한·로그 관리
+# ============================================================
+def_slide(
+    prs, "ADM-08", "사용자·권한·로그 관리 (Users)",
+    tree=[
+        (0, "사용자 관리 (/admin/users)"),
+        (1, "탭1 관리자 권한"),
+        (1, "탭2 그룹 전체보기"),
+        (1, "탭3 등록자 관리"),
+        (1, "탭4 활동 로그"),
+    ],
+    flow=["SSO 검색", "역할 선택", "부여", "회수(보호 장치)"],
+    flow_branch=[(3, "마지막 admin 회수 차단"), (3, "본인 회수 차단"), (3, "담당 관계사 최소 1곳")],
+    flow_note=[
+        "보호 장치 3종으로 권한 공백·자기 잠금을 구조적으로 막고, 서버에서도 동일하게 검증한다.",
+        "그룹 전체보기는 예외 권한이므로 사유 필수+확인 절차로 부여 근거를 기록한다.",
+    ],
+    sections=[
+        ("정의·역할", ["접근: admin 전용",
+                    "관리자 권한·그룹 전체보기·등록자 현황·활동 로그의 통합 관리"]),
+        ("목적", ["권한 부여·회수의 단일 지점 + 관리 행위 로그 추적"]),
+        ("기획 의도", ["권한 편집을 이 화면으로 일원화",
+                    "보호 장치 3종(최소 1명·본인 차단·담당 최소 1곳)으로 권한 공백·자기 잠금을 구조적으로 방지 — 서버 동일 검증",
+                    "그룹 전체보기는 예외 권한이므로 사유 필수+확인 절차로 부여 근거를 기록"]),
+        ("지켜야 할 룰", ["보호 장치는 UI·서버 양쪽 적용",
+                     "권한 변경은 활동 로그 기록",
+                     "로그 소급 수정 금지(감사 무결성)"]),
+        ("개발 연동 노트", ["getAdmins·getGroupViewers·getRegistrants·getAuditLogs·getSsoUsers·getSelectableCompanies·getCompanyAdmins",
+                      "SSO 검색=디렉터리 API, 권한 변경=audit_logs 단일 트랜잭션, 보호 장치 서버 재검증(0.6)"]),
+    ],
+)
+
+
+def draw_adm08_p1(s, R, ctx):
+    """LAYOUT ADM-08 p1 (탭1 활성)
+    행1: ①탭바 4 / 행2 2열(55:45): 좌 관리자 목록(전사 그룹+관계사 그룹, 행: 이름·pill·④회수·⑤담당 칩) |
+    우 부여 패널(②SSO 검색 → ③역할 세그먼트+담당 복수 선택+부여 버튼)"""
+    C = chrome(s, R)
+    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+
+    # 행1 — ① 탭바 4
+    tw = 0.94
+    for i in range(4):
+        sil_pill(s, x + i * (tw + 0.06), y, tw, 0.26, ctx.on(1) and i == 0)
+    ctx.mk(s, 1, x - 0.02, y - 0.02)
+
+    # 행2 — 2열(55:45)
+    r2 = y + 0.38
+    r2h = h - 0.38 - 0.02
+    lw = (w - PAD) * 0.55
+    rx, rw = x + lw + PAD, w - lw - PAD
+    sil_box(s, x, r2, lw, r2h, True, lw=1.3)
+
+    # 전사 그룹 (행: 이름·pill·④ 회수 버튼)
+    hline(s, x + PAD, r2 + 0.18, lw * 0.28, True, 1.6)
+    btnx = x + lw - PAD - 0.62
+    for i in range(2):
+        ry = r2 + 0.34 + i * 0.42
+        sil_box(s, x + PAD, ry, lw - 2 * PAD, 0.36, ctx.on(4), lw=1.1)
+        hline(s, x + PAD + 0.10, ry + 0.15, lw * 0.26, ctx.on(4))
+        sil_pill(s, x + lw * 0.44, ry + 0.10, 0.40, 0.16, ctx.on(4))
+        sil_button(s, btnx, ry + 0.06, 0.62, 0.24, ctx.on(4))
+    ctx.mk(s, 4, btnx - 0.02, r2 + 0.32)
+
+    # 관계사 그룹 (행: 이름·pill·회수·⑤ 담당 칩+편집)
+    gy = r2 + 1.28
+    hline(s, x + PAD, gy + 0.14, lw * 0.30, True, 1.6)
+    for i in range(3):
+        ry = gy + 0.30 + i * 0.66
+        sil_box(s, x + PAD, ry, lw - 2 * PAD, 0.60, ctx.on(5), lw=1.1)
+        hline(s, x + PAD + 0.10, ry + 0.15, lw * 0.24, ctx.on(5))
+        sil_pill(s, x + lw * 0.42, ry + 0.10, 0.38, 0.16, ctx.on(5))
+        sil_button(s, x + lw - PAD - 0.58, ry + 0.06, 0.58, 0.22, ctx.on(5))
+        for j in range(3):
+            sil_pill(s, x + PAD + 0.10 + j * 0.44, ry + 0.36, 0.40, 0.16, ctx.on(5))
+        sil_button(s, x + lw - PAD - 0.46, ry + 0.34, 0.46, 0.20, ctx.on(5))
+    ctx.mk(s, 5, x + PAD + 0.08, gy + 0.28)
+
+    # 우 — 부여 패널
+    sil_box(s, rx, r2, rw, 2.60, True, lw=1.3, fill=GF7)
+    sy = r2 + 0.14
+    sil_input(s, rx + PAD, sy, rw - 2 * PAD - 0.52, 0.22, ctx.on(2))
+    sil_button(s, rx + rw - PAD - 0.48, sy, 0.48, 0.22, ctx.on(2))
+    for i in range(2):
+        sil_box(s, rx + PAD, sy + 0.32 + i * 0.26, rw - 2 * PAD, 0.22, ctx.on(2), lw=1.0)
+    ctx.mk(s, 2, rx + PAD - 0.02, sy - 0.02)
+    gy3 = sy + 0.94
+    segw = (rw - 2 * PAD) / 2
+    for i in range(2):
+        sil_pill(s, rx + PAD + i * (segw + 0.04), gy3, segw - 0.02, 0.24, ctx.on(3))
+    for r in range(2):
+        for c in range(3):
+            sil_pill(s, rx + PAD + c * 0.54, gy3 + 0.32 + r * 0.24, 0.50, 0.20, ctx.on(3))
+    sil_button(s, rx + PAD, gy3 + 0.86, rw - 2 * PAD, 0.28, ctx.on(3))
+    ctx.mk(s, 3, rx + PAD - 0.02, gy3 - 0.02)
+
+
+def draw_adm08_p2(s, R, ctx):
+    """LAYOUT ADM-08 p2
+    행1: 탭바(2 활성 톤) / 행2: ⑥그룹 전체보기 카드 / 행3: ⑦등록자 테이블 / 행4: ⑧활동 로그"""
+    C = chrome(s, R)
+    x, y, w, h = C["x"], C["y"], C["w"], C["h"]
+
+    # 행1 — 탭바 (탭2 활성 톤)
+    tw = 0.94
+    for i in range(4):
+        sil_pill(s, x + i * (tw + 0.06), y, tw, 0.26, i == 1)
+
+    # 행2 — ⑥ 그룹 전체보기 카드 (부여 행 + 사유 입력 + 회수)
+    r2, r2h = y + 0.38, 1.20
+    sil_box(s, x, r2, w, r2h, ctx.on(6), lw=1.3)
+    hline(s, x + PAD, r2 + 0.18, w * 0.22, ctx.on(6), 1.8)
+    for i in range(2):
+        ry = r2 + 0.34 + i * 0.28
+        sil_box(s, x + PAD, ry, w - 2 * PAD, 0.24, ctx.on(6), lw=1.0)
+        sil_button(s, x + w - PAD - 0.56, ry + 0.02, 0.54, 0.20, ctx.on(6))
+    sil_input(s, x + PAD, r2 + 0.94, w - 2 * PAD - 0.72, 0.20, ctx.on(6))
+    sil_button(s, x + w - PAD - 0.62, r2 + 0.92, 0.62, 0.24, ctx.on(6))
+    ctx.mk(s, 6, x - 0.02, r2 - 0.02)
+
+    # 행3 — ⑦ 등록자 테이블 (헤더 + 행 3 + 더보기)
+    r3, r3h = r2 + r2h + 0.12, 1.10
+    sil_box(s, x, r3, w, r3h, ctx.on(7), lw=1.3)
+    colw = (w - 2 * PAD) / 4
+    for c in range(4):
+        hline(s, x + PAD + c * colw, r3 + 0.18, colw * 0.54, ctx.on(7))
+    seg(s, x + PAD, r3 + 0.28, x + w - PAD, r3 + 0.28, color=(GCC if ctx.on(7) else GDD), w=1.2)
+    for i in range(3):
+        ry = r3 + 0.44 + i * 0.20
+        for c in range(4):
+            hline(s, x + PAD + c * colw, ry, colw * 0.70, ctx.on(7))
+    hline(s, x + w / 2 - 0.35, r3 + r3h - 0.14, 0.70, ctx.on(7))
+    ctx.mk(s, 7, x - 0.02, r3 - 0.02)
+
+    # 행4 — ⑧ 활동 로그 (필터 칩 + 검색 → 테이블 + 더보기)
+    r4 = r3 + r3h + 0.12
+    r4h = h - (r4 - y) - 0.02
+    for i in range(5):
+        sil_pill(s, x + i * 0.46, r4, 0.42, 0.20, ctx.on(8))
+    sil_input(s, x + w - 1.50, r4, 1.50, 0.20, ctx.on(8))
+    tb, tbh = r4 + 0.30, r4h - 0.30
+    sil_box(s, x, tb, w, tbh, ctx.on(8), lw=1.3)
+    for c in range(4):
+        hline(s, x + PAD + c * colw, tb + 0.16, colw * 0.50, ctx.on(8))
+    seg(s, x + PAD, tb + 0.26, x + w - PAD, tb + 0.26, color=(GCC if ctx.on(8) else GDD), w=1.2)
+    for i in range(4):
+        ry = tb + 0.42 + i * 0.18
+        for c in range(4):
+            hline(s, x + PAD + c * colw, ry, colw * 0.68, ctx.on(8))
+    hline(s, x + w / 2 - 0.35, tb + tbh - 0.14, 0.70, ctx.on(8))
+    ctx.mk(s, 8, x - 0.02, r4 - 0.02)
+
+
+_adm08_be = ("getAdmins·getGroupViewers·getRegistrants·getAuditLogs·getSsoUsers·getSelectableCompanies·"
+             "getCompanyAdmins. SSO 검색=디렉터리 API, 권한 변경=audit_logs 단일 트랜잭션, "
+             "보호 장치 서버 재검증(0.6).")
+screen(prs, ("사용자·권한·로그 관리", "사용자 관리", "ADM-08", "/admin/users  (admin 전용)"), draw_adm08_p1, [
+    (1, "관리자 권한 탭", "전사/관계사 관리자 목록"),
+    (2, "SSO 사용자 검색", "디렉터리 검색"),
+    (3, "역할 선택·부여", "전사/관계사 — 관계사는 담당 복수 선택"),
+    (4, "회수·보호 장치", "최소 1명 유지·본인 차단·담당 최소 1곳"),
+    (5, "담당 관계사 편집", "추가/제거"),
+], page_no=1, page_total=2, subtitle="권한", rule_box=(
+    ["보호 장치 3종은 서버에서도 동일 검증(0.6)"],
+    _adm08_be,
+))
+
+screen(prs, ("사용자·권한·로그 관리", "사용자 관리", "ADM-08", "/admin/users  (admin 전용)"), draw_adm08_p2, [
+    (6, "그룹 전체보기 탭", "부여 목록·사유 필수·확인 절차·회수"),
+    (7, "등록자 관리 탭", "등록 이력 사용자 테이블·더보기"),
+    (8, "활동 로그 탭", "카테고리 필터·검색·테이블·더보기"),
+], page_no=2, page_total=2, subtitle="기타 탭", rule_box=(
+    ["그룹 전체보기 = 비노출 관계사 카드 열람 예외 권한 — 부여 근거 기록",
+     "활동 로그 소급 수정 금지",
+     "탭 2·3·4는 배타 전환 — 본 도면은 합성 표기"],
+    _adm08_be,
+))
+
+# ============================================================
+# ADM-09 공지·업데이트 관리
+# ============================================================
+def_slide(
+    prs, "ADM-09", "공지·업데이트 관리 (Notices)",
+    tree=[
+        (0, "공지 관리 (/admin/notices)"),
+        (1, "좌 소식 목록 (작성·종류 필터)"),
+        (1, "우 내용 편집·노출 설정·저장/삭제"),
+    ],
+    flow=["작성/선택", "편집(종류·제목·본문·게시일)", "노출·고정 설정", "저장"],
+    flow_branch=[(0, "companyAdmin 진입 → 전사 전용 안내"), (3, "삭제 → 노출 끄기 권장 안내")],
+    flow_note=[
+        "소식은 전사 공지 성격이라 라우트+화면 이중 방어로 전사 관리자 전용을 지킨다.",
+        "삭제 대신 노출 끄기를 권장해 이력 유실을 막는다.",
+    ],
+    sections=[
+        ("정의·역할", ["접근: admin 전용 (라우트는 companyAdmin 통과·화면에서 전사 전용 안내)",
+                    "공지사항·업데이트의 작성·수정·삭제·고정·노출 관리"]),
+        ("목적", ["랜딩 최신소식·소식 화면의 콘텐츠 운영"]),
+        ("기획 의도", ["소식은 전사 공지 성격 — 전사 관리자 전용(라우트+화면 이중 방어)",
+                    "삭제 대신 노출 끄기 권장 — 이력 유실 방지",
+                    "소식은 알림 미발생(0.10) — 알림은 본인 신청·활동 통지로 한정해 피로도 관리"]),
+        ("지켜야 할 룰", ["게시일 YYYY.MM.DD 형식",
+                     "고정 소식 상단 우선",
+                     "노출 꺼진 소식은 사용자 미표시·데이터 유지"]),
+        ("개발 연동 노트", ["getAdminNotices(비노출 포함). 공지 CRUD·고정/노출 토글 API, 소식 ID 서버 발급",
+                      "공개/관리 조회의 노출 필터 차이 구분"]),
+    ],
+)
+
+
+def draw_adm09(s, R, ctx):
+    """LAYOUT ADM-09 (마스터·디테일 단일 페이지)
+    좌 300: ①헤더(소식 N+작성) → 종류 필터 3pill → 소식 행 4 |
+    우: ②내용 카드 → ③노출 설정 카드 → ④헤더 우측 저장·삭제 → ⑤ID 표기 줄(우측 상단 메타)"""
+    C = chrome(s, R)
+    x, y = C["x"], C["y"]
+    mw, dx, dw = split(C)
+
+    # ① 좌 헤더 → 종류 필터 → 소식 행 4
+    hline(s, x, y + 0.12, mw * 0.40, ctx.on(1), 1.8)
+    sil_button(s, x + mw - 0.52, y, 0.52, 0.24, ctx.on(1))
+    fw = (mw - 2 * 0.05) / 3
+    for i in range(3):
+        sil_pill(s, x + i * (fw + 0.05), y + 0.34, fw, 0.18, ctx.on(1))
+    for i in range(4):
+        ry = y + 0.62 + i * 0.62
+        sil_box(s, x, ry, mw, 0.56, ctx.on(1), lw=1.2)
+        sil_pill(s, x + 0.05, ry + 0.06, 0.26, 0.12, ctx.on(1))
+        sil_pill(s, x + 0.34, ry + 0.06, 0.22, 0.12, ctx.on(1))
+        hline(s, x + 0.05, ry + 0.30, mw - 0.16, ctx.on(1))
+        hline(s, x + 0.05, ry + 0.44, mw * 0.44, ctx.on(1))
+    ctx.mk(s, 1, x - 0.02, y - 0.02)
+
+    # ⑤ ID 표기 줄 (우측 상단 메타)
+    idw = 1.10
+    hline(s, dx + dw - idw, y + 0.10, idw, ctx.on(5))
+    ctx.mk(s, 5, dx + dw - idw - 0.30, y - 0.02)
+
+    # ④ 헤더 우측 저장·삭제
+    hr = y + 0.34
+    hline(s, dx, hr + 0.14, dw * 0.28, True, 1.8)
+    sil_button(s, dx + dw - 1.24, hr, 0.60, 0.26, ctx.on(4))
+    sil_button(s, dx + dw - 0.60, hr, 0.60, 0.26, ctx.on(4))
+    ctx.mk(s, 4, dx + dw - 1.26, hr - 0.02)
+
+    # ② 내용 카드 (종류 세그먼트·제목·본문 영역·게시일)
+    a, ah = y + 0.72, 2.60
+    sil_box(s, dx, a, dw, ah, ctx.on(2), lw=1.3)
+    for i in range(2):
+        sil_pill(s, dx + PAD + i * 0.64, a + 0.14, 0.60, 0.22, ctx.on(2))
+    sil_input(s, dx + PAD, a + 0.48, dw - 2 * PAD, 0.22, ctx.on(2))
+    sil_box(s, dx + PAD, a + 0.80, dw - 2 * PAD, 1.34, ctx.on(2), lw=1.1, fill=GF7)
+    sil_lines(s, dx + PAD + 0.10, a + 0.94, dw - 2 * PAD - 0.20, ctx.on(2), n=6, gap=0.18)
+    sil_input(s, dx + PAD, a + 2.26, dw * 0.42, 0.20, ctx.on(2))
+    ctx.mk(s, 2, dx - 0.02, a - 0.02)
+
+    # ③ 노출 설정 카드 (고정 토글 행 · 노출 토글 행)
+    b = a + ah + 0.12
+    sil_box(s, dx, b, dw, 0.94, ctx.on(3), lw=1.3, fill=GF7)
+    hline(s, dx + PAD, b + 0.16, dw * 0.24, ctx.on(3), 1.6)
+    for i in range(2):
+        ry = b + 0.34 + i * 0.28
+        hline(s, dx + PAD, ry + 0.12, dw * 0.34, ctx.on(3))
+        toggle(s, dx + dw - PAD - 0.40, ry + 0.02, ctx.on(3))
+    ctx.mk(s, 3, dx - 0.02, b - 0.02)
+
+
+screen(prs, ("공지·업데이트 관리", "공지 관리", "ADM-09",
+             "/admin/notices  (admin 전용 · 라우트는 companyAdmin 통과)"), draw_adm09, [
+    (1, "소식 목록", "작성 버튼·종류 필터[전체/공지사항/업데이트]·행: 종류 뱃지·고정/숨김 뱃지·제목·날짜·더보기"),
+    (2, "내용 편집", "종류 선택·제목·본문·게시일[형식 검증]"),
+    (3, "노출 설정", "고정/일반·노출/숨김 토글[조회 모드 즉시 반영]"),
+    (4, "저장·삭제", "확인 절차·\"노출 끄기 권장\" 안내"),
+    (5, "소식 ID", "신규 저장 시 NOTICE-{연도}-{순번} 발급"),
+], rule_box=(
+    ["companyAdmin 진입 시 \"전사 관리자 전용\" 안내 렌더",
+     "소식은 알림을 발생시키지 않음(0.10)"],
+    "getAdminNotices(비노출 포함). 공지 CRUD·고정/노출 토글 API, 소식 ID 서버 발급, 공개/관리 조회의 노출 필터 차이 구분.",
 ))
 
 # ============================================================

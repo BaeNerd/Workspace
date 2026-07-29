@@ -35,9 +35,10 @@ CONTENT_W = SW - 2 * MARGIN
 CONTENT_BOTTOM = SH - MARGIN
 EMU = 914400
 
+# 베이스 템플릿: 환경변수 → 스크립트 옆 _deck_base.pptx(빈 슬라이드 + 공용 마스터/테마) → python-pptx 기본
 _TEMPLATE = os.environ.get(
     "PPTX_TEMPLATE",
-    r"C:\Users\USER\AppData\Local\Temp\claude\i--Workspace\d5b0a822-1399-4b83-8fda-ea38b58409d1\scratchpad\default_template.pptx",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "_deck_base.pptx"),
 )
 
 
@@ -362,8 +363,8 @@ def _node_box(s, x, y, w, h, label, size=9.5, bold=False):
 
 
 def p0_tree(s, x, y, w, flat):
-    """flat: list of (depth, label). depth 0=root."""
-    row_h = 0.30; gap = 0.075; indent = 0.42
+    """flat: list of (depth, label). depth 0=root. 9행 이상 트리는 행 간격을 좁혀 흐름 영역을 확보한다."""
+    row_h = 0.30; gap = 0.075 if len(flat) <= 8 else 0.045; indent = 0.42
     nh = 0.255
     last_cy = {}
     cy = y
@@ -384,8 +385,25 @@ def p0_tree(s, x, y, w, flat):
     return cy
 
 
+def _branch_list(branch):
+    if not branch:
+        return []
+    return [branch] if isinstance(branch, tuple) else list(branch)
+
+
+def flow_branch_block(branch):
+    """분기 갈래 영역 높이. 같은 단계에 붙는 갈래는 세로로 쌓는다(단일 갈래는 0.78 그대로)."""
+    blist = _branch_list(branch)
+    if not blist:
+        return 0.0
+    stacked = {}
+    for idx, _ in blist:
+        stacked[idx] = stacked.get(idx, 0) + 1
+    return 0.34 + 0.42 + (max(stacked.values()) - 1) * 0.48 + 0.02
+
+
 def p0_flow(s, x, y, w, steps, branch=None):
-    """steps: list of str (좌→우). branch=(after_index, label)."""
+    """steps: list of str (좌→우). branch=(after_index, label) 또는 그 리스트."""
     n = len(steps)
     gap = 0.26
     bw = (w - gap * (n - 1)) / n
@@ -400,14 +418,17 @@ def p0_flow(s, x, y, w, steps, branch=None):
                                     Inches(y + bh / 2 - 0.07), Inches(gap - 0.04), Inches(0.14))
             _fill(ar, GCC); _line(ar, None, 0); ar.shadow.inherit = False
         cx += bw + gap
-    if branch:
-        idx, blabel = branch
+    used = {}
+    for idx, blabel in _branch_list(branch):
         c = centers[idx]
-        by = y + bh + 0.34
-        da = s.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, Inches(c[0] - 0.07), Inches(y + bh + 0.02),
-                                Inches(0.14), Inches(0.28))
-        _fill(da, GCC); _line(da, None, 0); da.shadow.inherit = False
+        k = used.get(idx, 0)
+        by = y + bh + 0.34 + k * 0.48
+        if k == 0:
+            da = s.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, Inches(c[0] - 0.07), Inches(y + bh + 0.02),
+                                    Inches(0.14), Inches(0.28))
+            _fill(da, GCC); _line(da, None, 0); da.shadow.inherit = False
         _node_box(s, c[0] - bw / 2, by, bw, 0.42, blabel, size=8.5)
+        used[idx] = k + 1
 
 
 def p0_slots_flow(s, x, y, w, start, slots, merge, reject):
@@ -484,6 +505,14 @@ def p0_side(s, x, y, w, h, sections):
         cy += hh + gap
 
 
+def flow_note_h(notes, w):
+    """설계 근거 주석 블록 높이(캡션 + 줄바꿈 반영 본문). 콘텐츠 하단 경계를 넘지 않도록 실측한다."""
+    if not notes:
+        return 0.0
+    lines = sum(_wrap_lines("· " + t, 8.5, w - 0.20) for t in notes)
+    return 0.24 + lines * 0.155 + len(notes) * 0.015 + 0.09
+
+
 def _flow_note(s, x, y, w, notes):
     """사용자 흐름 아래 설계 근거 주석 2~4줄."""
     textbox(s, x, y, w, 0.22, [line_para("설계 근거", size=9, bold=True, color=G99, space_after=0)])
@@ -491,7 +520,7 @@ def _flow_note(s, x, y, w, notes):
     for t in notes:
         paras.append({"runs": [("· ", 8.5, True, G99), (t, 8.5, False, G66)],
                       "align": PP_ALIGN.LEFT, "space_after": 1, "line_spacing": 1.05})
-    textbox(s, x + 0.02, y + 0.24, w - 0.04, 0.24 + len(notes) * 0.22, paras, anchor=MSO_ANCHOR.TOP)
+    textbox(s, x + 0.02, y + 0.24, w - 0.04, flow_note_h(notes, w) - 0.24, paras, anchor=MSO_ANCHOR.TOP)
 
 
 def def_slide(prs, screen_id, screen_name, tree, flow, sections, flow_branch=None,
@@ -518,11 +547,11 @@ def def_slide(prs, screen_id, screen_name, tree, flow, sections, flow_branch=Non
 
     # 좌측: [하] 사용자 흐름 + 설계 근거 주석 — 하단 기준으로 배치
     notes = flow_note or []
-    note_h = (0.26 + len(notes) * 0.22) if notes else 0.0
+    note_h = flow_note_h(notes, left_w - 0.1)
     if flow_slots:
         flow_block = 1.56                                     # 병렬 2-슬롯 분기·합류 흐름도
     else:
-        flow_block = 0.5 + (0.78 if flow_branch else 0.0)     # 노드 + (분기 갈래)
+        flow_block = 0.5 + flow_branch_block(flow_branch)     # 노드 + (분기 갈래)
     needed = 0.24 + 0.06 + flow_block + (0.14 + note_h if notes else 0.0)
     flow_cap_y = CONTENT_BOTTOM - needed
     if flow_cap_y < tree_bottom + 0.14:
