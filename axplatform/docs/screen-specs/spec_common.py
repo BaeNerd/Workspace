@@ -16,6 +16,7 @@ from pptx.oxml.ns import qn
 
 FONT = "맑은 고딕"
 AUTHOR = ""   # 빌드 스크립트에서 spec_common.AUTHOR = "..." 로 지정 (헤더 표 '작성자' 칸)
+DEF_NOTE = ""  # 빌드 스크립트에서 spec_common.DEF_NOTE = "..." 로 지정 (정의 슬라이드 서두 공통 문장)
 
 INK   = RGBColor(0x11, 0x11, 0x11)
 G33   = RGBColor(0x33, 0x33, 0x33)
@@ -536,6 +537,11 @@ def def_slide(prs, screen_id, screen_name, tree, flow, sections, flow_branch=Non
     seg(s, CONTENT_X, MARGIN + 0.44, CONTENT_X + CONTENT_W, MARGIN + 0.44, color=GCC, w=1.5)
 
     top = MARGIN + 0.58
+    if DEF_NOTE:
+        # 서두 공통 문장 — 분류 개수의 성격(마스터 데이터 파생 현재값)을 전 정의 슬라이드에 고지
+        textbox(s, CONTENT_X, MARGIN + 0.48, CONTENT_W, 0.20,
+                [line_para(DEF_NOTE, size=8.5, color=G99, space_after=0)])
+        top = MARGIN + 0.78
     left_x = CONTENT_X
     left_w = CONTENT_W * 0.55
     right_x = CONTENT_X + left_w + 0.3

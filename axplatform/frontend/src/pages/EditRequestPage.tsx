@@ -263,7 +263,7 @@ export default function EditRequestPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    // TODO: 실제 연동 시 POST /api/v1/platform-items/:id/edit-requests
+    // TODO: 실제 연동 시 POST /api/v1/assets/:id/edit-requests
     const _payload = {
       id: item.id,
       categoryId: kind,

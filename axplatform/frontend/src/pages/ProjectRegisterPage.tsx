@@ -250,7 +250,7 @@ export default function ProjectRegisterPage() {
     // 데모 순번 (백엔드 발급 전 임시). TODO: 실제 연동 시 서버 발급 ID 사용.
     const seq = Math.floor(Math.random() * 900) + 100;
     const newId = makeItemId(kind, seq);
-    // TODO: 실제 연동 시 POST /api/v1/platform-items 로 전송
+    // TODO: 실제 연동 시 POST /api/v1/assets 로 전송
     const _payload = {
       id: newId,
       platformId: kind,

@@ -8,7 +8,7 @@ export const MAX_IMAGES = 10;
 // 등록 폼(ProjectRegisterPage)과 카드 관리(AdminProjectManage) 편집 모드가 공유해
 // "편집 필드는 등록 폼과 동일" 원칙을 구조적으로 보장한다.
 // 데모 단계에서는 FileReader data URL로 미리보기만 유지한다.
-// TODO: 실제 연동 시 이미지 스토리지 업로드(POST /api/v1/platform-items/:id/images)로 교체.
+// TODO: 실제 연동 시 이미지 스토리지 업로드(POST /api/v1/assets/:id/images)로 교체.
 export function ImageCarouselInput({ images, onFiles, onRemoveAt, overCapacity }: {
   images: string[]; onFiles: (files: FileList) => void; onRemoveAt: (i: number) => void; overCapacity: boolean;
 }) {

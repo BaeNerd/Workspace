@@ -77,7 +77,7 @@ const SOURCE_STYLE: Record<string, { color: string; bg: string; label: string; i
 // 랜딩 노출 큐레이션 — 표시할 항목 ID·순서만 보유(표시 전용 메타). 제목·요약·부서·
 // 좋아요·조회수·수정일·도메인 등 데이터 필드는 dataSource.getAssetItem(id)에서 파생해
 // 자산 SSOT와의 사본 드리프트를 제거한다.
-// TODO: 실제 연동 시 GET /api/v1/platform-items 응답으로 교체
+// TODO: 실제 연동 시 GET /api/v1/assets 응답으로 교체
 type LItem = {
   id: string; categoryId: CategoryId; title: string; summary: string;
   dept: string; likes: number; views: number; updated: string; domain?: BusinessDomain;
